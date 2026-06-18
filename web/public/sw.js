@@ -2,7 +2,7 @@ const DB_NAME = "playable-player-db";
 const DB_VERSION = 1;
 const PLAYABLE_STORE = "playables";
 const FILE_STORE = "files";
-const APP_CACHE = "playable-player-shell-v4";
+const APP_CACHE = "playable-player-shell-v5";
 
 const STORE_HOSTS = [
   "apps.apple.com",

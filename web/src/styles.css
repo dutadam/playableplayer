@@ -400,12 +400,13 @@ h2 {
 }
 
 .playable-row {
+  position: relative;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr);
   gap: 10px;
   align-items: center;
   margin-bottom: 12px;
-  padding: 12px;
+  padding: 12px 54px 12px 12px;
   border-color: color-mix(in srgb, var(--game-color, var(--line)) 28%, var(--line));
   background:
     linear-gradient(90deg, var(--game-soft, #f7f8ff) 0, #ffffff 42%),
@@ -471,18 +472,22 @@ h2 {
 }
 
 .row-actions {
+  position: absolute;
+  top: 10px;
+  right: 10px;
   display: flex;
   gap: 6px;
   align-items: center;
 }
 
 .icon-button.subtle {
-  width: 34px;
-  min-height: 34px;
+  width: 32px;
+  min-height: 32px;
   border: 1px solid var(--line);
   color: #495365;
-  background: rgba(247, 248, 255, 0.78);
-  font-size: 16px;
+  background: rgba(255, 255, 255, 0.82);
+  font-size: 15px;
+  box-shadow: 0 8px 18px rgba(16, 19, 27, 0.08);
 }
 
 .icon-button.subtle.danger {
@@ -490,12 +495,14 @@ h2 {
   background: transparent;
 }
 
-.icon-button.delete-icon {
-  width: 26px;
-  min-height: 26px;
-  border-color: transparent;
-  font-size: 15px;
-  opacity: 0.72;
+.delete-playable-button {
+  min-height: 42px;
+  border: 1px solid #ffd5d8;
+  border-radius: 8px;
+  color: #9c2933;
+  background: #fff4f5;
+  font: inherit;
+  font-weight: 800;
 }
 
 .empty-state {

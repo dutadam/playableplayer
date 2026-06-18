@@ -262,9 +262,6 @@ function renderPlayableRow(item) {
         <button class="icon-button subtle" data-action="edit-playable" data-id="${item.id}" aria-label="Edit ${escapeHtml(item.name)}">
           <span aria-hidden="true">✎</span>
         </button>
-        <button class="icon-button danger subtle delete-icon" data-action="delete-playable" data-id="${item.id}" aria-label="Delete ${escapeHtml(item.name)}">
-          <span aria-hidden="true">×</span>
-        </button>
       </div>
     </article>
   `;
@@ -408,6 +405,8 @@ function renderMetadataSheet() {
           ${QUICK_TAGS.map((tag) => `<button type="button" data-action="quick-tag" data-tag="${tag}">${tag}</button>`).join("")}
         </div>
 
+        ${state.editingPlayableId ? `<button class="delete-playable-button" type="button" data-action="delete-playable" data-id="${item.id}">Delete playable</button>` : ""}
+
         <div class="sheet-actions">
           <button class="secondary-button" type="button" data-action="close-metadata">Later</button>
           <button class="primary-button" type="button" data-action="save-metadata">Save</button>
@@ -489,8 +488,10 @@ async function handleLibraryAction(event) {
   if (action === "save-metadata") {
     await saveMetadataFromSheet();
   }
-  if (action === "delete-playable") {
+  if (action === "delete-playable" && confirm("Delete this playable from the library?")) {
     await deletePlayable(id);
+    state.pendingMetadata = null;
+    state.editingPlayableId = null;
     await refreshLibrary();
   }
   if (action === "clear-library" && confirm("Delete all imported playables on this device?")) {
