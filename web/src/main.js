@@ -192,12 +192,12 @@ function renderLibrary() {
 
 function renderInstallOnboarding() {
   const platform = detectPlatform();
-  const steps = platform === "ios"
-    ? ["Tap Safari's share button", "Choose Add to Home Screen", "Launch from the new icon"]
-    : ["Tap Install or open Share", "Choose Add to Home Screen", "Launch from the new icon"];
   const canShare = platform !== "ios" && typeof navigator.share === "function";
   const hasInstallPrompt = Boolean(deferredInstallPrompt);
   const actionLabel = hasInstallPrompt ? "Install app" : "Open share sheet";
+  const installLine = platform === "ios"
+    ? "Safari share menu > Add to Home Screen"
+    : "Install app or Add to Home Screen";
 
   document.body.classList.remove("player-active");
   app.className = "app onboarding-shell";
@@ -210,18 +210,19 @@ function renderInstallOnboarding() {
         </div>
         <div class="onboarding-copy">
           <p class="eyebrow">One-time setup</p>
-          <h1>Add Playable Player to Home Screen.</h1>
-          <p>Fullscreen testing works best after the app opens from its own Home Screen icon. The library will unlock after this step.</p>
+          <h1>Open as a fullscreen app.</h1>
+          <p>${installLine}. After the icon is on your Home Screen, launch it once and continue here.</p>
         </div>
-        ${platform === "ios" ? renderShareHint() : ""}
-        <ol class="onboarding-steps">
-          ${steps.map((step) => `<li>${step}</li>`).join("")}
-        </ol>
+        <div class="install-card">
+          ${platform === "ios" ? renderShareHint() : `<span class="install-arrow">↓</span>`}
+          <strong>${platform === "ios" ? "Use Safari's native share button" : "Use the browser install prompt"}</strong>
+          <span>${platform === "ios" ? "Apple does not allow websites to trigger Add to Home Screen directly." : "The button appears when your browser supports app install."}</span>
+        </div>
         <div class="onboarding-actions">
           ${canShare || hasInstallPrompt ? `<button class="primary-button" data-action="open-share">${actionLabel}</button>` : ""}
           <button class="secondary-button" data-action="mark-installed">I added it</button>
         </div>
-        <p class="onboarding-note">${platform === "ios" ? "iOS only shows Add to Home Screen from Safari's own share menu. After adding it, tap I added it." : "After this, the setup screen stays hidden on this device."}</p>
+        <p class="onboarding-note">This setup screen will not appear again on this device.</p>
       </section>
       ${state.error ? `<div class="toast" role="alert">${escapeHtml(state.error)}</div>` : ""}
     </main>
@@ -236,7 +237,7 @@ function renderShareHint() {
         <path d="M5 22h52" />
         <path d="M45 10l12 12-12 12" />
       </svg>
-      <span>Point this at Safari's share icon</span>
+      <span>Share → Add to Home Screen</span>
     </div>
   `;
 }
@@ -259,9 +260,9 @@ function renderPlayableRow(item) {
       </button>
       <div class="row-actions">
         <button class="icon-button subtle" data-action="edit-playable" data-id="${item.id}" aria-label="Edit ${escapeHtml(item.name)}">
-          <span aria-hidden="true">⋯</span>
+          <span aria-hidden="true">✎</span>
         </button>
-        <button class="icon-button danger subtle" data-action="delete-playable" data-id="${item.id}" aria-label="Delete ${escapeHtml(item.name)}">
+        <button class="icon-button danger subtle delete-icon" data-action="delete-playable" data-id="${item.id}" aria-label="Delete ${escapeHtml(item.name)}">
           <span aria-hidden="true">×</span>
         </button>
       </div>
@@ -599,21 +600,19 @@ async function loadDemoPlayables() {
   state.error = "";
   const demos = [
     {
-      name: "King Richard Luna Preview",
+      sourceUrl: "https://playground.lunalabs.io/preview/396546/534036/ccb49094d9f6f247f0a2b158f4de579c87284b474f570fab22d07874c72a0504",
       sourceName: "luna-royal-kingdom-preview.html",
       game: "Royal Kingdom",
       creativeType: "Gameplay",
       language: "English",
-      tags: ["luna", "remote-preview", "gameplay", "landscape", "store-cta", "lang-english"],
       htmlPath: `${basePath}luna/royal-kingdom-luna-preview.html`
     },
     {
-      name: "King Robert Luna Preview",
+      sourceUrl: "https://playground.lunalabs.io/preview/414475/563577/ccb49094d9f6f247f0a2b158f4de579c87284b474f570fab22d07874c72a0504",
       sourceName: "luna-royal-match-preview.html",
       game: "Royal Match",
       creativeType: "Gameplay",
       language: "English",
-      tags: ["luna", "remote-preview", "gameplay", "portrait", "store-cta", "lang-english"],
       htmlPath: `${basePath}luna/royal-match-luna-preview.html`
     }
   ];
@@ -624,20 +623,27 @@ async function loadDemoPlayables() {
     const id = existing?.id || crypto.randomUUID();
     const createdAt = existing?.createdAt || new Date().toISOString();
     const html = demo.html || await loadBundledHtml(demo.htmlPath);
+    const inferred = inferPlayableMetadata([demo.sourceUrl, demo.sourceName, html].filter(Boolean).join("\n"));
+    const name = createSmartPlayableName(
+      { sourceName: demo.sourceName, name: inferred.suggestedName || demo.sourceName },
+      inferred,
+      state.playables.filter((item) => item.id !== id)
+    );
     const blob = new Blob([html], { type: "text/html; charset=utf-8" });
     await savePlayable({
       ...existing,
       id,
-      name: demo.name,
+      name,
       entryPath: "index.html",
       sourceName: demo.sourceName,
+      sourceUrl: demo.sourceUrl,
       fileCount: 1,
       byteSize: blob.size,
       createdAt,
-      game: demo.game,
-      creativeType: demo.creativeType,
-      language: demo.language,
-      tags: demo.tags
+      game: inferred.game !== "Other" ? inferred.game : demo.game,
+      creativeType: inferred.creativeType || demo.creativeType,
+      language: inferred.language !== "Unknown" ? inferred.language : demo.language,
+      tags: inferred.tags
     }, [{
       key: `${id}/index.html`,
       playableId: id,
@@ -700,58 +706,104 @@ function inferPlayableMetadata(input) {
   let game = "Other";
   let creativeType = "Gameplay";
   let language = inferLanguage(source);
+  let suggestedName = extractPlayableTitle(input);
 
-  if (/\b(royal[\s_-]*kingdom|kingdom|rk)\b/.test(source)) game = "Royal Kingdom";
-  if (/\b(royal[\s_-]*match|match|rm)\b/.test(source)) game = "Royal Match";
-  if (game === "Other" && source.includes("royal kingdom")) game = "Royal Kingdom";
-  if (game === "Other" && source.includes("royal match")) game = "Royal Match";
-  if (source.includes("cta") || source.includes("store")) {
-    tags.add("cta");
-    creativeType = "Storefront";
+  if (/\broyal[\s_-]*kingdom\b|luna-royal-kingdom|parameter\/preloader\/name[^]*royal kingdom/i.test(source)) {
+    game = "Royal Kingdom";
+  } else if (/\broyal[\s_-]*match\b|luna-royal-match|parameter\/preloader\/name[^]*royal match/i.test(source)) {
+    game = "Royal Match";
   }
-  if (source.includes("reward")) creativeType = "Rewarded";
-  if (source.includes("meta")) creativeType = "Meta";
-  if (source.includes("mini")) creativeType = "Minigame";
+
+  if (/\bcta\b|cta button clicked|gotomarket|store cta/i.test(source)) {
+    tags.add("cta");
+  }
+  if (/\breward(ed)?\b/i.test(source)) creativeType = "Rewarded";
+  if (/\bmeta[-_\s]?game\b|creative[-_\s]?type[^a-z0-9]+meta/i.test(source)) creativeType = "Meta";
+  if (/\bmini[-_\s]?game\b|creative[-_\s]?type[^a-z0-9]+minigame/i.test(source)) creativeType = "Minigame";
   if (creativeType === "Gameplay") tags.add("gameplay");
   if (source.includes("tutorial")) tags.add("tutorial");
   if (source.includes("booster")) tags.add("booster");
-  if (source.includes("win")) tags.add("win-state");
-  if (source.includes("fail") || source.includes("lose")) tags.add("fail-state");
-  if (source.includes("season") || source.includes("event")) tags.add("seasonal");
+  if (/\bwin[-_\s]?state\b|wincondition|win condition/i.test(source)) tags.add("win-state");
+  if (/\bfail[-_\s]?state\b|losecondition|lose condition/i.test(source)) tags.add("fail-state");
+  if (/\bseason(al)?\b|seasonpass|live[-_\s]?event|special[-_\s]?event/i.test(source)) tags.add("seasonal");
   if (source.includes("portrait") || source.includes("dik") || source.includes("vertical")) tags.add("portrait");
   if (source.includes("landscape") || source.includes("yatay") || source.includes("horizontal")) tags.add("landscape");
+  if (source.includes("dynamicaspect") || source.includes("isdynamicaspectenabled")) tags.add("dynamic-aspect");
   if (source.includes("puzzle")) tags.add("puzzle");
   if (source.includes("builder")) tags.add("builder");
   if (source.includes("king robert") || source.includes("robert")) tags.add("king-robert");
   if (source.includes("king richard") || source.includes("richard")) tags.add("king-richard");
   if (source.includes("princess")) tags.add("princess");
+  if (source.includes("rockfalldrill") || source.includes("rockfalldrill")) tags.add("rock-fall");
+  if (source.includes("rockfallwarning")) tags.add("warning");
+  if (source.includes("wallmovement")) tags.add("wall-push");
+  if (source.includes("isdropenabled")) tags.add("drop");
+  if (source.includes("isthreeitem")) tags.add("three-item");
+  if (source.includes("leveldataphase")) tags.add("multi-stage");
+  if (source.includes("harder than you think")) tags.add("harder-than-you-think");
   if (source.includes("luna")) tags.add("luna");
   if (source.includes("playground")) tags.add("remote-preview");
   if (language !== "Unknown") tags.add(`lang-${language.toLowerCase()}`);
+  if (!suggestedName && tags.has("rock-fall")) suggestedName = "Rock Fall Drill";
+  if (!suggestedName && tags.has("harder-than-you-think")) suggestedName = "Harder Than You Think";
 
-  return { game, creativeType, language, tags: [...tags] };
+  return { game, creativeType, language, suggestedName, tags: [...tags] };
+}
+
+function extractPlayableTitle(input) {
+  const source = String(input || "");
+  const messageMatch = source.match(/\\"messageText\\"\s*:\s*\[\\"string\\",\\"([^"\\]+)\\"\]/i)
+    || source.match(/"messageText"\s*:\s*\["string","([^"]+)"\]/i);
+  if (messageMatch?.[1]) return cleanupName(messageMatch[1]);
+
+  if (/rockfalldrill|rockfallwarning/i.test(source)) return "Rock Fall Drill";
+  if (/wallmovement/i.test(source)) return "Wall Push";
+
+  const preloaderMatch = source.match(/\\"parameter\/preloader\/name\\"\s*:\s*\[\\"string\\",\\"([^"\\]+)\\"\]/i)
+    || source.match(/"parameter\/preloader\/name"\s*:\s*\["string","([^"]+)"\]/i);
+  const appIds = source.match(/playground\.lunalabs\.io\/preview\/(\d+)\/(\d+)/i);
+  if (appIds && preloaderMatch?.[1]) return `${cleanupName(preloaderMatch[1])} ${appIds[2]}`;
+
+  return "";
 }
 
 function inferLanguage(source) {
+  const header = String(source || "").split(/<html|<!doctype/i)[0];
+  const codedLanguageRules = [
+    ["Turkish", /(?:^|[_.\-/\s])tr(?:$|[_.\-/\s])/],
+    ["English", /(?:^|[_.\-/\s])en(?:$|[_.\-/\s])/],
+    ["German", /(?:^|[_.\-/\s])de(?:$|[_.\-/\s])/],
+    ["French", /(?:^|[_.\-/\s])fr(?:$|[_.\-/\s])/],
+    ["Spanish", /(?:^|[_.\-/\s])es(?:$|[_.\-/\s])/],
+    ["Italian", /(?:^|[_.\-/\s])it(?:$|[_.\-/\s])/],
+    ["Portuguese", /(?:^|[_.\-/\s])pt(?:$|[_.\-/\s])/],
+    ["Arabic", /(?:^|[_.\-/\s])ar(?:$|[_.\-/\s])/],
+    ["Japanese", /(?:^|[_.\-/\s])ja(?:$|[_.\-/\s])/],
+    ["Korean", /(?:^|[_.\-/\s])ko(?:$|[_.\-/\s])/],
+    ["Chinese", /(?:^|[_.\-/\s])zh(?:$|[_.\-/\s])/]
+  ];
+  const codedLanguage = codedLanguageRules.find(([, pattern]) => pattern.test(header))?.[0];
+  if (codedLanguage) return codedLanguage;
+
   const languageRules = [
-    ["Turkish", /\b(tr|turkish|turkce|türkçe|turkiye|türkiye)\b|oyna|devam|mükemmel|mukemmel|seviye/],
-    ["English", /\b(en|eng|english|us|uk)\b|play now|harder than you think|amazing|level/],
-    ["German", /\b(de|deu|german|deutsch)\b|spielen|weiter/],
-    ["French", /\b(fr|fre|french|français|francais)\b|jouer|niveau/],
-    ["Spanish", /\b(es|spa|spanish|español|espanol)\b|jugar|nivel/],
-    ["Italian", /\b(it|ita|italian|italiano)\b|gioca|livello/],
-    ["Portuguese", /\b(pt|por|portuguese|português|portugues)\b|jogar|nível|nivel/],
-    ["Arabic", /\b(ar|ara|arabic)\b|العب|لعبة/],
-    ["Japanese", /\b(ja|jpn|japanese)\b|プレイ|ゲーム/],
-    ["Korean", /\b(ko|kor|korean)\b|플레이|게임/],
-    ["Chinese", /\b(zh|cn|chi|chinese)\b|游戏|立即/]
+    ["Turkish", /\bturkish\b|\bturkce\b|\btürkçe\b|oyna|devam|mükemmel|mukemmel/],
+    ["English", /\benglish\b|play now|harder than you think|amazing/],
+    ["German", /\bgerman\b|\bdeutsch\b|spielen|weiter/],
+    ["French", /\bfrench\b|\bfrançais\b|\bfrancais\b|jouer/],
+    ["Spanish", /\bspanish\b|\bespañol\b|\bespanol\b|jugar/],
+    ["Italian", /\bitalian\b|\bitaliano\b|gioca|livello/],
+    ["Portuguese", /\bportuguese\b|\bportuguês\b|\bportugues\b|jogar/],
+    ["Arabic", /\barabic\b|العب|لعبة/],
+    ["Japanese", /\bjapanese\b|プレイ|ゲーム/],
+    ["Korean", /\bkorean\b|플레이|게임/],
+    ["Chinese", /\bchinese\b|游戏|立即/]
   ];
   return languageRules.find(([, pattern]) => pattern.test(source))?.[0] || "Unknown";
 }
 
 function createSmartPlayableName(playable, inferred, existingItems) {
-  const contextName = cleanupName(playable.sourceName || playable.name);
-  const parts = [contextName, inferred.creativeType, inferred.language !== "Unknown" ? inferred.language : ""]
+  const contextName = cleanupName(inferred.suggestedName || playable.name || playable.sourceName);
+  const parts = [contextName]
     .filter(Boolean);
   const base = dedupeNameParts(parts).join(" · ") || contextName || "Playable";
   const existingNames = new Set(existingItems.map((item) => item.name));
@@ -812,23 +864,40 @@ function getPlayableTags(item) {
 }
 
 function getDisplayTags(item) {
-  const hidden = new Set(["demo", "preview", "remote-assets"]);
+  const hidden = new Set(["demo", "preview", "remote-assets", "remote-preview", "gameplay", "luna", "lang-english", "lang-turkish"]);
   const labels = {
     "lang-english": "English",
     "lang-turkish": "Turkish",
+    cta: "CTA",
     "remote-preview": "Remote preview",
     "store-cta": "Store CTA",
+    warning: "Warning",
+    drop: "Drop",
     "win-state": "Win state",
     "fail-state": "Fail state",
     "king-robert": "King Robert",
     "king-richard": "King Richard",
+    "dynamic-aspect": "Dynamic aspect",
+    "rock-fall": "Rock fall",
+    "wall-push": "Wall push",
+    "three-item": "Three item",
+    "multi-stage": "Multi-stage",
+    "harder-than-you-think": "Hook line",
+    "store-cta": "CTA",
     gameplay: "Gameplay",
     luna: "Luna"
   };
   return getPlayableTags(item)
     .filter((tag) => !hidden.has(tag))
     .map((tag) => labels[tag] || titleCaseTag(tag))
+    .sort((a, b) => tagPriority(a) - tagPriority(b))
     .filter((tag, index, list) => list.indexOf(tag) === index);
+}
+
+function tagPriority(tag) {
+  const order = ["CTA", "Hook line", "Rock fall", "Wall push", "Drop", "Three item", "Multi-stage", "Dynamic aspect", "Tutorial"];
+  const index = order.indexOf(tag);
+  return index === -1 ? 99 : index;
 }
 
 function getDisplayName(item) {
