@@ -21,6 +21,7 @@ const state = {
   pendingMetadata: null,
   editingPlayableId: null,
   settingsOpen: false,
+  playerStarted: false,
   gameFilter: localStorage.getItem("game-filter") || "All",
   languageFilter: localStorage.getItem("language-filter") || "All",
   audioMuted: localStorage.getItem("audio-muted") === "1",
@@ -99,9 +100,14 @@ async function registerServiceWorker() {
 function syncRoute() {
   const match = location.hash.match(/^#\/player\/([^/]+)$/);
   if (match) {
-    state.activePlayable = state.playables.find((item) => item.id === match[1]) || null;
+    const nextPlayable = state.playables.find((item) => item.id === match[1]) || null;
+    if (nextPlayable?.id !== state.activePlayable?.id) {
+      state.playerStarted = false;
+    }
+    state.activePlayable = nextPlayable;
   } else {
     state.activePlayable = null;
+    state.playerStarted = false;
     state.controlsOpen = false;
     state.storeIntent = null;
   }
@@ -329,9 +335,7 @@ function renderPlayer() {
   document.body.classList.add("player-active");
   const item = state.activePlayable;
   const source = `${basePath}playables/${encodeURIComponent(item.id)}/${encodePath(item.entryPath)}?r=${state.reloadNonce}&pp_audio=${state.audioMuted ? "muted" : "on"}`;
-  app.className = "app player-shell";
-  app.innerHTML = `
-    <main class="player-page">
+  const playerFrame = state.playerStarted ? `
       <iframe
         id="player-frame"
         class="player-frame"
@@ -340,6 +344,16 @@ function renderPlayer() {
         allow="autoplay; fullscreen; gamepad; accelerometer; gyroscope; encrypted-media"
         sandbox="allow-scripts allow-same-origin allow-forms allow-pointer-lock allow-orientation-lock allow-popups allow-popups-to-escape-sandbox"
       ></iframe>
+  ` : `
+      <button class="start-player-overlay" data-action="start-player" aria-label="Start playable">
+        <span>Tap to start</span>
+      </button>
+  `;
+
+  app.className = "app player-shell";
+  app.innerHTML = `
+    <main class="player-page">
+      ${playerFrame}
       <button class="secret-zone secret-top-left" data-action="secret-tap" aria-label="Open controls"></button>
       <button class="secret-zone secret-top-right" data-action="secret-tap" aria-label="Open controls"></button>
       <button class="secret-zone secret-bottom-left" data-action="secret-tap" aria-label="Open controls"></button>
@@ -361,7 +375,7 @@ function renderPlayer() {
   `;
 
   wirePlayerEvents();
-  requestFullscreenSoon();
+  if (state.playerStarted) requestFullscreenSoon();
 }
 
 function renderStoreModal(intent) {
@@ -532,6 +546,7 @@ function wirePlayerEvents() {
     element.addEventListener("click", handlePlayerAction);
   });
   const frame = app.querySelector("#player-frame");
+  if (!frame) return;
   frame.addEventListener("load", () => {
     detectExternalFrameNavigation(frame);
     postPlayerAudioPreference(frame);
@@ -544,10 +559,18 @@ function handlePlayerAction(event) {
   if (action === "secret-tap") {
     registerSecretTap();
   }
+  if (action === "start-player") {
+    requestFullscreen();
+    state.playerStarted = true;
+    state.controlsOpen = false;
+    state.storeIntent = null;
+    render();
+  }
   if (action === "reload-player" || action === "store-retry") {
     state.storeIntent = null;
     state.controlsOpen = false;
     state.reloadNonce += 1;
+    state.playerStarted = false;
     render();
   }
   if (action === "request-fullscreen") {
