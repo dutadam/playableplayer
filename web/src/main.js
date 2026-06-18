@@ -124,6 +124,8 @@ function renderLibrary() {
   const filteredItems = getFilteredPlayables();
   const rows = filteredItems.map(renderPlayableRow).join("");
   const bootNotice = state.isBooting ? `<section class="status-strip">Opening library...</section>` : "";
+  const royalMatchTheme = gameTheme("Royal Match");
+  const royalKingdomTheme = gameTheme("Royal Kingdom");
 
   app.innerHTML = `
     <main class="library-page">
@@ -138,9 +140,6 @@ function renderLibrary() {
           <p class="eyebrow">Playable QA</p>
           <h1>Creative library and fullscreen player.</h1>
         </div>
-        <div class="hero-actions">
-          <button class="primary-button load-button" data-action="load-demos">Load Playable</button>
-        </div>
       </section>
 
       ${bootNotice}
@@ -150,11 +149,11 @@ function renderLibrary() {
           <strong>${state.playables.length}</strong>
           <span>Total</span>
         </button>
-        <button class="summary-card ${state.gameFilter === "Royal Match" ? "active" : ""}" style="--game-color: ${gameColor("Royal Match")}" data-action="set-game-filter" data-game="Royal Match">
+        <button class="summary-card ${state.gameFilter === "Royal Match" ? "active" : ""}" style="--game-color: ${royalMatchTheme.primary}; --game-soft: ${royalMatchTheme.soft}" data-action="set-game-filter" data-game="Royal Match">
           <strong>${countByGame("Royal Match")}</strong>
           <span>Royal Match</span>
         </button>
-        <button class="summary-card ${state.gameFilter === "Royal Kingdom" ? "active" : ""}" style="--game-color: ${gameColor("Royal Kingdom")}" data-action="set-game-filter" data-game="Royal Kingdom">
+        <button class="summary-card ${state.gameFilter === "Royal Kingdom" ? "active" : ""}" style="--game-color: ${royalKingdomTheme.primary}; --game-soft: ${royalKingdomTheme.soft}" data-action="set-game-filter" data-game="Royal Kingdom">
           <strong>${countByGame("Royal Kingdom")}</strong>
           <span>Royal Kingdom</span>
         </button>
@@ -175,9 +174,7 @@ function renderLibrary() {
         ${
           rows ||
           `<div class="empty-state">
-            <span class="empty-icon">▣</span>
-            <strong>No playables yet</strong>
-            <p>Import a single HTML file or a ZIP containing index.html.</p>
+            <button class="primary-button load-button" data-action="load-demos">Load Playable</button>
           </div>`
         }
       </section>
@@ -251,7 +248,7 @@ function renderPlayableRow(item) {
   const language = item.language || "Unknown";
   const theme = gameTheme(game);
   return `
-    <article class="playable-row" style="--game-color: ${theme.primary}; --game-soft: ${theme.soft}; --game-ink: ${theme.ink}">
+    <article class="playable-row" style="--game-color: ${theme.primary}; --game-accent: ${theme.accent}; --game-soft: ${theme.soft}; --game-ink: ${theme.ink}">
       <button class="row-main" data-action="open-playable" data-id="${item.id}">
         <span class="play-icon">▶</span>
         <span class="playable-copy">
@@ -284,6 +281,7 @@ function renderSettingsSheet() {
           <button class="icon-button" type="button" data-action="close-settings" aria-label="Close">×</button>
         </div>
         <div class="settings-actions">
+          <button class="primary-button" data-action="load-demos">Load Playable</button>
           <button class="secondary-button" data-action="pick-file">Import HTML or ZIP</button>
           <button class="secondary-button" data-action="refresh">Refresh library</button>
           ${state.playables.length ? `<button class="secondary-button danger-action" data-action="clear-library">Clear library</button>` : ""}
@@ -861,12 +859,12 @@ function gameColor(game) {
 
 function gameTheme(game) {
   if (game === "Royal Match") {
-    return { primary: "#2e32ff", soft: "#eef0ff", ink: "#171a8f" };
+    return { primary: "#2050d0", accent: "#f0c010", soft: "#eef4ff", ink: "#162b83" };
   }
   if (game === "Royal Kingdom") {
-    return { primary: "#24c96b", soft: "#eafbf2", ink: "#106b3c" };
+    return { primary: "#900020", accent: "#f0c000", soft: "#fff3f2", ink: "#6f001e" };
   }
-  return { primary: "#657184", soft: "#f3f5f8", ink: "#374151" };
+  return { primary: "#657184", accent: "#d9dee8", soft: "#f3f5f8", ink: "#374151" };
 }
 
 function escapeRegExp(value) {
