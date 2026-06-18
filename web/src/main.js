@@ -21,6 +21,7 @@ const state = {
   pendingMetadata: null,
   editingPlayableId: null,
   settingsOpen: false,
+  audioUnlocked: false,
   gameFilter: localStorage.getItem("game-filter") || "All",
   languageFilter: localStorage.getItem("language-filter") || "All",
   error: "",
@@ -98,9 +99,14 @@ async function registerServiceWorker() {
 function syncRoute() {
   const match = location.hash.match(/^#\/player\/([^/]+)$/);
   if (match) {
-    state.activePlayable = state.playables.find((item) => item.id === match[1]) || null;
+    const nextPlayable = state.playables.find((item) => item.id === match[1]) || null;
+    if (nextPlayable?.id !== state.activePlayable?.id) {
+      state.audioUnlocked = false;
+    }
+    state.activePlayable = nextPlayable;
   } else {
     state.activePlayable = null;
+    state.audioUnlocked = false;
     state.controlsOpen = false;
     state.storeIntent = null;
   }
@@ -333,6 +339,7 @@ function renderPlayer() {
         allow="autoplay; fullscreen; gamepad; accelerometer; gyroscope; encrypted-media"
         sandbox="allow-scripts allow-same-origin allow-forms allow-pointer-lock allow-orientation-lock allow-popups allow-popups-to-escape-sandbox"
       ></iframe>
+      ${state.audioUnlocked ? "" : `<button class="audio-unlock-layer" data-action="unlock-audio" aria-label="Enable playable audio"></button>`}
       <button class="secret-zone secret-top-left" data-action="secret-tap" aria-label="Open controls"></button>
       <button class="secret-zone secret-top-right" data-action="secret-tap" aria-label="Open controls"></button>
       <button class="secret-zone secret-bottom-left" data-action="secret-tap" aria-label="Open controls"></button>
@@ -527,10 +534,16 @@ function handlePlayerAction(event) {
   if (action === "secret-tap") {
     registerSecretTap();
   }
+  if (action === "unlock-audio") {
+    unlockPlayerAudio();
+    state.audioUnlocked = true;
+    event.currentTarget.remove();
+  }
   if (action === "reload-player" || action === "store-retry") {
     state.storeIntent = null;
     state.controlsOpen = false;
     state.reloadNonce += 1;
+    state.audioUnlocked = false;
     render();
   }
   if (action === "request-fullscreen") {
@@ -539,6 +552,18 @@ function handlePlayerAction(event) {
   if (action === "go-home") {
     location.hash = "#/";
   }
+}
+
+function unlockPlayerAudio() {
+  requestFullscreen();
+  const frame = app.querySelector("#player-frame");
+  if (!frame?.contentWindow) return;
+  try {
+    frame.contentWindow.__playablePlayerUnlockAudio?.();
+  } catch {
+    // Cross-origin nested frames cannot be touched directly; the bridge message is the fallback.
+  }
+  frame.contentWindow.postMessage({ type: "playable-audio-unlock" }, "*");
 }
 
 async function importFiles(files) {

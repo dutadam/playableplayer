@@ -604,6 +604,16 @@ h2 {
   border: 0;
 }
 
+.audio-unlock-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 4;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  touch-action: manipulation;
+}
+
 .secret-zone {
   position: fixed;
   z-index: 5;

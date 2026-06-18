@@ -2,7 +2,7 @@ const DB_NAME = "playable-player-db";
 const DB_VERSION = 1;
 const PLAYABLE_STORE = "playables";
 const FILE_STORE = "files";
-const APP_CACHE = "playable-player-shell-v9";
+const APP_CACHE = "playable-player-shell-v10";
 
 const STORE_HOSTS = [
   "apps.apple.com",
@@ -193,9 +193,18 @@ canvas, video {
       }
     });
     allowAudioFrames();
+    document.querySelectorAll("iframe").forEach((frame) => {
+      try {
+        frame.contentWindow?.postMessage({ type: "playable-audio-unlock" }, "*");
+      } catch {}
+    });
   };
+  window.__playablePlayerUnlockAudio = unlockAudio;
   ["pointerdown", "touchend", "keydown", "click"].forEach((eventName) => {
     document.addEventListener(eventName, unlockAudio, { capture: true, passive: true });
+  });
+  window.addEventListener("message", (event) => {
+    if (event.data?.type === "playable-audio-unlock") unlockAudio();
   });
   const originalOpen = window.open;
   window.open = function(url, ...rest) {
