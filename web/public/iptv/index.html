@@ -1,0 +1,1445 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0B0B10">
+<title>M3U Player</title>
+<script src="https://cdn.jsdelivr.net/npm/hls.js@1/dist/hls.min.js"></script>
+<style>
+:root {
+  --bg:#0B0B10; --surface:#13131A; --elevated:#1C1C26; --border:#26263A;
+  --accent:#4F7FFF; --accent-dim:rgba(79,127,255,.12); --accent-glow:rgba(79,127,255,.35);
+  --text:#E8E8F2; --muted:#55557A; --success:#3DEBA0; --warn:#F5A623; --danger:#FF5F7A;
+  --safe-t:env(safe-area-inset-top,0px); --safe-b:env(safe-area-inset-bottom,0px);
+  --safe-l:env(safe-area-inset-left,0px); --safe-r:env(safe-area-inset-right,0px);
+  --vh:100vh;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html{height:100%;height:-webkit-fill-available}
+body{height:var(--vh);background:var(--bg);color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text','Segoe UI',system-ui,sans-serif;
+  overflow:hidden;position:fixed;width:100%;-webkit-font-smoothing:antialiased}
+
+/* ── LOAD SCREEN ── */
+#load-screen{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  height:var(--vh);padding:24px;
+  padding-top:calc(20px + var(--safe-t));padding-bottom:calc(20px + var(--safe-b));
+  padding-left:calc(20px + var(--safe-l));padding-right:calc(20px + var(--safe-r));
+  gap:16px;overflow-y:auto;-webkit-overflow-scrolling:touch
+}
+.logo{display:flex;align-items:center;gap:10px}
+.logo-icon{width:42px;height:42px;background:var(--accent);border-radius:12px;
+  display:flex;align-items:center;justify-content:center;box-shadow:0 0 24px var(--accent-glow)}
+.logo-icon svg{width:22px;height:22px;fill:white}
+.logo-name{font-size:22px;font-weight:700;letter-spacing:-.5px}
+.logo-sub{font-size:10px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-top:2px}
+.resume-card{
+  width:100%;max-width:440px;background:var(--surface);border:1px solid var(--border);
+  border-radius:16px;padding:16px;display:flex;align-items:center;gap:14px;
+  cursor:pointer;transition:border-color .2s;position:relative;overflow:hidden
+}
+.resume-card::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,var(--accent-dim),transparent);pointer-events:none}
+.resume-card:active{border-color:var(--accent)}
+.resume-play{width:44px;height:44px;border-radius:12px;background:var(--accent);
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 0 14px var(--accent-glow)}
+.resume-play svg{width:20px;height:20px;fill:white;margin-left:2px}
+.resume-info{flex:1;min-width:0}
+.resume-label{font-size:11px;color:var(--accent);font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:3px}
+.resume-name{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.resume-meta{font-size:11px;color:var(--muted);margin-top:2px}
+.resume-arrow{color:var(--muted);flex-shrink:0}
+.resume-arrow svg{width:18px;height:18px;fill:currentColor}
+.section-label{font-size:11px;color:var(--muted);font-weight:600;letter-spacing:1px;text-transform:uppercase;width:100%;max-width:440px}
+.drop-zone{
+  width:100%;max-width:440px;border:2px dashed var(--border);border-radius:14px;
+  padding:28px 20px;text-align:center;cursor:pointer;transition:all .2s;
+  background:var(--surface);position:relative;overflow:hidden
+}
+.drop-zone.drag-over{border-color:var(--accent);background:var(--accent-dim)}
+.drop-zone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;font-size:16px}
+.drop-icon{width:40px;height:40px;margin:0 auto 10px;opacity:.35}
+.drop-icon svg{width:40px;height:40px;fill:var(--text)}
+.drop-title{font-size:15px;font-weight:600;margin-bottom:4px}
+.drop-sub{font-size:12px;color:var(--muted)}
+@media(hover:none){.drop-sub{display:none}}
+.divider{display:flex;align-items:center;gap:12px;width:100%;max-width:440px}
+.divider-line{flex:1;height:1px;background:var(--border)}
+.divider-text{font-size:11px;color:var(--muted)}
+.url-row{display:flex;gap:8px;width:100%;max-width:440px}
+.url-input{
+  flex:1;background:var(--surface);border:1px solid var(--border);border-radius:10px;
+  color:var(--text);font-size:16px;padding:11px 14px;outline:none;transition:border .2s;
+  -webkit-appearance:none
+}
+.url-input::placeholder{color:var(--muted)}
+.url-input:focus{border-color:var(--accent)}
+.btn{padding:11px 18px;border-radius:10px;border:none;cursor:pointer;font-size:15px;font-weight:600;transition:all .15s;white-space:nowrap;-webkit-appearance:none}
+.btn-primary{background:var(--accent);color:white}
+.btn-primary:active{transform:scale(.96);opacity:.85}
+
+/* ── APP SCREEN ── */
+#app-screen{display:none;flex-direction:column;height:var(--vh);overflow:hidden}
+#app-screen.active{display:flex}
+.topbar{
+  display:flex;align-items:center;gap:10px;padding:10px 14px;
+  padding-top:calc(10px + var(--safe-t));
+  padding-left:calc(14px + var(--safe-l));padding-right:calc(14px + var(--safe-r));
+  background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0
+}
+.topbar-brand{display:flex;align-items:center;gap:8px;flex-shrink:0}
+.topbar-icon{width:26px;height:26px;background:var(--accent);border-radius:7px;display:flex;align-items:center;justify-content:center}
+.topbar-icon svg{width:13px;height:13px;fill:white}
+.topbar-title{font-size:14px;font-weight:700;color:var(--text)}
+.search-wrap{flex:1;position:relative}
+.search-ico{position:absolute;left:9px;top:50%;transform:translateY(-50%);opacity:.4;pointer-events:none}
+.search-ico svg{width:15px;height:15px;fill:var(--text);display:block}
+.search-input{
+  width:100%;background:var(--elevated);border:1px solid var(--border);border-radius:8px;
+  color:var(--text);font-size:16px;padding:8px 30px 8px 32px;outline:none;transition:border .2s;
+  -webkit-appearance:none
+}
+.search-input::placeholder{color:var(--muted)}
+.search-input:focus{border-color:var(--accent)}
+.clear-btn{position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--muted);display:none;padding:4px;line-height:0;touch-action:manipulation}
+.clear-btn.vis{display:block}
+.clear-btn svg{width:13px;height:13px;fill:currentColor}
+.icon-btn{background:none;border:none;cursor:pointer;color:var(--muted);padding:5px;flex-shrink:0;line-height:0;touch-action:manipulation;min-width:34px;min-height:34px;display:flex;align-items:center;justify-content:center;border-radius:8px}
+.icon-btn svg{width:20px;height:20px;fill:currentColor}
+.icon-btn:active{background:var(--elevated)}
+.chip-bar{
+  display:flex;gap:6px;padding:9px 14px;overflow-x:auto;flex-shrink:0;
+  border-bottom:1px solid var(--border);background:var(--surface);
+  scrollbar-width:none;-webkit-overflow-scrolling:touch;
+  padding-left:calc(14px + var(--safe-l));padding-right:calc(14px + var(--safe-r))
+}
+.chip-bar::-webkit-scrollbar{display:none}
+.chip{
+  flex-shrink:0;padding:5px 12px;border-radius:20px;font-size:12px;font-weight:600;
+  border:1px solid var(--border);background:var(--elevated);color:var(--muted);
+  cursor:pointer;transition:all .15s;white-space:nowrap;touch-action:manipulation;
+  user-select:none;min-height:30px;display:flex;align-items:center;gap:5px
+}
+.chip:active{color:var(--text);border-color:var(--accent)}
+.chip.active{background:var(--accent);color:white;border-color:var(--accent);box-shadow:0 0 10px var(--accent-glow)}
+.chip-icon{font-size:13px;line-height:1}
+.chip-cnt{opacity:.6;font-weight:400;font-size:11px}
+.stats-bar{
+  padding:5px 14px;font-size:11px;color:var(--muted);
+  border-bottom:1px solid var(--border);background:var(--bg);
+  display:flex;align-items:center;gap:8px;flex-shrink:0;
+  padding-left:calc(14px + var(--safe-l));padding-right:calc(14px + var(--safe-r))
+}
+.stats-dot{width:6px;height:6px;border-radius:50%;background:var(--success);flex-shrink:0}
+.ch-list-wrap{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:var(--border) transparent}
+.ch-list-wrap::-webkit-scrollbar{width:3px}
+.ch-list-wrap::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+.recent-section{padding:10px 0 6px;border-bottom:1px solid var(--border)}
+.section-hd{display:flex;align-items:center;justify-content:space-between;padding:0 14px 8px;padding-left:calc(14px + var(--safe-l));padding-right:calc(14px + var(--safe-r))}
+.section-hd-title{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px}
+.section-hd-action{font-size:11px;color:var(--accent);cursor:pointer;padding:2px 4px;touch-action:manipulation}
+.recent-scroll{display:flex;gap:10px;padding:0 14px;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;
+  padding-left:calc(14px + var(--safe-l));padding-right:calc(14px + var(--safe-r))}
+.recent-scroll::-webkit-scrollbar{display:none}
+.recent-card{
+  flex-shrink:0;width:80px;cursor:pointer;touch-action:manipulation;
+  display:flex;flex-direction:column;align-items:center;gap:6px
+}
+.recent-thumb{
+  width:72px;height:48px;border-radius:10px;background:var(--elevated);border:1px solid var(--border);
+  display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative
+}
+.recent-thumb img{width:100%;height:100%;object-fit:contain}
+.recent-thumb .rc-init{font-size:14px;font-weight:700;color:var(--muted)}
+.recent-thumb .rc-play{
+  position:absolute;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;
+  opacity:0;transition:opacity .15s;border-radius:9px
+}
+.recent-thumb .rc-play svg{width:22px;height:22px;fill:white}
+.recent-card:active .rc-play{opacity:1}
+@media(hover:hover){.recent-card:hover .rc-play{opacity:1}}
+.recent-name{font-size:10px;color:var(--text);text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;width:100%;line-height:1.3}
+.sg-header{
+  display:flex;align-items:center;gap:8px;padding:8px 14px 6px;
+  padding-left:calc(14px + var(--safe-l));cursor:pointer;user-select:none;touch-action:manipulation
+}
+.sg-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted)}
+.sg-cnt{font-size:9px;color:var(--muted);opacity:.6;font-weight:400}
+.sg-arrow{margin-left:auto;color:var(--muted);transition:transform .2s;flex-shrink:0;line-height:0}
+.sg-arrow svg{width:12px;height:12px;fill:currentColor}
+.sg-arrow.open{transform:rotate(180deg)}
+.grp-header{
+  padding:10px 14px 5px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);
+  background:rgba(11,11,16,.94);
+  padding-left:calc(14px + var(--safe-l));padding-right:calc(14px + var(--safe-r))
+}
+.ch-item{
+  display:flex;align-items:center;gap:12px;padding:10px 14px;
+  border-bottom:1px solid rgba(38,38,58,.5);cursor:pointer;transition:background .1s;
+  position:relative;min-height:60px;touch-action:manipulation;
+  padding-left:calc(14px + var(--safe-l));padding-right:calc(14px + var(--safe-r))
+}
+.ch-item.playing{background:rgba(79,127,255,.08)}
+.ch-item.playing::before{content:'';position:absolute;left:var(--safe-l);top:0;bottom:0;width:2px;background:var(--accent)}
+.ch-item:active{background:var(--elevated)}
+@media(hover:hover){
+  .ch-item:hover{background:var(--elevated)}
+  .ch-item:hover .ch-actions{opacity:1}
+  .ch-item::before{content:'';position:absolute;left:var(--safe-l);top:0;bottom:0;width:2px;background:var(--accent);transform:scaleY(0);transition:transform .15s}
+  .ch-item:hover::before{transform:scaleY(1)}
+  .ch-item.playing::before{transform:scaleY(1)}
+}
+.ch-logo{
+  width:38px;height:38px;border-radius:9px;background:var(--elevated);border:1px solid var(--border);
+  flex-shrink:0;overflow:hidden;display:flex;align-items:center;justify-content:center
+}
+.ch-logo img{width:100%;height:100%;object-fit:contain}
+.ch-logo-init{font-size:12px;font-weight:700;color:var(--muted)}
+.ch-info{flex:1;min-width:0}
+.ch-name-row{display:flex;align-items:center;gap:6px;margin-bottom:2px}
+.ch-name{font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ch-quality{
+  flex-shrink:0;font-size:9px;font-weight:700;letter-spacing:.5px;
+  padding:1px 5px;border-radius:4px;
+}
+.q-hd{background:rgba(79,127,255,.2);color:var(--accent)}
+.q-fhd{background:rgba(79,127,255,.25);color:#6B9FFF}
+.q-4k{background:rgba(245,166,35,.2);color:var(--warn)}
+.q-uhd{background:rgba(245,166,35,.2);color:var(--warn)}
+.q-sd{background:rgba(85,85,122,.2);color:var(--muted)}
+.ch-sub{font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ch-actions{display:flex;gap:5px;flex-shrink:0;align-items:center}
+@media(hover:hover){.ch-actions{opacity:0;transition:opacity .15s}}
+.fav-btn{
+  width:30px;height:30px;border-radius:7px;border:none;background:none;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;
+  color:var(--muted);transition:all .15s;touch-action:manipulation;padding:0
+}
+.fav-btn svg{width:17px;height:17px;fill:currentColor;transition:fill .15s}
+.fav-btn.faved{color:#F5C542}
+.fav-btn:active{transform:scale(.85)}
+.act-btn{
+  width:30px;height:30px;border-radius:7px;border:1px solid var(--border);
+  background:var(--elevated);cursor:pointer;display:flex;align-items:center;justify-content:center;
+  color:var(--muted);transition:all .12s;touch-action:manipulation;padding:0
+}
+.act-btn:active{background:var(--accent);border-color:var(--accent);color:white}
+@media(hover:hover){.act-btn:hover{background:var(--accent);border-color:var(--accent);color:white}}
+.act-btn svg{width:14px;height:14px;fill:currentColor}
+.empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 20px;gap:12px;color:var(--muted)}
+.empty-state svg{width:44px;height:44px;fill:var(--muted);opacity:.3}
+.empty-state p{font-size:14px}
+
+/* Toast */
+#toast{
+  position:fixed;bottom:calc(20px + var(--safe-b));left:50%;transform:translateX(-50%) translateY(80px);
+  background:var(--elevated);border:1px solid var(--border);border-radius:10px;
+  padding:10px 18px;font-size:13px;font-weight:500;
+  transition:transform .25s cubic-bezier(.34,1.56,.64,1);z-index:1000;
+  white-space:nowrap;pointer-events:none;box-shadow:0 8px 30px rgba(0,0,0,.5)
+}
+#toast.show{transform:translateX(-50%) translateY(0)}
+#toast.ok{color:var(--success);border-color:rgba(61,235,160,.3)}
+#toast.info{color:var(--accent);border-color:rgba(79,127,255,.3)}
+
+/* Progress */
+.progress{position:fixed;top:0;left:0;height:2px;background:var(--accent);box-shadow:0 0 8px var(--accent-glow);transition:width .3s ease;z-index:999}
+
+/* Bottom sheet */
+#bs-overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:199;opacity:0;pointer-events:none;transition:opacity .3s}
+#bs-overlay.show{opacity:1;pointer-events:all}
+#bottom-sheet{
+  position:fixed;bottom:0;left:0;right:0;background:var(--elevated);border-radius:16px 16px 0 0;
+  border-top:1px solid var(--border);transform:translateY(100%);transition:transform .3s cubic-bezier(.34,1.2,.64,1);
+  z-index:200;padding-bottom:var(--safe-b);padding-left:var(--safe-l);padding-right:var(--safe-r)
+}
+#bottom-sheet.open{transform:translateY(0)}
+.bs-handle{width:36px;height:4px;border-radius:2px;background:var(--border);margin:10px auto 6px}
+.bs-head{display:flex;align-items:center;gap:12px;padding:6px 16px 12px;border-bottom:1px solid var(--border)}
+.bs-logo{width:44px;height:44px;border-radius:10px;background:var(--surface);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0}
+.bs-logo img{width:100%;height:100%;object-fit:contain}
+.bs-logo-init{font-size:14px;font-weight:700;color:var(--muted)}
+.bs-meta{flex:1;min-width:0}
+.bs-title{font-size:15px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bs-group{font-size:12px;color:var(--muted);margin-top:2px}
+.bs-url{padding:9px 16px;font-size:11px;color:var(--muted);word-break:break-all;line-height:1.5;border-bottom:1px solid var(--border);max-height:52px;overflow:hidden}
+.bs-actions{display:flex;flex-direction:column;padding:6px 0}
+.bs-action{display:flex;align-items:center;gap:14px;padding:14px 16px;cursor:pointer;border:none;background:none;color:var(--text);width:100%;text-align:left;font-size:15px;touch-action:manipulation;min-height:52px;transition:background .1s}
+.bs-action:active{background:rgba(255,255,255,.06)}
+.bs-action svg{width:20px;height:20px;fill:currentColor;opacity:.6;flex-shrink:0}
+.bs-action.fav-action svg{opacity:1}
+.bs-sep{height:1px;background:var(--border);margin:0 16px}
+
+/* ── PLAYER SCREEN ── */
+#player-screen{
+  display:none;position:fixed;inset:0;background:#000;z-index:300;
+  flex-direction:column;
+}
+#player-screen.active{display:flex}
+#pv{
+  position:absolute;inset:0;width:100%;height:100%;
+  object-fit:contain;background:#000
+}
+/* Overlay */
+#p-overlay{
+  position:absolute;inset:0;
+  background:linear-gradient(to bottom,
+    rgba(0,0,0,.75) 0%, rgba(0,0,0,0) 28%,
+    rgba(0,0,0,0) 72%, rgba(0,0,0,.85) 100%);
+  display:flex;flex-direction:column;justify-content:space-between;
+  transition:opacity .3s;
+  padding-top:var(--safe-t);padding-bottom:calc(var(--safe-b) + 8px);
+  padding-left:var(--safe-l);padding-right:var(--safe-r)
+}
+#p-overlay.hidden{opacity:0;pointer-events:none}
+/* Top bar */
+#p-top{
+  display:flex;align-items:center;gap:10px;
+  padding:14px 16px 10px
+}
+.p-back{
+  width:38px;height:38px;border-radius:10px;border:none;
+  background:rgba(255,255,255,.12);color:white;
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;flex-shrink:0;touch-action:manipulation;backdrop-filter:blur(4px)
+}
+.p-back svg{width:20px;height:20px;fill:currentColor}
+.p-back:active{background:rgba(255,255,255,.2)}
+.p-title-wrap{flex:1;min-width:0}
+.p-ch-name{font-size:15px;font-weight:600;color:white;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.p-ch-group{font-size:11px;color:rgba(255,255,255,.55);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.p-top-right{display:flex;gap:6px;flex-shrink:0}
+.p-icon-btn{
+  width:38px;height:38px;border-radius:10px;border:none;
+  background:rgba(255,255,255,.12);color:white;
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;touch-action:manipulation;backdrop-filter:blur(4px)
+}
+.p-icon-btn svg{width:18px;height:18px;fill:currentColor}
+.p-icon-btn:active{background:rgba(255,255,255,.22)}
+.p-icon-btn.faved{color:#F5C542}
+/* Center nav */
+#p-nav{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:0 12px;pointer-events:none
+}
+#p-nav button{
+  width:48px;height:48px;border-radius:50%;border:none;
+  background:rgba(0,0,0,.35);color:white;
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;touch-action:manipulation;pointer-events:all;
+  backdrop-filter:blur(4px);transition:background .15s
+}
+#p-nav button:active{background:rgba(0,0,0,.6)}
+#p-nav button svg{width:24px;height:24px;fill:currentColor}
+/* Bottom controls */
+#p-bottom{
+  display:flex;align-items:center;gap:12px;
+  padding:10px 16px 14px
+}
+.p-ctrl{
+  width:42px;height:42px;border-radius:10px;border:none;
+  background:none;color:white;
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;touch-action:manipulation;flex-shrink:0
+}
+.p-ctrl svg{width:24px;height:24px;fill:currentColor}
+.p-ctrl:active{opacity:.6}
+.p-pos{
+  font-size:12px;color:rgba(255,255,255,.55);
+  white-space:nowrap;flex-shrink:0
+}
+.p-spacer{flex:1}
+
+/* Loading */
+#p-loading{
+  position:absolute;inset:0;display:none;
+  flex-direction:column;align-items:center;justify-content:center;
+  gap:16px;pointer-events:none
+}
+#p-loading.show{display:flex}
+@keyframes spin{to{transform:rotate(360deg)}}
+.p-spinner{
+  width:44px;height:44px;border-radius:50%;
+  border:3px solid rgba(255,255,255,.15);
+  border-top-color:var(--accent);
+  animation:spin .8s linear infinite
+}
+.p-loading-name{font-size:13px;color:rgba(255,255,255,.5);max-width:260px;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* Error */
+#p-error{
+  position:absolute;inset:0;display:none;
+  flex-direction:column;align-items:center;justify-content:center;
+  gap:14px;padding:24px
+}
+#p-error.show{display:flex}
+.p-err-icon{font-size:40px;line-height:1}
+.p-err-title{font-size:16px;font-weight:600;color:var(--danger)}
+.p-err-msg{font-size:13px;color:rgba(255,255,255,.5);text-align:center;max-width:280px;line-height:1.5}
+.p-err-btns{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-top:4px}
+.p-err-btn{
+  padding:10px 18px;border-radius:10px;border:1px solid var(--border);
+  background:var(--elevated);color:var(--text);font-size:14px;font-weight:500;
+  cursor:pointer;touch-action:manipulation
+}
+.p-err-btn.primary{background:var(--accent);border-color:var(--accent);color:white}
+.p-err-btn:active{opacity:.75}
+</style>
+</head>
+<body>
+
+<!-- Load Screen -->
+<div id="load-screen">
+  <div class="logo">
+    <div class="logo-icon"><svg viewBox="0 0 24 24"><path d="M4 6h16v2H4zm0 5h16v2H4zm0 5h16v2H4z"/></svg></div>
+    <div><div class="logo-name">M3U Player</div><div class="logo-sub">IPTV Browser</div></div>
+  </div>
+
+  <div id="resume-card" class="resume-card" style="display:none">
+    <div class="resume-play"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></div>
+    <div class="resume-info">
+      <div class="resume-label">Kaldığın Yerden Devam Et</div>
+      <div class="resume-name" id="resume-name">Son Playlist</div>
+      <div class="resume-meta" id="resume-meta"></div>
+    </div>
+    <div class="resume-arrow"><svg viewBox="0 0 24 24"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg></div>
+  </div>
+
+  <div class="section-label">YENİ PLAYLIST</div>
+
+  <div class="drop-zone" id="drop-zone">
+    <input type="file" id="file-input" accept=".m3u,.m3u8,.txt,text/plain">
+    <div class="drop-icon"><svg viewBox="0 0 24 24"><path d="M9 16h6v-6h4l-7-7-7 7h4zm-4 2h14v2H5z"/></svg></div>
+    <div class="drop-title">M3U dosyası seç</div>
+    <div class="drop-sub">veya buraya sürükle bırak</div>
+  </div>
+
+  <div class="divider"><div class="divider-line"></div><div class="divider-text">veya URL yapıştır</div><div class="divider-line"></div></div>
+
+  <div class="url-row">
+    <input class="url-input" id="url-input" type="url" inputmode="url" autocomplete="url"
+      autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="https://…/playlist.m3u">
+    <button class="btn btn-primary" id="url-load-btn">Yükle</button>
+  </div>
+</div>
+
+<!-- App Screen -->
+<div id="app-screen">
+  <div class="topbar">
+    <button class="icon-btn" id="back-btn" aria-label="Geri">
+      <svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+    </button>
+    <div class="topbar-brand">
+      <div class="topbar-icon"><svg viewBox="0 0 24 24"><path d="M4 6h16v2H4zm0 5h16v2H4zm0 5h16v2H4z"/></svg></div>
+      <span class="topbar-title">M3U Player</span>
+    </div>
+    <div class="search-wrap">
+      <span class="search-ico"><svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg></span>
+      <input class="search-input" id="search-input" type="search" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Kanal ara…">
+      <button class="clear-btn" id="clear-btn"><svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></button>
+    </div>
+  </div>
+
+  <div class="chip-bar" id="chip-bar"></div>
+
+  <div class="stats-bar">
+    <div class="stats-dot"></div>
+    <span id="stats-text"></span>
+  </div>
+
+  <div class="ch-list-wrap" id="list-wrap">
+    <div id="list-el"></div>
+  </div>
+</div>
+
+<!-- Player Screen -->
+<div id="player-screen">
+  <video id="pv" playsinline webkit-playsinline preload="none"></video>
+
+  <div id="p-overlay">
+    <div id="p-top">
+      <button class="p-back" id="p-back-btn" aria-label="Geri">
+        <svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+      </button>
+      <div class="p-title-wrap">
+        <div class="p-ch-name" id="p-ch-name"></div>
+        <div class="p-ch-group" id="p-ch-group"></div>
+      </div>
+      <div class="p-top-right">
+        <button class="p-icon-btn" id="p-fav-btn" aria-label="Favori">
+          <svg viewBox="0 0 24 24"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>
+        </button>
+        <button class="p-icon-btn" id="p-info-btn" aria-label="Bilgi">
+          <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <div id="p-nav">
+      <button id="p-prev-btn" aria-label="Önceki kanal">
+        <svg viewBox="0 0 24 24"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>
+      </button>
+      <button id="p-next-btn" aria-label="Sonraki kanal">
+        <svg viewBox="0 0 24 24"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg>
+      </button>
+    </div>
+
+    <div id="p-bottom">
+      <button class="p-ctrl" id="p-play-btn" aria-label="Oynat/Duraklat">
+        <svg id="p-play-ico" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+      </button>
+      <span class="p-pos" id="p-pos"></span>
+      <div class="p-spacer"></div>
+      <button class="p-ctrl" id="p-mute-btn" aria-label="Sessiz">
+        <svg id="p-mute-ico" viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>
+      </button>
+      <button class="p-ctrl" id="p-fs-btn" aria-label="Tam ekran">
+        <svg id="p-fs-ico" viewBox="0 0 24 24"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <div id="p-loading">
+    <div class="p-spinner"></div>
+    <div class="p-loading-name" id="p-loading-name"></div>
+  </div>
+
+  <div id="p-error">
+    <div class="p-err-icon">⚠️</div>
+    <div class="p-err-title">Yayın açılamadı</div>
+    <div class="p-err-msg" id="p-err-msg">Stream yüklenemedi. CORS kısıtlaması veya geçersiz URL olabilir.</div>
+    <div class="p-err-btns">
+      <button class="p-err-btn primary" id="p-retry-btn">Tekrar Dene</button>
+      <button class="p-err-btn" id="p-err-vlc">VLC'de Aç</button>
+      <button class="p-err-btn" id="p-err-copy">Link Kopyala</button>
+      <button class="p-err-btn" id="p-err-ext">Başka Uygulama</button>
+    </div>
+  </div>
+</div>
+
+<!-- Bottom Sheet -->
+<div id="bs-overlay"></div>
+<div id="bottom-sheet">
+  <div class="bs-handle"></div>
+  <div class="bs-head">
+    <div class="bs-logo" id="bs-logo"></div>
+    <div class="bs-meta">
+      <div class="bs-title" id="bs-title"></div>
+      <div class="bs-group" id="bs-group"></div>
+    </div>
+  </div>
+  <div class="bs-url" id="bs-url"></div>
+  <div class="bs-actions">
+    <button class="bs-action" id="bs-play">
+      <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+      Oynat
+    </button>
+    <div class="bs-sep"></div>
+    <button class="bs-action" id="bs-fav">
+      <svg viewBox="0 0 24 24"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>
+      <span id="bs-fav-label">Favorilere Ekle</span>
+    </button>
+    <div class="bs-sep"></div>
+    <button class="bs-action" id="bs-copy">
+      <svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+      Linki Kopyala
+    </button>
+    <div class="bs-sep"></div>
+    <button class="bs-action" id="bs-vlc">
+      <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+      VLC'de Aç
+    </button>
+    <div class="bs-sep"></div>
+    <button class="bs-action" id="bs-ext">
+      <svg viewBox="0 0 24 24"><path d="M19 19H5V5h7V3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7h-2v7zM14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3h-7z"/></svg>
+      Başka Uygulamada Aç
+    </button>
+  </div>
+</div>
+
+<div id="toast"></div>
+<div class="progress" id="progress" style="width:0"></div>
+
+<script>
+// ── iOS height ──
+function setVH(){
+  const h=window.visualViewport?window.visualViewport.height:window.innerHeight;
+  document.documentElement.style.setProperty('--vh',h+'px');
+}
+setVH();
+if(window.visualViewport)window.visualViewport.addEventListener('resize',setVH);
+else window.addEventListener('resize',setVH);
+
+const isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent)&&!window.MSStream;
+
+// ── Storage ──
+const S={
+  _p:'m3u_',
+  get(k,d){try{const v=localStorage.getItem(this._p+k);return v!=null?JSON.parse(v):d}catch{return d}},
+  set(k,v){try{localStorage.setItem(this._p+k,JSON.stringify(v))}catch(e){
+    if(e.name==='QuotaExceededError'){try{localStorage.removeItem(this._p+'chs')}catch{}}
+  }},
+  del(k){try{localStorage.removeItem(this._p+k)}catch{}}
+};
+
+// ── App State ──
+let ALL=[], FILTERED=[];
+let CAT='Tümü', QUERY='', SEL=null;
+let FAVS=new Set(S.get('favs',[]));
+let RECENT=S.get('recent',[]); // [{n,g,l,u,ts}]
+let COLLAPSED={};
+let listWrap,listEl,rafId=null;
+let scrollSave={};
+
+// ── Player State ──
+let hlsInstance=null;
+let PLAY_IDX=-1; // current channel index in FILTERED
+let overlayTimer=null;
+let wakeLock=null;
+
+// ── Helpers ──
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+function ago(ts){
+  const s=Math.floor((Date.now()-ts)/1000);
+  if(s<60)return 'az önce';
+  if(s<3600)return Math.floor(s/60)+' dk önce';
+  if(s<86400)return Math.floor(s/3600)+' saat önce';
+  return Math.floor(s/86400)+' gün önce';
+}
+function numFmt(n){return n.toLocaleString('tr')}
+
+function detectQuality(name){
+  if(/\b(4K|UHD)\b/i.test(name))return '4K';
+  if(/\bFHD\b/i.test(name)||/FULLHD/i.test(name))return 'FHD';
+  if(/\bHD\b/i.test(name))return 'HD';
+  if(/\bSD\b/i.test(name))return 'SD';
+  return null;
+}
+function qualityBadge(q){
+  if(!q)return '';
+  const cls=q==='4K'?'q-4k':q==='FHD'?'q-fhd':q==='HD'?'q-hd':'q-sd';
+  return `<span class="ch-quality ${cls}">${q}</span>`;
+}
+
+function detectSG(name){
+  let m=name.match(/^([A-ZÇĞİÖŞÜa-zçğışöşü]{2,5})\s*[\|:]\s*/);
+  if(m)return m[1].toUpperCase();
+  m=name.match(/^\[([A-Za-z0-9]{2,5})\]\s*/);
+  if(m)return m[1].toUpperCase();
+  const q=detectQuality(name);
+  if(q)return q;
+  return null;
+}
+function stripSG(name){
+  return name.replace(/^[A-ZÇĞİÖŞÜa-zçğışöşü]{2,5}\s*[\|:]\s*/i,'')
+             .replace(/^\[[A-Za-z0-9]{2,5}\]\s*/,'').trim();
+}
+function buildSubs(channels){
+  const map={};
+  let detected=0;
+  channels.forEach(ch=>{
+    const sg=detectSG(ch.name||ch.n);
+    if(sg){detected++;(map[sg]=map[sg]||[]).push(ch);}
+    else{(map['—']=map['—']||[]).push(ch);}
+  });
+  const real=Object.keys(map).filter(k=>k!=='—');
+  if(real.length>=2&&detected/channels.length>=0.35)return map;
+  return null;
+}
+
+// ── M3U Parser ──
+function parseM3U(text){
+  const lines=text.split('\n');
+  const chs=[];
+  for(let i=0;i<lines.length;i++){
+    const line=lines[i].trim();
+    if(line.startsWith('#EXTINF')){
+      const url=(lines[i+1]||'').trim();
+      if(url&&!url.startsWith('#')&&url.length>6){
+        const gM=line.match(/group-title="([^"]*)"/i);
+        const nM=line.match(/,(.+)$/);
+        const lM=line.match(/tvg-logo="([^"]*)"/i);
+        chs.push({
+          id:chs.length,
+          n:nM?nM[1].trim():'Kanal '+(chs.length+1),
+          g:(gM?gM[1].trim():'')||'Genel',
+          l:lM?lM[1].trim():'',
+          u:url
+        });
+        i++;
+      }
+    }
+  }
+  return chs;
+}
+
+const CAT_ICONS={
+  'spor':'⚽','haber':'📰','film':'🎬','dizi':'📺','müzik':'🎵','çocuk':'🧸',
+  'belgesel':'🔭','hava':'🌤','eğlence':'🎭','yabancı':'🌍','ulusal':'🇹🇷',
+  'türkiye':'🇹🇷','sinema':'🎬','ekonomi':'📈','magazin':'⭐','spor lig':'⚽',
+  'news':'📰','sports':'⚽','movies':'🎬','kids':'🧸','music':'🎵'
+};
+function catIcon(name){
+  const k=name.toLowerCase();
+  for(const[p,ico]of Object.entries(CAT_ICONS)){if(k.includes(p))return ico;}
+  return null;
+}
+
+// ── Chips ──
+function buildChips(){
+  const catCounts={};
+  ALL.forEach(ch=>{catCounts[ch.g]=(catCounts[ch.g]||0)+1;});
+  const cats=['Tümü',...Object.keys(catCounts).sort((a,b)=>a.localeCompare(b,'tr'))];
+  const hasFavs=FAVS.size>0;
+  const bar=document.getElementById('chip-bar');
+  let html='';
+  if(hasFavs){
+    html+=`<div class="chip${CAT==='⭐ Favoriler'?' active':''}" data-cat="⭐ Favoriler">
+      <span class="chip-icon">⭐</span>Favoriler<span class="chip-cnt">${FAVS.size}</span></div>`;
+  }
+  cats.forEach(c=>{
+    const ico=c==='Tümü'?null:catIcon(c);
+    const cnt=c==='Tümü'?ALL.length:catCounts[c];
+    html+=`<div class="chip${c===CAT?' active':''}" data-cat="${esc(c)}">
+      ${ico?`<span class="chip-icon">${ico}</span>`:''}${esc(c)}<span class="chip-cnt">${numFmt(cnt)}</span></div>`;
+  });
+  bar.innerHTML=html;
+  bar.querySelectorAll('.chip').forEach(el=>{
+    el.addEventListener('click',()=>{
+      scrollSave[CAT]=listWrap?listWrap.scrollTop:0;
+      CAT=el.dataset.cat;
+      bar.querySelectorAll('.chip').forEach(c=>c.classList.remove('active'));
+      el.classList.add('active');
+      el.scrollIntoView({behavior:'smooth',block:'nearest',inline:'center'});
+      S.set('state',{cat:CAT,scroll:scrollSave});
+      applyFilters();
+      requestAnimationFrame(()=>{if(listWrap)listWrap.scrollTop=scrollSave[CAT]||0;});
+    });
+  });
+}
+
+// ── Filtering ──
+function applyFilters(){
+  const q=QUERY.toLowerCase();
+  if(CAT==='⭐ Favoriler'){
+    FILTERED=ALL.filter(ch=>FAVS.has(ch.u)&&(!q||ch.n.toLowerCase().includes(q)||ch.g.toLowerCase().includes(q)));
+  } else {
+    FILTERED=ALL.filter(ch=>{
+      const catOk=CAT==='Tümü'||ch.g===CAT;
+      const qOk=!q||ch.n.toLowerCase().includes(q)||ch.g.toLowerCase().includes(q);
+      return catOk&&qOk;
+    });
+  }
+  renderList();
+  updateStats();
+}
+function updateStats(){
+  const cats=new Set(ALL.map(c=>c.g)).size;
+  const shown=FILTERED.length;
+  const total=ALL.length;
+  document.getElementById('stats-text').textContent=
+    shown===total?`${numFmt(total)} kanal · ${cats} kategori · ${numFmt(FAVS.size)} favori`
+                 :`${numFmt(shown)} / ${numFmt(total)} kanal`;
+}
+
+// ── Recently Watched ──
+function addRecent(ch){
+  RECENT=RECENT.filter(r=>r.u!==ch.u);
+  RECENT.unshift({n:ch.n,g:ch.g,l:ch.l,u:ch.u,ts:Date.now()});
+  if(RECENT.length>20)RECENT.pop();
+  S.set('recent',RECENT);
+}
+function recentSection(){
+  if(!RECENT.length)return '';
+  const cards=RECENT.slice(0,15).map(r=>{
+    const init=r.n.replace(/[^A-Za-z0-9ÇĞİÖŞÜçğışöşü]/g,'').slice(0,2).toUpperCase()||'??';
+    const img=r.l?`<img src="${esc(r.l)}" onerror="this.style.display='none'" loading="lazy"><span class="rc-init" style="display:none">${esc(init)}</span>`:`<span class="rc-init">${esc(init)}</span>`;
+    return `<div class="recent-card" data-url="${esc(r.u)}" data-n="${esc(r.n)}" data-g="${esc(r.g)}" data-l="${esc(r.l)}">
+      <div class="recent-thumb">${img}<div class="rc-play"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></div></div>
+      <div class="recent-name">${esc(r.n)}</div></div>`;
+  }).join('');
+  return `<div class="recent-section">
+    <div class="section-hd">
+      <div class="section-hd-title">Son İzlenenler</div>
+      <div class="section-hd-action" id="clear-recent">Temizle</div>
+    </div>
+    <div class="recent-scroll">${cards}</div>
+  </div>`;
+}
+
+// ── Render ──
+const ITEM_H=60, GRP_H=32, SG_H=36;
+
+function buildItems(channels){
+  if(QUERY||CAT!=='Tümü'){
+    const subs=(!QUERY&&CAT!=='Tümü'&&CAT!=='⭐ Favoriler')?buildSubs(channels):null;
+    if(subs){
+      const items=[];
+      Object.keys(subs).sort((a,b)=>a==='—'?1:b==='—'?-1:a.localeCompare(b,'tr')).forEach(sg=>{
+        const key=CAT+'::'+sg;
+        const open=COLLAPSED[key]!==false;
+        items.push({type:'sg',label:sg,count:subs[sg].length,key,open});
+        if(open)subs[sg].forEach(ch=>items.push({type:'ch',ch}));
+      });
+      return items;
+    }
+    return channels.map(ch=>({type:'ch',ch}));
+  }
+  const groups={};
+  channels.forEach(ch=>{(groups[ch.g]=groups[ch.g]||[]).push(ch);});
+  const items=[];
+  Object.keys(groups).sort((a,b)=>a.localeCompare(b,'tr')).forEach(g=>{
+    items.push({type:'grp',label:g,count:groups[g].length});
+    groups[g].forEach(ch=>items.push({type:'ch',ch}));
+  });
+  return items;
+}
+function itemH(it){
+  if(it.type==='grp')return GRP_H;
+  if(it.type==='sg')return SG_H;
+  return ITEM_H;
+}
+
+let renderItems=[];
+
+function renderList(){
+  renderItems=buildItems(FILTERED);
+  if(!listEl)return;
+  const showRecent=!QUERY&&CAT==='Tümü'&&RECENT.length>0;
+  let topHtml=showRecent?recentSection():'';
+  if(renderItems.length===0){
+    listEl.innerHTML=topHtml+`<div class="empty-state"><svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg><p>Kanal bulunamadı</p></div>`;
+    bindListEvents();return;
+  }
+  doVirtualRender(topHtml);
+  bindListEvents();
+}
+
+function doVirtualRender(topHtml){
+  if(!listWrap||renderItems.length===0){if(topHtml&&listEl)listEl.innerHTML=topHtml;return;}
+  if(topHtml===undefined)topHtml='';
+  const scrollTop=Math.max(0,listWrap.scrollTop-(topHtml?200:0));
+  const wh=listWrap.clientHeight||600;
+  const BUF=10;
+  let total=0;
+  const off=new Array(renderItems.length);
+  for(let i=0;i<renderItems.length;i++){off[i]=total;total+=itemH(renderItems[i]);}
+  let si=0,ei=renderItems.length-1;
+  for(let i=0;i<renderItems.length;i++){if(off[i]+itemH(renderItems[i])>=scrollTop-BUF*ITEM_H){si=i;break;}}
+  for(let i=si;i<renderItems.length;i++){if(off[i]>scrollTop+wh+BUF*ITEM_H){ei=i-1;break;}}
+  ei=Math.min(ei,renderItems.length-1);
+  const spT=off[si]||0;
+  const spB=Math.max(0,total-(off[ei]||0)-itemH(renderItems[ei]));
+  let html=topHtml+`<div style="height:${spT}px"></div>`;
+  for(let i=si;i<=ei;i++){
+    const it=renderItems[i];
+    if(it.type==='grp'){
+      html+=`<div class="grp-header">${esc(it.label)} <span style="opacity:.4;font-size:9px;font-weight:400">${it.count}</span></div>`;
+    } else if(it.type==='sg'){
+      html+=`<div class="sg-header" data-sg-key="${esc(it.key)}">
+        <span class="sg-label">${esc(it.label)}</span>
+        <span class="sg-cnt">${it.count} kanal</span>
+        <span class="sg-arrow${it.open?' open':''}"><svg viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg></span>
+      </div>`;
+    } else {
+      html+=renderCh(it.ch);
+    }
+  }
+  html+=`<div style="height:${spB}px"></div>`;
+  listEl.innerHTML=html;
+  bindListEvents();
+}
+
+function renderCh(ch){
+  const init=ch.n.replace(/[^A-Za-z0-9ÇĞİÖŞÜçğışöşü]/g,'').slice(0,2).toUpperCase()||'??';
+  const logo=ch.l
+    ?`<img src="${esc(ch.l)}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'" loading="lazy"><span class="ch-logo-init" style="display:none">${esc(init)}</span>`
+    :`<span class="ch-logo-init">${esc(init)}</span>`;
+  const q=detectQuality(ch.n);
+  const faved=FAVS.has(ch.u);
+  const isPlaying=SEL&&SEL.u===ch.u&&document.getElementById('player-screen').classList.contains('active');
+  return `<div class="ch-item${isPlaying?' playing':''}" data-id="${ch.id}">
+    <div class="ch-logo">${logo}</div>
+    <div class="ch-info">
+      <div class="ch-name-row"><span class="ch-name">${esc(ch.n)}</span>${qualityBadge(q)}</div>
+      <div class="ch-sub">${esc(ch.g)}</div>
+    </div>
+    <div class="ch-actions">
+      <button class="fav-btn${faved?' faved':''}" data-id="${ch.id}" aria-label="Favori">
+        <svg viewBox="0 0 24 24"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>
+      </button>
+      <button class="act-btn act-info" data-id="${ch.id}" aria-label="Bilgi">
+        <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+      </button>
+    </div>
+  </div>`;
+}
+
+function bindListEvents(){
+  if(!listEl)return;
+  listEl.querySelectorAll('.ch-item').forEach(el=>{
+    const id=parseInt(el.dataset.id);
+    const ch=ALL[id];
+    if(!ch)return;
+    el.addEventListener('click',e=>{
+      if(e.target.closest('.fav-btn,.act-btn'))return;
+      // find index in FILTERED
+      const idx=FILTERED.findIndex(f=>f.id===ch.id);
+      openPlayer(ch, idx>=0?idx:0);
+    });
+    el.querySelector('.fav-btn')?.addEventListener('click',e=>{e.stopPropagation();toggleFav(ch,el.querySelector('.fav-btn'));});
+    el.querySelector('.act-info')?.addEventListener('click',e=>{e.stopPropagation();openSheet(ch);});
+  });
+  listEl.querySelectorAll('.sg-header').forEach(el=>{
+    el.addEventListener('click',()=>{
+      const key=el.dataset.sgKey;
+      COLLAPSED[key]=COLLAPSED[key]===false?true:false;
+      renderItems=buildItems(FILTERED);
+      doVirtualRender();
+    });
+  });
+  listEl.querySelectorAll('.recent-card').forEach(el=>{
+    el.addEventListener('click',()=>{
+      const ch={n:el.dataset.n,g:el.dataset.g,l:el.dataset.l,u:el.dataset.url};
+      // find in FILTERED
+      const idx=FILTERED.findIndex(f=>f.u===ch.u);
+      openPlayer(ch, idx>=0?idx:0);
+    });
+  });
+  document.getElementById('clear-recent')?.addEventListener('click',e=>{
+    e.stopPropagation();
+    RECENT=[];S.del('recent');
+    renderList();
+  });
+}
+
+// ── Actions ──
+function toggleFav(ch,btn){
+  if(FAVS.has(ch.u)){
+    FAVS.delete(ch.u);
+    if(btn)btn.classList.remove('faved');
+    showToast('Favoriden kaldırıldı','info');
+  } else {
+    FAVS.add(ch.u);
+    if(btn)btn.classList.add('faved');
+    showToast('⭐ Favorilere eklendi','ok');
+  }
+  S.set('favs',[...FAVS]);
+  buildChips();updateStats();
+  const lbl=document.getElementById('bs-fav-label');
+  if(lbl)lbl.textContent=FAVS.has(ch.u)?'Favorilerden Kaldır':'Favorilere Ekle';
+  // update player fav button
+  if(SEL&&SEL.u===ch.u)updatePlayerFavBtn();
+}
+
+function copyLink(ch){
+  const text=ch.u;
+  if(navigator.clipboard?.writeText){
+    navigator.clipboard.writeText(text).then(()=>showToast('✓ Link kopyalandı','ok')).catch(()=>fallbackCopy(text));
+  } else fallbackCopy(text);
+}
+function fallbackCopy(text){
+  const ta=document.createElement('textarea');
+  ta.value=text;ta.style.cssText='position:fixed;top:0;left:0;opacity:0;font-size:16px;';
+  document.body.appendChild(ta);ta.focus();ta.select();ta.setSelectionRange(0,99999);
+  try{const ok=document.execCommand('copy');showToast(ok?'✓ Link kopyalandı':'Kopyalanamadı',ok?'ok':'info');}
+  catch{showToast('Kopyalanamadı','info');}
+  document.body.removeChild(ta);
+}
+function openVLC(ch){
+  const url=isIOS?'vlc-x-callback://x-callback-url/stream?url='+encodeURIComponent(ch.u):'vlc://'+ch.u;
+  const a=document.createElement('a');a.href=url;a.style.display='none';
+  document.body.appendChild(a);a.click();document.body.removeChild(a);
+  showToast('VLC açılıyor…','info');
+}
+
+// ── Bottom Sheet ──
+function openSheet(ch){
+  SEL=ch;
+  const init=ch.n.replace(/[^A-Za-z0-9ÇĞİÖŞÜçğışöşü]/g,'').slice(0,2).toUpperCase()||'??';
+  const logoEl=document.getElementById('bs-logo');
+  logoEl.innerHTML=ch.l?`<img src="${esc(ch.l)}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'" style="width:100%;height:100%;object-fit:contain"><span class="bs-logo-init" style="display:none">${esc(init)}</span>`:`<span class="bs-logo-init">${esc(init)}</span>`;
+  document.getElementById('bs-title').textContent=ch.n;
+  document.getElementById('bs-group').textContent=ch.g;
+  document.getElementById('bs-url').textContent=ch.u;
+  const faved=FAVS.has(ch.u);
+  document.getElementById('bs-fav-label').textContent=faved?'Favorilerden Kaldır':'Favorilere Ekle';
+  document.getElementById('bs-fav').querySelector('svg').style.fill=faved?'#F5C542':'currentColor';
+  document.getElementById('bottom-sheet').classList.add('open');
+  document.getElementById('bs-overlay').classList.add('show');
+}
+function closeSheet(){
+  document.getElementById('bottom-sheet').classList.remove('open');
+  document.getElementById('bs-overlay').classList.remove('show');
+}
+let bsY=0;
+document.getElementById('bottom-sheet').addEventListener('touchstart',e=>{bsY=e.touches[0].clientY;},{passive:true});
+document.getElementById('bottom-sheet').addEventListener('touchend',e=>{if(e.changedTouches[0].clientY-bsY>60)closeSheet();},{passive:true});
+
+// ── Toast ──
+let toastT;
+function showToast(msg,type='info'){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.className=`show ${type}`;
+  clearTimeout(toastT);toastT=setTimeout(()=>t.className='',2200);
+}
+
+// ── Progress ──
+function setP(p){
+  const b=document.getElementById('progress');
+  b.style.width=p+'%';
+  if(p>=100)setTimeout(()=>b.style.width='0%',500);
+}
+
+// ════════════════════════════════════════
+// ── PLAYER ──
+// ════════════════════════════════════════
+
+function openPlayer(ch, idx){
+  SEL=ch;
+  PLAY_IDX=idx;
+
+  document.getElementById('player-screen').classList.add('active');
+  document.body.style.overflow='hidden';
+
+  // Re-render list to show "playing" highlight
+  if(listEl)doVirtualRender();
+
+  // Request Wake Lock
+  if(navigator.wakeLock){
+    navigator.wakeLock.request('screen').then(wl=>{wakeLock=wl;}).catch(()=>{});
+  }
+
+  playChannel(ch);
+  showOverlay();
+}
+
+function closePlayer(){
+  const video=document.getElementById('pv');
+  video.pause();
+  if(hlsInstance){hlsInstance.destroy();hlsInstance=null;}
+  video.src='';
+
+  // Release Wake Lock
+  if(wakeLock){wakeLock.release();wakeLock=null;}
+
+  // Exit native fullscreen if active
+  if(document.fullscreenElement||document.webkitFullscreenElement){
+    (document.exitFullscreen||document.webkitExitFullscreen||function(){}).call(document);
+  }
+
+  document.getElementById('player-screen').classList.remove('active');
+  document.body.style.overflow='';
+  clearTimeout(overlayTimer);
+
+  // Re-render to clear playing highlight
+  if(listEl)doVirtualRender();
+}
+
+function playChannel(ch){
+  const video=document.getElementById('pv');
+
+  // UI
+  document.getElementById('p-ch-name').textContent=ch.n;
+  document.getElementById('p-ch-group').textContent=ch.g;
+  updatePlayerFavBtn();
+  updatePosLabel();
+
+  showPlayerLoading(true, ch.n);
+  hidePlayerError();
+
+  // add to recent
+  addRecent(ch);
+
+  // Cleanup previous
+  if(hlsInstance){hlsInstance.destroy();hlsInstance=null;}
+  video.src='';
+
+  const url=ch.u;
+  const isHLS=/\.m3u8($|\?)/i.test(url)||/\/hls\//i.test(url)||/hls_playlist/i.test(url);
+
+  if(typeof Hls!=='undefined'&&Hls.isSupported()&&(isHLS||url.includes('.m3u8'))){
+    hlsInstance=new Hls({
+      enableWorker:true,
+      lowLatencyMode:true,
+      maxBufferLength:30,
+      maxMaxBufferLength:60,
+      fragLoadingTimeOut:10000,
+      manifestLoadingTimeOut:10000,
+    });
+    hlsInstance.loadSource(url);
+    hlsInstance.attachMedia(video);
+    hlsInstance.on(Hls.Events.MANIFEST_PARSED,()=>{
+      showPlayerLoading(false);
+      video.play().catch(()=>showPlayerError('Oynatma başlatılamadı. Tarayıcı izni gerekiyor olabilir.'));
+    });
+    hlsInstance.on(Hls.Events.ERROR,(evt,data)=>{
+      if(!data.fatal)return;
+      if(data.type===Hls.ErrorTypes.NETWORK_ERROR&&data.response?.code===0){
+        showPlayerError('CORS hatası: Stream bu tarayıcıdan doğrudan açılamıyor.\nVLC veya harici uygulama kullanabilirsiniz.');
+      } else if(data.type===Hls.ErrorTypes.MEDIA_ERROR){
+        hlsInstance.recoverMediaError();
+      } else {
+        showPlayerError('Stream yüklenemedi ('+data.details+')');
+      }
+    });
+  } else if(video.canPlayType('application/vnd.apple.mpegurl')){
+    // Safari native HLS
+    video.src=url;
+    video.load();
+    video.play().catch(e=>showPlayerError('Oynatma başlatılamadı: '+e.message));
+  } else {
+    // Direct play attempt
+    video.src=url;
+    video.play().catch(e=>showPlayerError('Bu format desteklenmiyor veya CORS hatası.\n'+e.message));
+  }
+}
+
+function showPlayerLoading(show, name){
+  const el=document.getElementById('p-loading');
+  el.classList.toggle('show',show);
+  if(name&&show)document.getElementById('p-loading-name').textContent=name;
+}
+function hidePlayerError(){
+  document.getElementById('p-error').classList.remove('show');
+}
+function showPlayerError(msg){
+  showPlayerLoading(false);
+  const el=document.getElementById('p-error');
+  document.getElementById('p-err-msg').textContent=msg||'Bilinmeyen hata';
+  el.classList.add('show');
+}
+
+function updatePlayerFavBtn(){
+  const btn=document.getElementById('p-fav-btn');
+  if(!btn||!SEL)return;
+  btn.classList.toggle('faved',FAVS.has(SEL.u));
+}
+function updatePosLabel(){
+  const el=document.getElementById('p-pos');
+  if(!el||PLAY_IDX<0)return;
+  el.textContent=`${PLAY_IDX+1} / ${FILTERED.length}`;
+}
+
+function nextChannel(){
+  if(!FILTERED.length)return;
+  const idx=(PLAY_IDX+1)%FILTERED.length;
+  const ch=FILTERED[idx];
+  PLAY_IDX=idx;SEL=ch;
+  playChannel(ch);
+  showOverlay();
+}
+function prevChannel(){
+  if(!FILTERED.length)return;
+  const idx=(PLAY_IDX-1+FILTERED.length)%FILTERED.length;
+  const ch=FILTERED[idx];
+  PLAY_IDX=idx;SEL=ch;
+  playChannel(ch);
+  showOverlay();
+}
+
+// ── Overlay ──
+function showOverlay(){
+  const ov=document.getElementById('p-overlay');
+  ov.classList.remove('hidden');
+  clearTimeout(overlayTimer);
+  const video=document.getElementById('pv');
+  if(!video.paused){
+    overlayTimer=setTimeout(()=>ov.classList.add('hidden'),3500);
+  }
+}
+function toggleOverlay(){
+  const ov=document.getElementById('p-overlay');
+  if(ov.classList.contains('hidden')){showOverlay();}
+  else{
+    clearTimeout(overlayTimer);
+    ov.classList.add('hidden');
+  }
+}
+
+// ── Play/Pause toggle ──
+function updatePlayBtn(){
+  const video=document.getElementById('pv');
+  const ico=document.getElementById('p-play-ico');
+  if(!ico)return;
+  if(video.paused){
+    ico.innerHTML='<path d="M8 5v14l11-7z"/>';
+  } else {
+    ico.innerHTML='<path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>';
+  }
+}
+
+// ── Mute toggle ──
+function updateMuteBtn(){
+  const video=document.getElementById('pv');
+  const ico=document.getElementById('p-mute-ico');
+  if(!ico)return;
+  if(video.muted||video.volume===0){
+    ico.innerHTML='<path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"/>';
+  } else {
+    ico.innerHTML='<path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>';
+  }
+}
+
+// ── Fullscreen ──
+function toggleFS(){
+  const ps=document.getElementById('player-screen');
+  const ico=document.getElementById('p-fs-ico');
+  if(!document.fullscreenElement&&!document.webkitFullscreenElement){
+    const req=ps.requestFullscreen||ps.webkitRequestFullscreen;
+    if(req)req.call(ps).catch(()=>{});
+  } else {
+    const ex=document.exitFullscreen||document.webkitExitFullscreen;
+    if(ex)ex.call(document).catch(()=>{});
+  }
+}
+function updateFSBtn(){
+  const ico=document.getElementById('p-fs-ico');
+  if(!ico)return;
+  if(document.fullscreenElement||document.webkitFullscreenElement){
+    ico.innerHTML='<path d="M5 16h3v3h2v-5H5v2zm3-8H5v2h5V5H8v3zm6 11h2v-3h3v-2h-5v5zm2-11V5h-2v5h5V8h-3z"/>';
+  } else {
+    ico.innerHTML='<path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/>';
+  }
+}
+
+// ── Player Events ──
+document.getElementById('player-screen').addEventListener('click',e=>{
+  if(e.target===document.getElementById('player-screen')||e.target===document.getElementById('pv')){
+    toggleOverlay();
+  }
+});
+document.getElementById('player-screen').addEventListener('touchstart',()=>{showOverlay();},{passive:true});
+
+document.getElementById('p-back-btn').addEventListener('click',closePlayer);
+
+document.getElementById('p-play-btn').addEventListener('click',()=>{
+  const v=document.getElementById('pv');
+  if(v.paused)v.play().catch(()=>{});else v.pause();
+  showOverlay();
+});
+document.getElementById('p-mute-btn').addEventListener('click',()=>{
+  const v=document.getElementById('pv');
+  v.muted=!v.muted;
+  updateMuteBtn();showOverlay();
+});
+document.getElementById('p-fs-btn').addEventListener('click',()=>{toggleFS();showOverlay();});
+document.getElementById('p-fav-btn').addEventListener('click',()=>{
+  if(SEL){toggleFav(SEL);showOverlay();}
+});
+document.getElementById('p-info-btn').addEventListener('click',()=>{
+  if(SEL){openSheet(SEL);showOverlay();}
+});
+document.getElementById('p-prev-btn').addEventListener('click',prevChannel);
+document.getElementById('p-next-btn').addEventListener('click',nextChannel);
+
+// Video element events
+const pvEl=document.getElementById('pv');
+pvEl.addEventListener('play',()=>{updatePlayBtn();showPlayerLoading(false);});
+pvEl.addEventListener('pause',updatePlayBtn);
+pvEl.addEventListener('waiting',()=>showPlayerLoading(true));
+pvEl.addEventListener('canplay',()=>showPlayerLoading(false));
+pvEl.addEventListener('error',()=>{
+  if(pvEl.error){showPlayerError('Video hatası: kod '+pvEl.error.code);}
+});
+
+// Retry
+document.getElementById('p-retry-btn').addEventListener('click',()=>{
+  if(SEL){hidePlayerError();playChannel(SEL);}
+});
+document.getElementById('p-err-vlc').addEventListener('click',()=>{if(SEL)openVLC(SEL);});
+document.getElementById('p-err-copy').addEventListener('click',()=>{if(SEL)copyLink(SEL);});
+document.getElementById('p-err-ext').addEventListener('click',()=>{if(SEL)window.open(SEL.u,'_blank');});
+
+// Fullscreen change
+document.addEventListener('fullscreenchange',updateFSBtn);
+document.addEventListener('webkitfullscreenchange',updateFSBtn);
+
+// Keyboard shortcuts
+document.addEventListener('keydown',e=>{
+  const ps=document.getElementById('player-screen');
+  if(!ps.classList.contains('active'))return;
+  const v=document.getElementById('pv');
+  switch(e.key){
+    case 'Escape':closePlayer();break;
+    case ' ':case 'k':e.preventDefault();if(v.paused)v.play().catch(()=>{});else v.pause();showOverlay();break;
+    case 'm':v.muted=!v.muted;updateMuteBtn();break;
+    case 'f':toggleFS();break;
+    case 'ArrowRight':nextChannel();break;
+    case 'ArrowLeft':prevChannel();break;
+  }
+});
+
+// Swipe to navigate channels
+let swipeStartX=0,swipeStartY=0;
+document.getElementById('player-screen').addEventListener('touchstart',e=>{
+  swipeStartX=e.touches[0].clientX;
+  swipeStartY=e.touches[0].clientY;
+},{passive:true});
+document.getElementById('player-screen').addEventListener('touchend',e=>{
+  const dx=e.changedTouches[0].clientX-swipeStartX;
+  const dy=e.changedTouches[0].clientY-swipeStartY;
+  if(Math.abs(dx)>80&&Math.abs(dx)>Math.abs(dy)*1.5){
+    if(dx<0)nextChannel();else prevChannel();
+  }
+},{passive:true});
+
+// ── Bottom sheet player action ──
+document.getElementById('bs-play').addEventListener('click',()=>{
+  if(SEL){
+    const idx=FILTERED.findIndex(f=>f.u===SEL.u);
+    closeSheet();
+    openPlayer(SEL,idx>=0?idx:0);
+  }
+});
+
+// ════════════════════════════════════════
+// ── App Init ──
+// ════════════════════════════════════════
+
+function initApp(channels,source){
+  ALL=channels;CAT='Tümü';QUERY='';
+  const saved=S.get('state',{});
+  if(saved.cat&&(saved.cat==='Tümü'||ALL.some(ch=>ch.g===saved.cat)||saved.cat==='⭐ Favoriler')){
+    CAT=saved.cat;
+    scrollSave=saved.scroll||{};
+  }
+  if(source)S.set('src',source);
+  try{const compact=ALL.map(c=>({n:c.n,g:c.g,l:c.l,u:c.u}));S.set('chs',compact);}catch{}
+
+  document.getElementById('load-screen').style.display='none';
+  document.getElementById('app-screen').classList.add('active');
+
+  listWrap=document.getElementById('list-wrap');
+  listEl=document.getElementById('list-el');
+
+  listWrap.addEventListener('scroll',()=>{
+    if(rafId)cancelAnimationFrame(rafId);
+    rafId=requestAnimationFrame(()=>{doVirtualRender();rafId=null;});
+  },{passive:true});
+
+  let saveT;
+  listWrap.addEventListener('scroll',()=>{
+    clearTimeout(saveT);
+    saveT=setTimeout(()=>{
+      scrollSave[CAT]=listWrap.scrollTop;
+      S.set('state',{cat:CAT,scroll:scrollSave});
+    },500);
+  },{passive:true});
+
+  buildChips();applyFilters();setP(100);
+
+  requestAnimationFrame(()=>{
+    if(listWrap&&scrollSave[CAT])listWrap.scrollTop=scrollSave[CAT];
+  });
+}
+
+function loadText(text,source){
+  setP(35);
+  setTimeout(()=>{
+    const chs=parseM3U(text);setP(80);
+    if(!chs.length){showToast('M3U içinde kanal bulunamadı','info');setP(0);return;}
+    setTimeout(()=>initApp(chs,source),60);
+  },40);
+}
+
+async function loadURL(url){
+  url=url.trim();
+  if(!url.startsWith('http')){showToast('Geçerli bir URL girin','info');return;}
+  setP(15);
+  const proxies=[
+    `https://corsproxy.io/?${encodeURIComponent(url)}`,
+    `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`
+  ];
+  for(const proxy of proxies){
+    try{
+      const res=await fetch(proxy,{signal:AbortSignal.timeout?AbortSignal.timeout(12000):undefined});
+      if(res.ok){setP(65);loadText(await res.text(),{type:'url',url,name:url.split('/').pop()||url,ts:Date.now()});return;}
+    }catch{}
+  }
+  setP(0);showToast('URL yüklenemedi','info');
+}
+
+// ── Resume ──
+function setupResume(){
+  const src=S.get('src',null);
+  const chs=S.get('chs',null);
+  if(!src||!chs||!chs.length)return;
+  const card=document.getElementById('resume-card');
+  document.getElementById('resume-name').textContent=src.name||'Playlist';
+  document.getElementById('resume-meta').textContent=`${numFmt(chs.length)} kanal · ${ago(src.ts)}`;
+  card.style.display='flex';
+  card.addEventListener('click',()=>{
+    setP(20);
+    if(src.type==='url'){
+      loadURL(src.url).catch(()=>{
+        const full=chs.map((c,i)=>({id:i,...c}));
+        setP(80);setTimeout(()=>initApp(full,src),40);
+      });
+    } else {
+      const full=chs.map((c,i)=>({id:i,...c}));
+      setP(80);setTimeout(()=>initApp(full,src),40);
+    }
+  });
+}
+setupResume();
+
+// ── Events ──
+const dropZone=document.getElementById('drop-zone');
+dropZone.addEventListener('dragover',e=>{e.preventDefault();dropZone.classList.add('drag-over');});
+dropZone.addEventListener('dragleave',()=>dropZone.classList.remove('drag-over'));
+dropZone.addEventListener('drop',e=>{
+  e.preventDefault();dropZone.classList.remove('drag-over');
+  const f=e.dataTransfer.files[0];if(f)readFile(f);
+});
+document.getElementById('file-input').addEventListener('change',e=>{
+  const f=e.target.files[0];if(f)readFile(f);e.target.value='';
+});
+function readFile(f){
+  setP(20);
+  const r=new FileReader();
+  r.onload=e=>loadText(e.target.result,{type:'file',name:f.name,ts:Date.now()});
+  r.onerror=()=>showToast('Dosya okunamadı','info');
+  r.readAsText(f,'utf-8');
+}
+
+const urlInput=document.getElementById('url-input');
+document.getElementById('url-load-btn').addEventListener('click',()=>loadURL(urlInput.value));
+urlInput.addEventListener('keydown',e=>{if(e.key==='Enter'){urlInput.blur();loadURL(urlInput.value);}});
+
+const searchInput=document.getElementById('search-input');
+let searchT;
+searchInput.addEventListener('input',e=>{
+  QUERY=e.target.value;
+  document.getElementById('clear-btn').classList.toggle('vis',QUERY.length>0);
+  clearTimeout(searchT);searchT=setTimeout(applyFilters,200);
+});
+document.getElementById('clear-btn').addEventListener('click',()=>{
+  searchInput.value='';QUERY='';
+  document.getElementById('clear-btn').classList.remove('vis');
+  applyFilters();
+});
+
+document.getElementById('back-btn').addEventListener('click',()=>{
+  if(listWrap){scrollSave[CAT]=listWrap.scrollTop;S.set('state',{cat:CAT,scroll:scrollSave});}
+  document.getElementById('app-screen').classList.remove('active');
+  document.getElementById('load-screen').style.display='flex';
+  ALL=[];FILTERED=[];
+  if(listEl)listEl.innerHTML='';
+  document.getElementById('chip-bar').innerHTML='';
+});
+
+document.getElementById('bs-overlay').addEventListener('click',closeSheet);
+document.getElementById('bs-fav').addEventListener('click',()=>{if(SEL){toggleFav(SEL);closeSheet();}});
+document.getElementById('bs-copy').addEventListener('click',()=>{if(SEL){copyLink(SEL);closeSheet();}});
+document.getElementById('bs-vlc').addEventListener('click',()=>{if(SEL){addRecent(SEL);openVLC(SEL);closeSheet();}});
+document.getElementById('bs-ext').addEventListener('click',()=>{if(SEL){window.open(SEL.u,'_blank');closeSheet();}});
+
+window.addEventListener('resize',()=>{if(ALL.length)doVirtualRender();});
+</script>
+</body>
+</html>
