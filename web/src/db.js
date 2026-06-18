@@ -70,6 +70,11 @@ export async function deletePlayable(id) {
   });
 }
 
+export async function updatePlayable(playable) {
+  const db = await openDb();
+  return withStore(db, PLAYABLE_STORE, "readwrite", (store) => put(store, playable));
+}
+
 export async function clearLibrary() {
   const db = await openDb();
   return new Promise((resolve, reject) => {
@@ -103,6 +108,14 @@ function withStore(db, storeName, mode, fn) {
 function getAll(store) {
   return new Promise((resolve, reject) => {
     const request = store.getAll();
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+function put(store, value) {
+  return new Promise((resolve, reject) => {
+    const request = store.put(value);
     request.onsuccess = () => resolve(request.result);
     request.onerror = () => reject(request.error);
   });
