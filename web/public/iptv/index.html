@@ -272,6 +272,35 @@ body{height:var(--vh);background:var(--bg);color:var(--text);
 .bs-action:active{background:rgba(255,255,255,.06)}
 .bs-action svg{width:20px;height:20px;fill:currentColor;opacity:.6;flex-shrink:0}
 .bs-sep{height:1px;background:var(--border);margin:0 16px}
+/* SERIES CARDS in row */
+.s-card{flex-shrink:0;width:min(42vw,200px);background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden;cursor:pointer;touch-action:manipulation;scroll-snap-align:start;transition:border-color .15s,transform .1s}
+.s-card:active{transform:scale(.96)}
+.s-card-banner{aspect-ratio:16/9;position:relative;overflow:hidden;background:var(--elevated);display:flex;align-items:center;justify-content:center}
+.s-card-bg{position:absolute;inset:-6px;background-size:cover;background-position:center;filter:blur(10px) brightness(.4)}
+.s-card-grad{position:absolute;inset:0;background:linear-gradient(to bottom,transparent 30%,rgba(11,11,16,.85) 100%)}
+.s-card-logo{position:relative;z-index:1;max-height:52px;max-width:80%;object-fit:contain;padding:6px}
+.s-card-init{position:relative;z-index:1;font-size:28px;font-weight:800;color:white}
+.s-card-eps-badge{position:absolute;bottom:6px;left:7px;z-index:2;font-size:9px;font-weight:700;background:var(--accent);color:white;padding:2px 6px;border-radius:4px}
+.s-card-info{padding:7px 9px 9px}
+.s-card-name{font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.s-card-meta{font-size:10px;color:var(--text-dim);margin-top:1px}
+/* SERIES DETAIL SCREEN */
+#series-screen{display:none;flex-direction:column;height:var(--vh);background:var(--bg);position:absolute;inset:0;z-index:25}
+#series-screen.active{display:flex}
+.ss-topbar{display:flex;align-items:center;gap:10px;padding:calc(10px + var(--safe-t)) calc(14px + var(--safe-r)) 10px calc(14px + var(--safe-l));background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0}
+.ss-back{width:38px;height:38px;border-radius:9px;border:none;background:var(--elevated);color:var(--text);display:flex;align-items:center;justify-content:center;cursor:pointer;touch-action:manipulation;flex-shrink:0}
+.ss-back svg{width:20px;height:20px;fill:currentColor}
+.ss-back:active{background:var(--border)}
+.ss-topbar-title{flex:1;font-size:15px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ss-banner{height:180px;position:relative;overflow:hidden;background:var(--elevated);flex-shrink:0;display:flex;align-items:center;justify-content:center}
+.ss-banner-bg{position:absolute;inset:-20px;background-size:cover;background-position:center;filter:blur(24px) brightness(.35);transform:scale(1.1)}
+.ss-banner-grad{position:absolute;inset:0;background:linear-gradient(to bottom,transparent 0%,rgba(11,11,16,.7) 80%,var(--bg) 100%)}
+.ss-banner-logo{position:relative;z-index:1;max-height:90px;max-width:200px;object-fit:contain;filter:drop-shadow(0 4px 16px rgba(0,0,0,.7))}
+.ss-banner-init{position:relative;z-index:1;font-size:52px;font-weight:800;color:white;text-shadow:0 2px 20px rgba(0,0,0,.8)}
+.ss-meta-bar{display:flex;align-items:center;gap:8px;padding:10px 14px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0;flex-wrap:wrap}
+.ss-meta-badge{font-size:11px;font-weight:700;padding:4px 10px;border-radius:6px;background:var(--accent-dim);color:var(--accent)}
+.ss-meta-badge.ep{background:rgba(61,235,160,.12);color:var(--success)}
+#ss-content{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding-bottom:var(--safe-b)}
 /* TOAST */
 #toast{position:fixed;bottom:calc(20px + var(--safe-b));left:50%;transform:translateX(-50%) translateY(80px);background:var(--elevated);border:1px solid var(--border);border-radius:10px;padding:10px 18px;font-size:13px;font-weight:500;transition:transform .25s cubic-bezier(.34,1.56,.64,1);z-index:1000;white-space:nowrap;pointer-events:none;box-shadow:0 8px 30px rgba(0,0,0,.5)}
 #toast.show{transform:translateX(-50%) translateY(0)}
@@ -351,6 +380,16 @@ body{height:var(--vh);background:var(--bg);color:var(--text);
     <button class="cat-grid-btn" id="cat-grid-btn"><svg id="cat-grid-ico" viewBox="0 0 24 24"><path d="M3 3h7v7H3zm0 11h7v7H3zm11-11h7v7h-7zm0 11h7v7h-7z"/></svg></button>
   </div>
   <div id="cat-content"></div>
+</div>
+<!-- SERIES DETAIL SCREEN -->
+<div id="series-screen">
+  <div class="ss-topbar">
+    <button class="ss-back" id="ss-back-btn"><svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg></button>
+    <div class="ss-topbar-title" id="ss-title"></div>
+  </div>
+  <div class="ss-banner" id="ss-banner"></div>
+  <div class="ss-meta-bar" id="ss-meta-bar"></div>
+  <div id="ss-content"></div>
 </div>
 <!-- PLAYER SCREEN -->
 <div id="player-screen">
@@ -449,9 +488,21 @@ function parseM3U(text){
 }
 // Series
 function detectSeries(name){
-  let m=name.match(/^(.+?)\s+[Ss](\d{1,2})[Ee](\d{1,3})(?:\s*[-–:]\s*(.+))?$/);
+  let m;
+  // S01E01 / S01E01 - Title
+  m=name.match(/^(.+?)\s+[Ss](\d{1,2})[Ee](\d{1,3})(?:\s*[-–:]\s*(.+))?$/);
   if(m)return{show:m[1].trim(),s:+m[2],e:+m[3],t:m[4]?.trim()||null};
+  // 1x01 format
   m=name.match(/^(.+?)\s+(\d{1,2})[Xx](\d{1,3})(?:\s*[-–:]\s*(.+))?$/);
+  if(m)return{show:m[1].trim(),s:+m[2],e:+m[3],t:m[4]?.trim()||null};
+  // Turkish: "Dizi Sezon 1 Bölüm 2" or "Dizi Sezon 1 Bolum 2"
+  m=name.match(/^(.+?)\s+[Ss]ezon\s*(\d{1,2})\s+[Bb][öo]l[üu]m\s*(\d{1,3})(?:\s*[-–:]\s*(.+))?$/i);
+  if(m)return{show:m[1].trim(),s:+m[2],e:+m[3],t:m[4]?.trim()||null};
+  // Turkish short: "Dizi S1 B2" or "Dizi S01B02"
+  m=name.match(/^(.+?)\s+[Ss](\d{1,2})\s*[Bb](\d{1,3})(?:\s*[-–:]\s*(.+))?$/);
+  if(m)return{show:m[1].trim(),s:+m[2],e:+m[3],t:m[4]?.trim()||null};
+  // Turkish: trailing " - S01 B02" or "- Sezon 1 Bölüm 2"
+  m=name.match(/^(.+?)\s*[-–]\s*[Ss]ezon\s*(\d{1,2})\s+[Bb][öo]l[üu]m\s*(\d{1,3})(?:\s*[-–:]\s*(.+))?$/i);
   if(m)return{show:m[1].trim(),s:+m[2],e:+m[3],t:m[4]?.trim()||null};
   return null;
 }
@@ -532,7 +583,33 @@ function renderBrowse(){
   if(FAVS.size>0){const fc=ALL.filter(c=>FAVS.has(c.u)).slice(0,20);if(fc.length)rows.appendChild(createRow('Favorilerim',fc,'⭐ Favoriler'));}
   if(RECENT.length>0){const rc=RECENT.slice(0,15).map(r=>ALL.find(c=>c.u===r.u)).filter(Boolean);if(rc.length)rows.appendChild(createRow('Son İzlenenler',rc,null));}
   const catMap={};ALL.forEach(ch=>{(catMap[ch.g]=catMap[ch.g]||[]).push(ch);});
-  Object.entries(catMap).sort(([,a],[,b])=>b.length-a.length).forEach(([cat,chs])=>rows.appendChild(createRow(cat,chs.slice(0,20),cat)));
+  Object.entries(catMap).sort(([,a],[,b])=>b.length-a.length).forEach(([cat,chs])=>{
+    // Try series grouping for this category
+    const sg=groupBySeries(chs);
+    if(sg&&sg.shows.length>=2){
+      rows.appendChild(createSeriesRow(cat,sg.shows,chs,cat));
+      if(sg.rest.length>0)rows.appendChild(createRow(cat+' · Kanallar',sg.rest.slice(0,20),cat));
+    } else {
+      rows.appendChild(createRow(cat,chs.slice(0,20),cat));
+    }
+  });
+}
+function createSeriesRow(title,shows,allChs,catKey){
+  const div=document.createElement('div');div.className='browse-row';
+  div.innerHTML='<div class="row-header"><span class="row-title">'+esc(title)+'</span><span class="row-more" data-cat="'+esc(catKey)+'">Tümü ›</span></div>'
+    +'<div class="row-scroll">'+shows.slice(0,20).map(sv=>renderSCard(sv)).join('')+'</div>';
+  div.querySelectorAll('.s-card').forEach(el=>{
+    const key=el.dataset.svKey;
+    const sv=shows.find(s=>s.key===key);
+    if(!sv)return;
+    el.addEventListener('click',()=>openSeriesScreen(sv,allChs,catKey));
+  });
+  div.querySelector('.row-more')?.addEventListener('click',e=>openCatScreen(e.target.dataset.cat));
+  return div;
+}
+function renderSCard(sv){
+  const bg=sv.logo?'<div class="s-card-bg" style="background-image:url('+esc(sv.logo)+')"></div><div class="s-card-grad"></div><img class="s-card-logo" src="'+esc(sv.logo)+'" loading="lazy" onerror="this.style.display=\'none\'">':'<div class="s-card-grad"></div><span class="s-card-init">'+esc(sv.name.slice(0,2).toUpperCase())+'</span>';
+  return '<div class="s-card" data-sv-key="'+esc(sv.key)+'"><div class="s-card-banner">'+bg+'<span class="s-card-eps-badge">'+sv.epCount+' bölüm</span></div><div class="s-card-info"><div class="s-card-name">'+esc(sv.name)+'</div><div class="s-card-meta">'+sv.sCount+' sezon</div></div></div>';
 }
 document.getElementById('browse-scroll').addEventListener('scroll',()=>{document.getElementById('browse-nav').classList.toggle('scrolled',document.getElementById('browse-scroll').scrollTop>60);},{passive:true});
 document.getElementById('hero-play-btn').addEventListener('click',()=>{if(HERO_CH){PLAY_LIST=ALL;openPlayer(HERO_CH,ALL.indexOf(HERO_CH));}});
@@ -604,6 +681,37 @@ function renderCatSeries(sg,container){
   container.querySelectorAll('.ep-row,.ep-play-btn').forEach(el=>{el.addEventListener('click',e=>{e.stopPropagation();const id=parseInt(el.dataset.epId||(el.closest('[data-ep-id]')||{}).dataset?.epId);const ch=ALL[id];if(!ch)return;PLAY_LIST=CAT_CHANNELS;openPlayer(ch,CAT_CHANNELS.indexOf(ch));});});
   container.querySelectorAll('.cat-list-item').forEach(el=>{const ch=ALL[parseInt(el.dataset.id)];if(!ch)return;el.addEventListener('click',()=>{PLAY_LIST=CAT_CHANNELS;openPlayer(ch,CAT_CHANNELS.indexOf(ch));});});
 }
+// Series Detail Screen
+let SERIES_CAT_CHS=[];
+function openSeriesScreen(sv,catChs,catKey){
+  SERIES_CAT_CHS=catChs;
+  document.getElementById('ss-title').textContent=sv.name;
+  // Banner
+  const banner=document.getElementById('ss-banner');
+  if(sv.logo){banner.innerHTML='<div class="ss-banner-bg" style="background-image:url('+esc(sv.logo)+')"></div><div class="ss-banner-grad"></div><img class="ss-banner-logo" src="'+esc(sv.logo)+'" onerror="this.style.display=\'none\'">'}
+  else{banner.innerHTML='<div class="ss-banner-grad"></div><div class="ss-banner-init">'+esc(sv.name.slice(0,2).toUpperCase())+'</div>';}
+  // Meta
+  document.getElementById('ss-meta-bar').innerHTML='<span class="ss-meta-badge">'+sv.sCount+' Sezon</span><span class="ss-meta-badge ep">'+sv.epCount+' Bölüm</span>';
+  // Content: seasons accordion
+  const content=document.getElementById('ss-content');
+  const seasons=Object.entries(sv.seasons).sort(([a],[b])=>+a-+b);
+  let html='';
+  seasons.forEach(([sNum,eps])=>{
+    const sk='ss__'+sv.key+'__'+sNum,isOpen=SEASON_COL[sk]!==false;
+    html+='<div class="season-row" data-sk="'+esc(sk)+'"><span class="season-row-label">Sezon '+sNum+'</span><span class="season-row-cnt">'+eps.length+' bölüm</span><span class="season-row-arr'+(isOpen?' open':'')+'"><svg viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg></span></div>'
+      +'<div class="ep-list'+(isOpen?' open':'')+'" data-sk-eps="'+esc(sk)+'">'+eps.map(ch=>'<div class="ep-row'+(SEL&&SEL.u===ch.u?' playing':'')+'" data-ep-id="'+ch.id+'"><span class="ep-num">B'+ch._e+'</span><span class="ep-title">'+esc(ch._t||ch.n)+'</span><button class="ep-play-btn" data-ep-id="'+ch.id+'"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></button></div>').join('')+'</div>';
+  });
+  content.innerHTML=html;
+  content.querySelectorAll('.season-row').forEach(row=>{
+    const sk=row.dataset.sk;
+    row.addEventListener('click',()=>{const wasOpen=SEASON_COL[sk]!==false;SEASON_COL[sk]=!wasOpen;row.querySelector('.season-row-arr').classList.toggle('open',!wasOpen);content.querySelector('[data-sk-eps="'+sk+'"]')?.classList.toggle('open',!wasOpen);});
+  });
+  content.querySelectorAll('.ep-row,.ep-play-btn').forEach(el=>{
+    el.addEventListener('click',e=>{e.stopPropagation();const id=parseInt(el.dataset.epId||(el.closest('[data-ep-id]')||{}).dataset?.epId);const ch=ALL[id];if(!ch)return;PLAY_LIST=catChs;openPlayer(ch,catChs.indexOf(ch));});
+  });
+  document.getElementById('series-screen').classList.add('active');
+}
+document.getElementById('ss-back-btn').addEventListener('click',()=>document.getElementById('series-screen').classList.remove('active'));
 // Player
 function openPlayer(ch,idx){SEL=ch;PLAY_IDX=idx;document.getElementById('player-screen').classList.add('active');if(navigator.wakeLock)navigator.wakeLock.request('screen').then(wl=>{wakeLock=wl;}).catch(()=>{});playChannel(ch);showOverlay();}
 function closePlayer(){const v=document.getElementById('pv');v.pause();if(hlsInstance){hlsInstance.destroy();hlsInstance=null;}v.src='';if(wakeLock){wakeLock.release();wakeLock=null;}if(document.fullscreenElement||document.webkitFullscreenElement)(document.exitFullscreen||document.webkitExitFullscreen||function(){}).call(document);document.getElementById('player-screen').classList.remove('active');clearTimeout(overlayTimer);}
@@ -630,7 +738,20 @@ function playChannel(ch){
     } else if(video.canPlayType('application/vnd.apple.mpegurl'))tryNative(src);
     else tryNative(src);
   }
-  function tryNative(src){if(hlsInstance){hlsInstance.destroy();hlsInstance=null;}video.src=src;video.load();video.play().catch(e=>{if(isHTTP&&isHTTPS)showPlayerError('HTTP yayın HTTPS sayfasında oynatılamaz.\nVLC veya başka uygulama kullanın.');else showPlayerError('Oynatılamadı: '+e.message);});}
+  function tryNative(src,tried){
+    if(hlsInstance){hlsInstance.destroy();hlsInstance=null;}
+    video.src=src;video.load();
+    video.play().then(()=>showPlayerLoading(false)).catch(e=>{
+      // On iOS Safari, Xtream Codes URLs need .m3u8 suffix for native HLS
+      const hasMediaExt=/\.(m3u8|mp4|ts|mkv|avi|flv)(\?|$)/i.test(src);
+      if(isIOS&&!hasMediaExt&&!tried){
+        const m3u8=src.split('?')[0]+'.m3u8'+(src.includes('?')?'?'+src.split('?').slice(1).join('?'):'');
+        tryNative(m3u8,true);return;
+      }
+      if(isHTTP&&isHTTPS)showPlayerError('Bu yayın HTTP protokolü kullanıyor.\nHTTPS sayfasında oynatılamaz.\nVLC veya başka uygulama kullanın.');
+      else showPlayerError('Oynatılamadı: '+e.message);
+    });
+  }
   tryHLS(url);
 }
 function showPlayerLoading(show,name){document.getElementById('p-loading').classList.toggle('show',show);if(name&&show)document.getElementById('p-loading-name').textContent=name;}
