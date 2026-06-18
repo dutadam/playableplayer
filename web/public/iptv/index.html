@@ -412,6 +412,150 @@ body{height:var(--vh);background:var(--bg);color:var(--text);
 }
 .p-err-btn.primary{background:var(--accent);border-color:var(--accent);color:white}
 .p-err-btn:active{opacity:.75}
+
+/* ── GRID VIEW ── */
+.ch-grid-wrap{
+  display:grid;grid-template-columns:repeat(2,1fr);
+  gap:10px;padding:12px 14px;
+  padding-left:calc(14px + var(--safe-l));padding-right:calc(14px + var(--safe-r))
+}
+@media(min-width:480px){.ch-grid-wrap{grid-template-columns:repeat(3,1fr)}}
+@media(min-width:700px){.ch-grid-wrap{grid-template-columns:repeat(4,1fr)}}
+.grid-card{
+  background:var(--surface);border:1px solid var(--border);border-radius:12px;
+  overflow:hidden;cursor:pointer;touch-action:manipulation;
+  transition:border-color .15s,transform .1s;display:flex;flex-direction:column;position:relative
+}
+.grid-card:active{border-color:var(--accent);transform:scale(.97)}
+@media(hover:hover){.grid-card:hover{border-color:var(--accent)}}
+.grid-logo-wrap{
+  aspect-ratio:16/9;background:var(--elevated);
+  display:flex;align-items:center;justify-content:center;
+  overflow:hidden;position:relative
+}
+.grid-logo-wrap img{width:100%;height:100%;object-fit:contain;padding:10px}
+.grid-logo-init{
+  font-size:22px;font-weight:800;color:var(--muted);
+  letter-spacing:-1px
+}
+.grid-play-ov{
+  position:absolute;inset:0;background:rgba(0,0,0,.42);
+  display:flex;align-items:center;justify-content:center;
+  opacity:0;transition:opacity .15s
+}
+.grid-card:active .grid-play-ov,.grid-card.playing .grid-play-ov{opacity:1}
+@media(hover:hover){.grid-card:hover .grid-play-ov{opacity:1}}
+.grid-play-ov svg{width:30px;height:30px;fill:white;filter:drop-shadow(0 2px 6px rgba(0,0,0,.5))}
+.grid-q-badge{
+  position:absolute;top:6px;right:6px;
+  font-size:9px;font-weight:700;letter-spacing:.5px;padding:2px 5px;border-radius:4px
+}
+.grid-fav-dot{
+  position:absolute;top:7px;left:7px;
+  width:8px;height:8px;border-radius:50%;background:#F5C542;
+  box-shadow:0 0 6px rgba(245,197,66,.6)
+}
+.grid-playing-ring{
+  position:absolute;inset:0;border:2px solid var(--accent);border-radius:0;
+  pointer-events:none
+}
+.grid-info{padding:7px 9px 9px}
+.grid-name{font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.3}
+.grid-group{font-size:10px;color:var(--muted);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* ── SERIES VIEW ── */
+.series-section-hd{
+  padding:10px calc(14px + var(--safe-l)) 4px;
+  font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);
+  background:rgba(11,11,16,.94)
+}
+.series-card{
+  background:var(--surface);border:1px solid var(--border);border-radius:14px;
+  overflow:hidden;
+  margin:6px calc(14px + var(--safe-r)) 6px calc(14px + var(--safe-l));
+  cursor:pointer;transition:border-color .2s
+}
+.series-card.expanded{border-color:rgba(79,127,255,.5)}
+.series-banner{
+  height:90px;background:var(--elevated);
+  display:flex;align-items:center;justify-content:center;
+  overflow:hidden;position:relative
+}
+.sb-bg{
+  position:absolute;inset:-14px;width:calc(100% + 28px);height:calc(100% + 28px);
+  filter:blur(20px);opacity:.4;object-fit:cover
+}
+.sb-logo{
+  position:relative;z-index:1;
+  max-height:58px;max-width:160px;object-fit:contain
+}
+.sb-init{
+  position:relative;z-index:1;
+  font-size:28px;font-weight:800;color:white;letter-spacing:-1px;
+  text-shadow:0 2px 16px rgba(0,0,0,.7)
+}
+.sb-grad{
+  position:absolute;inset:0;z-index:2;
+  background:linear-gradient(90deg,rgba(19,19,26,.65) 0%,transparent 50%,rgba(19,19,26,.3) 100%)
+}
+.sb-episode-count{
+  position:absolute;bottom:8px;right:10px;z-index:3;
+  font-size:11px;font-weight:600;color:rgba(255,255,255,.8);
+  background:rgba(0,0,0,.45);padding:3px 8px;border-radius:6px;
+  backdrop-filter:blur(4px)
+}
+.series-head{display:flex;align-items:center;gap:12px;padding:11px 14px;touch-action:manipulation}
+.series-info{flex:1;min-width:0}
+.series-name{font-size:14px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.series-badges{display:flex;gap:5px;margin-top:5px;align-items:center;flex-wrap:wrap}
+.s-badge{
+  font-size:10px;font-weight:700;padding:2px 8px;border-radius:5px;
+  background:var(--accent-dim);color:var(--accent);letter-spacing:.3px
+}
+.s-badge.ep{background:rgba(61,235,160,.1);color:var(--success)}
+.series-arr{color:var(--muted);flex-shrink:0;transition:transform .25s;line-height:0}
+.series-arr.open{transform:rotate(180deg)}
+.series-arr svg{width:20px;height:20px;fill:currentColor}
+.series-body{border-top:1px solid var(--border);display:none}
+.series-body.open{display:block}
+.season-row{
+  display:flex;align-items:center;gap:8px;padding:10px 14px;
+  background:rgba(11,11,16,.6);border-bottom:1px solid var(--border);
+  cursor:pointer;user-select:none;touch-action:manipulation
+}
+.season-row-label{font-size:12px;font-weight:700}
+.season-row-cnt{font-size:11px;color:var(--muted)}
+.season-row-arr{margin-left:auto;color:var(--muted);transition:transform .2s;line-height:0}
+.season-row-arr.open{transform:rotate(180deg)}
+.season-row-arr svg{width:14px;height:14px;fill:currentColor}
+.ep-list{display:none}
+.ep-list.open{display:block}
+.ep-row{
+  display:flex;align-items:center;gap:10px;
+  padding:10px 14px 10px 28px;
+  border-bottom:1px solid rgba(38,38,58,.4);
+  cursor:pointer;touch-action:manipulation;transition:background .1s
+}
+.ep-row:active{background:var(--elevated)}
+.ep-row.playing{background:rgba(79,127,255,.07)}
+.ep-num{font-size:11px;font-weight:700;color:var(--accent);min-width:30px;flex-shrink:0}
+.ep-title{font-size:13px;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ep-play-btn{
+  width:28px;height:28px;border-radius:7px;background:var(--accent-dim);
+  border:none;display:flex;align-items:center;justify-content:center;
+  cursor:pointer;flex-shrink:0;color:var(--accent);padding:0;touch-action:manipulation
+}
+.ep-play-btn svg{width:12px;height:12px;fill:currentColor;margin-left:1px}
+.ep-play-btn:active{background:var(--accent);color:white}
+
+/* Improved channel item */
+.ch-item .ch-logo{width:50px;height:50px;border-radius:11px}
+.ch-item{gap:13px;min-height:64px}
+.ch-name{font-size:14px}
+.ch-sub{font-size:11px}
+
+/* Grid toggle active */
+.icon-btn.on{color:var(--accent);background:var(--accent-dim)}
 </style>
 </head>
 <body>
@@ -474,6 +618,9 @@ body{height:var(--vh);background:var(--bg);color:var(--text);
     </div>
     <button class="icon-btn" id="export-btn" aria-label="Favorileri dışa aktar" style="display:none" title="Favorileri M3U olarak indir">
       <svg viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
+    </button>
+    <button class="icon-btn" id="grid-btn" aria-label="Görünüm değiştir" title="Grid / Liste">
+      <svg id="grid-ico" viewBox="0 0 24 24"><path d="M3 3h7v7H3zm0 11h7v7H3zm11-11h7v7h-7zm0 11h7v7h-7z"/></svg>
     </button>
   </div>
 
@@ -627,6 +774,11 @@ let RECENT=S.get('recent',[]); // [{n,g,l,u,ts}]
 let COLLAPSED={};
 let listWrap,listEl,rafId=null;
 let scrollSave={};
+
+// ── Grid & Series State ──
+let GRID_MODE=S.get('grid',false);
+let SERIES_EXP={}; // seriesKey → bool expanded
+let SEASON_COL={}; // "seriesKey_s" → bool collapsed
 
 // ── Playlist Manager ──
 let PLAYLISTS=S.get('pl_list',[]); // [{id,name,type,url,ts,count}]
@@ -925,10 +1077,17 @@ function renderList(){
   renderItems=buildItems(FILTERED);
   if(!listEl)return;
   const showRecent=!QUERY&&CAT==='Tümü'&&RECENT.length>0;
-  let topHtml=showRecent?recentSection():'';
-  if(renderItems.length===0){
+  const topHtml=showRecent?recentSection():'';
+  if(!FILTERED.length){
     listEl.innerHTML=topHtml+`<div class="empty-state"><svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg><p>Kanal bulunamadı</p></div>`;
     bindListEvents();return;
+  }
+  // Grid mode
+  if(GRID_MODE&&!QUERY){renderGrid(FILTERED,topHtml);return;}
+  // Series auto-grouping (category view, no search)
+  if(!QUERY&&CAT!=='Tümü'&&CAT!=='⭐ Favoriler'&&FILTERED.length>=4){
+    const groups=groupBySeries(FILTERED);
+    if(groups&&groups.shows.length>=1){renderSeries(groups.shows,topHtml,groups.rest);return;}
   }
   doVirtualRender(topHtml);
   bindListEvents();
@@ -967,6 +1126,170 @@ function doVirtualRender(topHtml){
   html+=`<div style="height:${spB}px"></div>`;
   listEl.innerHTML=html;
   bindListEvents();
+}
+
+// ── Series Detection ──
+function detectSeries(name){
+  let m=name.match(/^(.+?)\s+[Ss](\d{1,2})[Ee](\d{1,3})(?:\s*[-–:]\s*(.+))?$/);
+  if(m)return{show:m[1].trim(),s:+m[2],e:+m[3],t:m[4]?.trim()||null};
+  m=name.match(/^(.+?)\s+(\d{1,2})[Xx](\d{1,3})(?:\s*[-–:]\s*(.+))?$/);
+  if(m)return{show:m[1].trim(),s:+m[2],e:+m[3],t:m[4]?.trim()||null};
+  m=name.match(/^(.+?)\s+[Ss]ezon\s*(\d+)[,\s]+[Bb]öl(?:üm\s*|um\s*)(\d+)/i);
+  if(m)return{show:m[1].trim(),s:+m[2],e:+m[3],t:null};
+  m=name.match(/^(.+?)\s+(\d+)\.\s*[Ss]ezon\s+(\d+)\.\s*[Bb]öl/i);
+  if(m)return{show:m[1].trim(),s:+m[2],e:+m[3],t:null};
+  return null;
+}
+function groupBySeries(channels){
+  const map={};const rest=[];
+  channels.forEach(ch=>{
+    const info=detectSeries(ch.n);
+    if(info){
+      const key=info.show.toLowerCase().replace(/\W+/g,'');
+      if(!map[key])map[key]={name:info.show,logo:ch.l||'',seasons:{},key};
+      if(!map[key].logo&&ch.l)map[key].logo=ch.l;
+      (map[key].seasons[info.s]=map[key].seasons[info.s]||[]).push({...ch,_s:info.s,_e:info.e,_t:info.t});
+    } else rest.push(ch);
+  });
+  const shows=Object.values(map).filter(s=>Object.values(s.seasons).flat().length>=2);
+  if(!shows.length)return null;
+  shows.forEach(s=>{
+    Object.values(s.seasons).forEach(eps=>eps.sort((a,b)=>a._e-b._e));
+    s.epCount=Object.values(s.seasons).flat().length;
+    s.sCount=Object.keys(s.seasons).length;
+  });
+  shows.sort((a,b)=>a.name.localeCompare(b.name,'tr'));
+  return{shows,rest};
+}
+
+// ── Grid Render ──
+function renderGrid(channels,topHtml){
+  if(!listEl)return;
+  const cards=channels.map(ch=>{
+    const init=ch.n.replace(/[^A-Za-z0-9ÇĞİÖŞÜçğışöşü]/g,'').slice(0,2).toUpperCase()||'??';
+    const q=detectQuality(ch.n);
+    const qBadge=q?`<span class="grid-q-badge ch-quality q-${q.toLowerCase()}">${q}</span>`:'';
+    const favDot=FAVS.has(ch.u)?'<span class="grid-fav-dot"></span>':'';
+    const isPlaying=SEL&&SEL.u===ch.u&&document.getElementById('player-screen').classList.contains('active');
+    const logo=ch.l
+      ?`<img src="${esc(ch.l)}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'" loading="lazy"><span class="grid-logo-init" style="display:none">${esc(init)}</span>`
+      :`<span class="grid-logo-init">${esc(init)}</span>`;
+    return `<div class="grid-card${isPlaying?' playing':''}" data-id="${ch.id}">
+      <div class="grid-logo-wrap">
+        ${logo}${favDot}${qBadge}
+        ${isPlaying?'<div class="grid-playing-ring"></div>':''}
+        <div class="grid-play-ov"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></div>
+      </div>
+      <div class="grid-info">
+        <div class="grid-name">${esc(ch.n)}</div>
+        <div class="grid-group">${esc(ch.g)}</div>
+      </div>
+    </div>`;
+  }).join('');
+  listEl.innerHTML=(topHtml||'')+`<div class="ch-grid-wrap">${cards}</div>`;
+  listEl.querySelectorAll('.grid-card').forEach(el=>{
+    const ch=ALL[parseInt(el.dataset.id)];if(!ch)return;
+    el.addEventListener('click',()=>{
+      const idx=FILTERED.findIndex(f=>f.id===ch.id);
+      openPlayer(ch,idx>=0?idx:0);
+    });
+  });
+}
+
+// ── Series Render ──
+function renderSeries(shows,topHtml,rest){
+  if(!listEl)return;
+  let html=topHtml||'';
+  shows.forEach(sv=>{
+    const isExp=SERIES_EXP[sv.key]===true;
+    const seasons=Object.entries(sv.seasons).sort(([a],[b])=>+a-+b);
+    const bannerContent=sv.logo
+      ?`<img class="sb-bg" src="${esc(sv.logo)}" loading="lazy">
+         <img class="sb-logo" src="${esc(sv.logo)}" onerror="this.style.display='none'" loading="lazy">`
+      :`<span class="sb-init">${esc(sv.name.slice(0,2).toUpperCase())}</span>`;
+    const seasonsHtml=seasons.map(([sNum,eps])=>{
+      const sKey=sv.key+'__'+sNum;
+      const isOpen=SEASON_COL[sKey]!==false;
+      const epsHtml=eps.map(ch=>{
+        const playing=SEL&&SEL.u===ch.u&&document.getElementById('player-screen').classList.contains('active');
+        return `<div class="ep-row${playing?' playing':''}" data-ep-id="${ch.id}">
+          <span class="ep-num">B${ch._e}</span>
+          <span class="ep-title">${esc(ch._t||ch.n)}</span>
+          <button class="ep-play-btn" data-ep-id="${ch.id}"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></button>
+        </div>`;
+      }).join('');
+      return `<div class="season-row" data-sk="${esc(sKey)}">
+        <span class="season-row-label">Sezon ${sNum}</span>
+        <span class="season-row-cnt">${eps.length} bölüm</span>
+        <span class="season-row-arr${isOpen?' open':''}"><svg viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg></span>
+      </div>
+      <div class="ep-list${isOpen?' open':''}" data-sk-eps="${esc(sKey)}">${epsHtml}</div>`;
+    }).join('');
+    html+=`<div class="series-card${isExp?' expanded':''}" data-sv-key="${esc(sv.key)}">
+      <div class="series-banner">
+        ${bannerContent}
+        <div class="sb-grad"></div>
+        <span class="sb-episode-count">▶ ${sv.epCount} bölüm</span>
+      </div>
+      <div class="series-head">
+        <div class="series-info">
+          <div class="series-name">${esc(sv.name)}</div>
+          <div class="series-badges">
+            <span class="s-badge">${sv.sCount} Sezon</span>
+            <span class="s-badge ep">${sv.epCount} Bölüm</span>
+          </div>
+        </div>
+        <span class="series-arr${isExp?' open':''}"><svg viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg></span>
+      </div>
+      <div class="series-body${isExp?' open':''}">${seasonsHtml}</div>
+    </div>`;
+  });
+  if(rest&&rest.length){
+    html+=`<div class="grp-header">Diğer <span style="opacity:.4;font-size:9px">${rest.length}</span></div>`;
+    rest.forEach(ch=>{html+=renderCh(ch);});
+  }
+  listEl.innerHTML=html;
+  // Series expand toggle
+  listEl.querySelectorAll('.series-card').forEach(card=>{
+    const key=card.dataset.svKey;
+    card.querySelector('.series-head').addEventListener('click',()=>{
+      SERIES_EXP[key]=!SERIES_EXP[key];
+      card.querySelector('.series-body').classList.toggle('open',SERIES_EXP[key]);
+      card.querySelector('.series-arr').classList.toggle('open',SERIES_EXP[key]);
+      card.classList.toggle('expanded',SERIES_EXP[key]);
+    });
+  });
+  // Season toggle
+  listEl.querySelectorAll('.season-row').forEach(row=>{
+    const sk=row.dataset.sk;
+    row.addEventListener('click',()=>{
+      const wasOpen=SEASON_COL[sk]!==false;
+      SEASON_COL[sk]=!wasOpen;
+      row.querySelector('.season-row-arr').classList.toggle('open',!wasOpen);
+      listEl.querySelector(`[data-sk-eps="${sk}"]`)?.classList.toggle('open',!wasOpen);
+    });
+  });
+  // Episode click
+  listEl.querySelectorAll('.ep-row,.ep-play-btn').forEach(el=>{
+    el.addEventListener('click',e=>{
+      e.stopPropagation();
+      const id=parseInt(el.dataset.epId||(el.closest('[data-ep-id]')||{}).dataset?.epId);
+      const ch=ALL[id];if(!ch)return;
+      const idx=FILTERED.findIndex(f=>f.id===ch.id);
+      openPlayer(ch,idx>=0?idx:0);
+    });
+  });
+  // Regular ch-items in rest
+  listEl.querySelectorAll('.ch-item').forEach(el=>{
+    const ch=ALL[parseInt(el.dataset.id)];if(!ch)return;
+    el.addEventListener('click',e=>{
+      if(e.target.closest('.fav-btn,.act-btn'))return;
+      const idx=FILTERED.findIndex(f=>f.id===ch.id);
+      openPlayer(ch,idx>=0?idx:0);
+    });
+    el.querySelector('.fav-btn')?.addEventListener('click',e=>{e.stopPropagation();toggleFav(ch,el.querySelector('.fav-btn'));});
+    el.querySelector('.act-info')?.addEventListener('click',e=>{e.stopPropagation();openSheet(ch);});
+  });
 }
 
 function renderCh(ch){
@@ -1577,6 +1900,19 @@ function exportFavoritesM3U(){
 window.addEventListener('resize',()=>{if(ALL.length)doVirtualRender();});
 
 document.getElementById('export-btn').addEventListener('click',exportFavoritesM3U);
+
+const gridBtn=document.getElementById('grid-btn');
+const gridIco=document.getElementById('grid-ico');
+function setGridMode(on){
+  GRID_MODE=on;S.set('grid',on);
+  gridBtn.classList.toggle('on',on);
+  gridIco.innerHTML=on
+    ?'<path d="M3 5h2V3H3zm0 4h2V7H3zm0 4h2v-2H3zm4-8h2V3H7zm0 4h2V7H7zm0 4h2v-2H7zm4 0h2v-2h-2zm0-4h2V7h-2zm0-4h2V3h-2zm4 12h2v-2h-2zm0-4h2V7h-2zm0-4h2V3h-2zM3 17h2v-2H3zm4 0h2v-2H7zm4 0h2v-2h-2zm4 0h2v-2h-2zm0 4h2v-2h-2zm-4 0h2v-2h-2zm-4 0h2v-2H7zm-4 0h2v-2H3z"/>' // list icon
+    :'<path d="M3 3h7v7H3zm0 11h7v7H3zm11-11h7v7h-7zm0 11h7v7h-7z"/>'; // grid icon
+  if(ALL.length)renderList();
+}
+if(GRID_MODE)setGridMode(true);
+gridBtn.addEventListener('click',()=>setGridMode(!GRID_MODE));
 
 // ── PWA Service Worker ──
 if('serviceWorker' in navigator){
