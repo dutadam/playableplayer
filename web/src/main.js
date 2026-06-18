@@ -108,6 +108,8 @@ async function loadSortedPlayables() {
 function render() {
   if (state.activePlayable) {
     renderPlayer();
+  } else if (shouldShowInstallOnboarding()) {
+    renderInstallOnboarding();
   } else {
     renderLibrary();
   }
@@ -116,7 +118,6 @@ function render() {
 function renderLibrary() {
   document.body.classList.remove("player-active");
   app.className = "app library-shell";
-  const installCard = shouldShowInstallCard() ? renderInstallOnboarding() : "";
   const filteredItems = getFilteredPlayables();
   const rows = filteredItems.map(renderPlayableRow).join("");
   const bootNotice = state.isBooting ? `<section class="status-strip">Opening library...</section>` : "";
@@ -137,27 +138,11 @@ function renderLibrary() {
         </div>
         <div class="hero-actions">
           <button class="primary-button" data-action="pick-file">Import playable</button>
-          <button class="secondary-button" data-action="load-sample">Load sample</button>
+          <button class="secondary-button" data-action="load-demos">Load demos</button>
         </div>
       </section>
 
-      ${installCard}
       ${bootNotice}
-
-      <section class="quick-start">
-        <div>
-          <strong>1</strong>
-          <span>Import HTML or ZIP</span>
-        </div>
-        <div>
-          <strong>2</strong>
-          <span>Pick game and tags</span>
-        </div>
-        <div>
-          <strong>3</strong>
-          <span>Triple tap a corner to exit</span>
-        </div>
-      </section>
 
       <section class="library-summary">
         <div>
@@ -206,25 +191,29 @@ function renderLibrary() {
   wireLibraryEvents();
 }
 
-function renderInstallCard() {
-  return renderInstallOnboarding();
-}
-
 function renderInstallOnboarding() {
   const platform = detectPlatform();
   const steps = platform === "ios"
-    ? ["Tap Share", "Choose Add to Home Screen", "Open from the new icon"]
-    : ["Tap Install or Share", "Choose Add to Home Screen", "Open from the new icon"];
+    ? ["Open the share sheet", "Choose Add to Home Screen", "Launch from the new icon"]
+    : ["Tap Install or open Share", "Choose Add to Home Screen", "Launch from the new icon"];
   const canShare = typeof navigator.share === "function";
   const hasInstallPrompt = Boolean(deferredInstallPrompt);
   const actionLabel = hasInstallPrompt ? "Install app" : "Open share sheet";
 
-  return `
-    <section class="install-card onboarding-card">
-      <div>
-        <p class="eyebrow">One-time setup</p>
-        <h2>Add Playable Player to Home Screen</h2>
-        <p>Use it from the Home Screen for the cleanest player experience and saved local library.</p>
+  document.body.classList.remove("player-active");
+  app.className = "app onboarding-shell";
+  fileInput = null;
+  app.innerHTML = `
+    <main class="onboarding-page">
+      <section class="onboarding-hero">
+        <div class="brand-row">
+          ${renderDreamLogo()}
+        </div>
+        <div class="onboarding-copy">
+          <p class="eyebrow">One-time setup</p>
+          <h1>Add Playable Player to Home Screen.</h1>
+          <p>Fullscreen testing works best after the app opens from its own Home Screen icon. The library will unlock after this step.</p>
+        </div>
         <ol class="onboarding-steps">
           ${steps.map((step) => `<li>${step}</li>`).join("")}
         </ol>
@@ -232,10 +221,12 @@ function renderInstallOnboarding() {
           ${canShare || hasInstallPrompt ? `<button class="primary-button" data-action="open-share">${actionLabel}</button>` : ""}
           <button class="secondary-button" data-action="mark-installed">I added it</button>
         </div>
-      </div>
-      <button class="quiet-button" data-action="dismiss-install">Dismiss</button>
-    </section>
+        <p class="onboarding-note">After this, the setup screen stays hidden on this device.</p>
+      </section>
+      ${state.error ? `<div class="toast" role="alert">${escapeHtml(state.error)}</div>` : ""}
+    </main>
   `;
+  wireLibraryEvents();
 }
 
 function renderPlayableRow(item) {
@@ -389,7 +380,7 @@ function wireLibraryEvents() {
   app.querySelectorAll("select[data-action='filter-game']").forEach((element) => {
     element.addEventListener("change", handleLibraryAction);
   });
-  fileInput.addEventListener("change", async () => {
+  fileInput?.addEventListener("change", async () => {
     await importFiles([...fileInput.files]);
     fileInput.value = "";
   });
@@ -401,16 +392,11 @@ async function handleLibraryAction(event) {
 
   if (action === "pick-file") fileInput.click();
   if (action === "refresh") await refreshLibrary();
-  if (action === "load-sample") await loadSamplePlayable();
+  if (action === "load-demos") await loadDemoPlayables();
   if (action === "open-share") await openShareSheet();
   if (action === "filter-game") {
     state.gameFilter = event.currentTarget.value;
     localStorage.setItem("game-filter", state.gameFilter);
-    render();
-  }
-  if (action === "dismiss-install") {
-    localStorage.setItem("install-onboarding-dismissed", "1");
-    state.installDismissed = true;
     render();
   }
   if (action === "mark-installed") {
@@ -543,60 +529,139 @@ async function ensurePlayerReady() {
   ]);
 }
 
-async function loadSamplePlayable() {
-  const id = crypto.randomUUID();
-  const createdAt = new Date().toISOString();
-  const html = `<!doctype html>
+async function loadDemoPlayables() {
+  state.error = "";
+  const demos = [
+    {
+      name: "Royal Match Store CTA Demo",
+      sourceName: "royal-match-store-cta-demo.html",
+      game: "Royal Match",
+      creativeType: "Storefront",
+      tags: ["cta", "store", "portrait", "demo"],
+      html: createDemoHtml({
+        title: "Royal Match",
+        subtitle: "Store CTA demo",
+        mode: "portrait",
+        cta: true,
+        accent: "#ffd247",
+        background: "#121824"
+      })
+    },
+    {
+      name: "Royal Match Tap Gameplay Demo",
+      sourceName: "royal-match-tap-gameplay-demo.html",
+      game: "Royal Match",
+      creativeType: "Gameplay",
+      tags: ["gameplay", "tap", "portrait", "demo"],
+      html: createDemoHtml({
+        title: "Tap to Match",
+        subtitle: "Portrait scaling demo",
+        mode: "portrait",
+        cta: false,
+        accent: "#2e32ff",
+        background: "#f5f6ff"
+      })
+    },
+    {
+      name: "Royal Kingdom Landscape Demo",
+      sourceName: "royal-kingdom-landscape-demo.html",
+      game: "Royal Kingdom",
+      creativeType: "Minigame",
+      tags: ["landscape", "fixed-canvas", "minigame", "demo"],
+      html: createDemoHtml({
+        title: "Royal Kingdom",
+        subtitle: "Landscape fixed-canvas demo",
+        mode: "landscape",
+        cta: true,
+        accent: "#39d98a",
+        background: "#152016"
+      })
+    }
+  ];
+
+  const existingSources = new Set(state.playables.map((item) => item.sourceName));
+  let added = 0;
+
+  for (const demo of demos) {
+    if (existingSources.has(demo.sourceName)) continue;
+    const id = crypto.randomUUID();
+    const createdAt = new Date().toISOString();
+    const blob = new Blob([demo.html], { type: "text/html; charset=utf-8" });
+    await savePlayable({
+      id,
+      name: demo.name,
+      entryPath: "index.html",
+      sourceName: demo.sourceName,
+      fileCount: 1,
+      byteSize: blob.size,
+      createdAt,
+      game: demo.game,
+      creativeType: demo.creativeType,
+      tags: demo.tags
+    }, [{
+      key: `${id}/index.html`,
+      playableId: id,
+      path: "index.html",
+      type: "text/html; charset=utf-8",
+      blob
+    }]);
+    added += 1;
+  }
+
+  if (!added) state.error = "Demo playables are already in the library.";
+  await refreshLibrary();
+}
+
+function createDemoHtml({ title, subtitle, mode, cta, accent, background }) {
+  const isLandscape = mode === "landscape";
+  const stageWidth = isLandscape ? 640 : 360;
+  const stageHeight = isLandscape ? 360 : 640;
+  const textColor = background === "#f5f6ff" ? "#10131b" : "#ffffff";
+  const ctaMarkup = cta
+    ? `<a class="cta" href="https://apps.apple.com/us/app/royal-match/id1482155847">Store CTA</a>`
+    : `<button class="cta" id="tapButton" type="button">Tap score: 0</button>`;
+
+  return `<!doctype html>
 <html>
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
-  <title>Sample Store Test</title>
+  <title>${escapeHtml(title)} Demo</title>
   <style>
-    html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: #111318; color: #fff; font-family: -apple-system, BlinkMacSystemFont, sans-serif; touch-action: manipulation; }
-    main { display: grid; min-height: 100%; place-items: center; padding: 24px; background: linear-gradient(135deg, #141922, #263445); }
-    section { display: grid; gap: 16px; width: min(360px, 100%); text-align: center; }
-    h1 { margin: 0; font-size: 34px; }
-    button, a { border: 0; border-radius: 8px; padding: 16px; color: #101318; background: #f3c94a; font-size: 18px; font-weight: 800; text-decoration: none; }
+    html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: ${background}; color: ${textColor}; font-family: -apple-system, BlinkMacSystemFont, sans-serif; touch-action: manipulation; }
+    body { display: grid; place-items: center; }
+    .stage { position: relative; width: ${stageWidth}px; height: ${stageHeight}px; overflow: hidden; background: ${background}; }
+    .stage::before { position: absolute; inset: 18px; border: 8px solid ${accent}; border-radius: 28px; content: ""; opacity: 0.95; }
+    .content { position: absolute; inset: 0; display: grid; align-content: center; justify-items: center; gap: 18px; padding: 34px; text-align: center; }
+    h1 { margin: 0; font-size: ${isLandscape ? 42 : 46}px; line-height: 0.95; }
+    p { margin: 0; color: ${textColor}; font-size: 20px; opacity: 0.72; }
+    .tiles { display: grid; grid-template-columns: repeat(3, 54px); gap: 10px; }
+    .tile { width: 54px; height: 54px; border-radius: 12px; background: ${accent}; box-shadow: inset 0 -6px rgba(0,0,0,0.18); }
+    .tile:nth-child(2n) { transform: translateY(8px); opacity: 0.86; }
+    .cta { display: inline-grid; min-width: 220px; min-height: 58px; place-items: center; border: 0; border-radius: 8px; padding: 0 18px; color: #10131b; background: ${accent}; font-size: 20px; font-weight: 900; text-decoration: none; }
   </style>
 </head>
 <body>
-  <main>
-    <section>
-      <h1>Playable Sample</h1>
-      <button id="score">Tap score: 0</button>
-      <a href="https://apps.apple.com/us/app/royal-match/id1482155847">Store CTA</a>
+  <main class="stage">
+    <section class="content">
+      <h1>${escapeHtml(title)}</h1>
+      <p>${escapeHtml(subtitle)}</p>
+      <div class="tiles" aria-hidden="true">${Array.from({ length: 6 }).map(() => `<span class="tile"></span>`).join("")}</div>
+      ${ctaMarkup}
     </section>
   </main>
   <script>
     let score = 0;
-    document.querySelector("#score").addEventListener("click", () => {
-      score += 1;
-      document.querySelector("#score").textContent = "Tap score: " + score;
-    });
+    const button = document.querySelector("#tapButton");
+    if (button) {
+      button.addEventListener("click", () => {
+        score += 1;
+        button.textContent = "Tap score: " + score;
+      });
+    }
   </script>
 </body>
 </html>`;
-
-  await savePlayable({
-    id,
-    name: "Sample Store Test",
-    entryPath: "index.html",
-    sourceName: "sample-store-test.html",
-    fileCount: 1,
-    byteSize: html.length,
-    createdAt,
-    game: "Royal Match",
-    creativeType: "Storefront",
-    tags: ["cta", "store", "sample"]
-  }, [{
-    key: `${id}/index.html`,
-    playableId: id,
-    path: "index.html",
-    type: "text/html; charset=utf-8",
-    blob: new Blob([html], { type: "text/html; charset=utf-8" })
-  }]);
-  await refreshLibrary();
 }
 
 async function saveMetadataFromSheet() {
@@ -740,7 +805,7 @@ async function requestFullscreen() {
   }
 }
 
-function shouldShowInstallCard() {
+function shouldShowInstallOnboarding() {
   return !state.installDismissed && !isStandaloneMode();
 }
 
