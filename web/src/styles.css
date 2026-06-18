@@ -533,17 +533,21 @@ h2 {
   border-radius: 8px;
   padding: 14px;
   background: rgba(17, 19, 24, 0.96);
+  color: #ffffff;
   box-shadow: 0 18px 55px rgba(0, 0, 0, 0.48);
 }
 
 .metadata-sheet {
   display: grid;
-  width: min(460px, 100%);
+  width: min(460px, calc(100vw - 24px));
+  max-height: min(760px, calc(100dvh - 24px));
   gap: 14px;
   border: 1px solid var(--line);
   border-radius: 8px;
   padding: 18px;
   background: #ffffff;
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
   box-shadow: 0 18px 70px rgba(16, 19, 27, 0.2);
 }
 
@@ -556,7 +560,17 @@ h2 {
 
 .metadata-sheet label {
   display: grid;
+  min-width: 0;
   gap: 7px;
+}
+
+.sheet-head > div {
+  min-width: 0;
+}
+
+.sheet-head h2 {
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .metadata-sheet label span {
@@ -574,6 +588,10 @@ h2 {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 10px;
+  position: sticky;
+  bottom: 0;
+  padding-top: 8px;
+  background: #ffffff;
 }
 
 .control-panel.open {
@@ -586,6 +604,7 @@ h2 {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  color: #ffffff;
 }
 
 .modal-backdrop {
@@ -595,7 +614,12 @@ h2 {
   display: grid;
   place-items: center;
   padding: 18px;
+  overflow: hidden;
   background: rgba(0, 0, 0, 0.68);
+}
+
+.metadata-backdrop {
+  padding: 12px;
 }
 
 .store-modal {
@@ -608,6 +632,7 @@ h2 {
 }
 
 .store-modal h2 {
+  color: #ffffff;
   font-size: 22px;
 }
 
@@ -681,7 +706,7 @@ h2 {
 
   .panel-actions {
     display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
+    grid-template-columns: 1fr 1fr;
     margin-top: 12px;
   }
 

@@ -194,9 +194,9 @@ function renderLibrary() {
 function renderInstallOnboarding() {
   const platform = detectPlatform();
   const steps = platform === "ios"
-    ? ["Open the share sheet", "Choose Add to Home Screen", "Launch from the new icon"]
+    ? ["Tap Safari's share button", "Choose Add to Home Screen", "Launch from the new icon"]
     : ["Tap Install or open Share", "Choose Add to Home Screen", "Launch from the new icon"];
-  const canShare = typeof navigator.share === "function";
+  const canShare = platform !== "ios" && typeof navigator.share === "function";
   const hasInstallPrompt = Boolean(deferredInstallPrompt);
   const actionLabel = hasInstallPrompt ? "Install app" : "Open share sheet";
 
@@ -221,7 +221,7 @@ function renderInstallOnboarding() {
           ${canShare || hasInstallPrompt ? `<button class="primary-button" data-action="open-share">${actionLabel}</button>` : ""}
           <button class="secondary-button" data-action="mark-installed">I added it</button>
         </div>
-        <p class="onboarding-note">After this, the setup screen stays hidden on this device.</p>
+        <p class="onboarding-note">${platform === "ios" ? "iOS only shows Add to Home Screen from Safari's own share menu. After adding it, tap I added it." : "After this, the setup screen stays hidden on this device."}</p>
       </section>
       ${state.error ? `<div class="toast" role="alert">${escapeHtml(state.error)}</div>` : ""}
     </main>
@@ -294,7 +294,6 @@ function renderPlayer() {
         </div>
         <div class="panel-actions">
           <button class="primary-button" data-action="reload-player">Retry</button>
-          <button class="secondary-button" data-action="request-fullscreen">Fullscreen</button>
           <button class="secondary-button" data-action="go-home">Home</button>
         </div>
       </aside>

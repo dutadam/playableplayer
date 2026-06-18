@@ -2,7 +2,7 @@ const DB_NAME = "playable-player-db";
 const DB_VERSION = 1;
 const PLAYABLE_STORE = "playables";
 const FILE_STORE = "files";
-const APP_CACHE = "playable-player-shell-v3";
+const APP_CACHE = "playable-player-shell-v4";
 
 const STORE_HOSTS = [
   "apps.apple.com",
@@ -136,6 +136,12 @@ html, body {
   touch-action: manipulation;
   background: #000;
 }
+#playable-player-stage {
+  position: absolute !important;
+  top: 50% !important;
+  left: 50% !important;
+  transform-origin: center center !important;
+}
 canvas, video {
   max-width: 100vw !important;
   max-height: 100dvh !important;
@@ -178,33 +184,74 @@ canvas, video {
     event.stopImmediatePropagation();
     report(action);
   }, true);
-  const fitPlayable = () => {
+  const ensureStage = () => {
     const body = document.body;
-    if (!body || body.dataset.playablePlayerFit === "manual") return;
-    body.style.transform = "";
-    body.style.width = "";
-    body.style.height = "";
-    body.style.left = "";
-    body.style.top = "";
-    body.style.transformOrigin = "top left";
-    body.style.position = "relative";
+    if (!body || body.dataset.playablePlayerFit === "manual") return null;
+    let stage = document.getElementById("playable-player-stage");
+    if (!stage) {
+      stage = document.createElement("div");
+      stage.id = "playable-player-stage";
+      body.appendChild(stage);
+    }
+    absorbBodyChildren(stage);
+    return stage;
+  };
+  const absorbBodyChildren = (stage) => {
+    const body = document.body;
+    if (!body) return;
+    [...body.childNodes].forEach((node) => {
+      if (node !== stage) stage.appendChild(node);
+    });
+  };
+  const observeStage = () => {
+    const body = document.body;
+    const stage = ensureStage();
+    if (!body || !stage || body.dataset.playablePlayerObserver === "1") return;
+    body.dataset.playablePlayerObserver = "1";
+    new MutationObserver(() => {
+      absorbBodyChildren(stage);
+      requestAnimationFrame(fitPlayable);
+    }).observe(body, { childList: true });
+  };
+  const measureStage = (stage) => {
+    stage.style.transform = "translate(-50%, -50%) scale(1)";
+    stage.style.width = "";
+    stage.style.height = "";
+    const previousOverflow = stage.style.overflow;
+    stage.style.overflow = "visible";
+    const rect = stage.getBoundingClientRect();
+    const width = Math.max(stage.scrollWidth, stage.offsetWidth, Math.ceil(rect.width));
+    const height = Math.max(stage.scrollHeight, stage.offsetHeight, Math.ceil(rect.height));
+    stage.style.overflow = previousOverflow;
+    return { width, height };
+  };
+  const fitPlayable = () => {
+    const stage = ensureStage();
+    if (!stage) return;
     const viewportWidth = window.innerWidth || document.documentElement.clientWidth;
     const viewportHeight = window.innerHeight || document.documentElement.clientHeight;
-    const contentWidth = Math.max(body.scrollWidth, document.documentElement.scrollWidth);
-    const contentHeight = Math.max(body.scrollHeight, document.documentElement.scrollHeight);
+    const measured = measureStage(stage);
+    const contentWidth = measured.width;
+    const contentHeight = measured.height;
     if (!viewportWidth || !viewportHeight || !contentWidth || !contentHeight) return;
-    const needsFit = contentWidth > viewportWidth + 2 || contentHeight > viewportHeight + 2;
-    if (!needsFit) {
-      return;
-    }
-    const scale = Math.min(viewportWidth / contentWidth, viewportHeight / contentHeight);
-    body.style.width = contentWidth + "px";
-    body.style.height = contentHeight + "px";
-    body.style.transform = "scale(" + scale + ")";
-    body.style.left = Math.max(0, (viewportWidth - contentWidth * scale) / 2) + "px";
-    body.style.top = Math.max(0, (viewportHeight - contentHeight * scale) / 2) + "px";
+    const scale = Math.min(1, viewportWidth / contentWidth, viewportHeight / contentHeight);
+    stage.style.width = contentWidth + "px";
+    stage.style.height = contentHeight + "px";
+    stage.style.transform = "translate(-50%, -50%) scale(" + scale + ")";
   };
-  window.addEventListener("load", fitPlayable);
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", () => {
+      observeStage();
+      fitPlayable();
+    }, { once: true });
+  } else {
+    observeStage();
+    fitPlayable();
+  }
+  window.addEventListener("load", () => {
+    observeStage();
+    fitPlayable();
+  });
   window.addEventListener("resize", fitPlayable);
   window.addEventListener("orientationchange", () => setTimeout(fitPlayable, 250));
   setTimeout(fitPlayable, 50);
