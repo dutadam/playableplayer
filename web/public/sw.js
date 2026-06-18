@@ -2,7 +2,7 @@ const DB_NAME = "playable-player-db";
 const DB_VERSION = 1;
 const PLAYABLE_STORE = "playables";
 const FILE_STORE = "files";
-const APP_CACHE = "playable-player-shell-v8";
+const APP_CACHE = "playable-player-shell-v9";
 
 const STORE_HOSTS = [
   "apps.apple.com",
@@ -162,15 +162,12 @@ canvas, video {
   const report = (raw) => {
     parent.postMessage({ type: "playable-store-intent", url: String(raw) }, "*");
   };
-  let audioMuted = new URLSearchParams(location.search).get("pp_audio") === "muted";
-  const mediaVolumes = new WeakMap();
   const audioContexts = new Set();
   const NativeAudioContext = window.AudioContext || window.webkitAudioContext;
   if (NativeAudioContext) {
     function PlayablePlayerAudioContext(...args) {
       const context = new NativeAudioContext(...args);
       audioContexts.add(context);
-      if (audioMuted && context.suspend) context.suspend().catch(() => {});
       return context;
     }
     PlayablePlayerAudioContext.prototype = NativeAudioContext.prototype;
@@ -186,38 +183,19 @@ canvas, video {
       }
     });
   };
-  const applyAudioPreference = () => {
+  const unlockAudio = () => {
     document.querySelectorAll("audio, video").forEach((media) => {
-      if (audioMuted) {
-        if (!mediaVolumes.has(media)) mediaVolumes.set(media, media.volume);
-        media.muted = true;
-        media.volume = 0;
-      } else {
-        media.muted = false;
-        if (mediaVolumes.has(media)) media.volume = mediaVolumes.get(media);
-      }
+      media.muted = false;
     });
     audioContexts.forEach((context) => {
-      if (audioMuted && context.suspend) {
-        context.suspend().catch(() => {});
-      } else if (!audioMuted && context.resume) {
+      if (context.resume) {
         context.resume().catch(() => {});
       }
     });
     allowAudioFrames();
   };
-  const unlockAudio = () => {
-    if (audioMuted) return;
-    applyAudioPreference();
-  };
   ["pointerdown", "touchend", "keydown", "click"].forEach((eventName) => {
     document.addEventListener(eventName, unlockAudio, { capture: true, passive: true });
-  });
-  window.addEventListener("message", (event) => {
-    const data = event.data;
-    if (!data || data.type !== "playable-audio-muted") return;
-    audioMuted = Boolean(data.muted);
-    applyAudioPreference();
   });
   const originalOpen = window.open;
   window.open = function(url, ...rest) {
@@ -267,7 +245,7 @@ canvas, video {
     body.dataset.playablePlayerObserver = "1";
     new MutationObserver(() => {
       absorbBodyChildren(stage);
-      applyAudioPreference();
+      unlockAudio();
       requestAnimationFrame(fitPlayable);
     }).observe(body, { childList: true, subtree: true });
   };
@@ -300,17 +278,17 @@ canvas, video {
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", () => {
       observeStage();
-      applyAudioPreference();
+      unlockAudio();
       fitPlayable();
     }, { once: true });
   } else {
     observeStage();
-    applyAudioPreference();
+    unlockAudio();
     fitPlayable();
   }
   window.addEventListener("load", () => {
     observeStage();
-    applyAudioPreference();
+    unlockAudio();
     fitPlayable();
   });
   window.addEventListener("resize", fitPlayable);

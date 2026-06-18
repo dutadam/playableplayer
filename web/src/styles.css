@@ -559,46 +559,6 @@ h2 {
   gap: 10px;
 }
 
-.setting-toggle {
-  display: flex;
-  min-height: 56px;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  padding: 10px 12px;
-  background: #ffffff;
-}
-
-.setting-toggle span {
-  display: grid;
-  gap: 2px;
-}
-
-.setting-toggle strong,
-.setting-toggle small {
-  display: block;
-}
-
-.setting-toggle strong {
-  color: var(--ink);
-  font-size: 15px;
-}
-
-.setting-toggle small {
-  color: var(--muted);
-  font-size: 12px;
-}
-
-.setting-toggle input {
-  width: 46px;
-  height: 28px;
-  flex: 0 0 46px;
-  margin: 0;
-  accent-color: var(--dream-blue);
-}
-
 .danger-action {
   color: #9f1d2f;
   background: #fff0f2;
@@ -642,29 +602,6 @@ h2 {
 .player-frame {
   display: block;
   border: 0;
-}
-
-.start-player-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 3;
-  display: grid;
-  place-items: center;
-  border: 0;
-  padding: calc(20px + env(safe-area-inset-top)) 20px calc(20px + env(safe-area-inset-bottom));
-  color: #ffffff;
-  background: #000000;
-  font: inherit;
-  touch-action: manipulation;
-}
-
-.start-player-overlay span {
-  border: 1px solid rgba(255, 255, 255, 0.22);
-  border-radius: 8px;
-  padding: 14px 18px;
-  background: rgba(255, 255, 255, 0.08);
-  font-size: 18px;
-  font-weight: 800;
 }
 
 .secret-zone {

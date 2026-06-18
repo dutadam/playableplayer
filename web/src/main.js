@@ -21,10 +21,8 @@ const state = {
   pendingMetadata: null,
   editingPlayableId: null,
   settingsOpen: false,
-  playerStarted: false,
   gameFilter: localStorage.getItem("game-filter") || "All",
   languageFilter: localStorage.getItem("language-filter") || "All",
-  audioMuted: localStorage.getItem("audio-muted") === "1",
   error: "",
   fullscreenState: "idle",
   reloadNonce: 0
@@ -100,14 +98,9 @@ async function registerServiceWorker() {
 function syncRoute() {
   const match = location.hash.match(/^#\/player\/([^/]+)$/);
   if (match) {
-    const nextPlayable = state.playables.find((item) => item.id === match[1]) || null;
-    if (nextPlayable?.id !== state.activePlayable?.id) {
-      state.playerStarted = false;
-    }
-    state.activePlayable = nextPlayable;
+    state.activePlayable = state.playables.find((item) => item.id === match[1]) || null;
   } else {
     state.activePlayable = null;
-    state.playerStarted = false;
     state.controlsOpen = false;
     state.storeIntent = null;
   }
@@ -299,13 +292,6 @@ function renderSettingsSheet() {
           <button class="icon-button" type="button" data-action="close-settings" aria-label="Close">×</button>
         </div>
         <div class="settings-actions">
-          <label class="setting-toggle">
-            <span>
-              <strong>Playable sound</strong>
-              <small>${state.audioMuted ? "Muted" : "On"}</small>
-            </span>
-            <input type="checkbox" data-action="toggle-audio" ${state.audioMuted ? "" : "checked"} />
-          </label>
           <button class="primary-button" data-action="load-demos">Load Playable</button>
           <button class="secondary-button" data-action="pick-file">Import HTML or ZIP</button>
           <button class="secondary-button" data-action="refresh">Refresh library</button>
@@ -334,8 +320,11 @@ function renderDreamLogo() {
 function renderPlayer() {
   document.body.classList.add("player-active");
   const item = state.activePlayable;
-  const source = `${basePath}playables/${encodeURIComponent(item.id)}/${encodePath(item.entryPath)}?r=${state.reloadNonce}&pp_audio=${state.audioMuted ? "muted" : "on"}`;
-  const playerFrame = state.playerStarted ? `
+  const source = `${basePath}playables/${encodeURIComponent(item.id)}/${encodePath(item.entryPath)}?r=${state.reloadNonce}`;
+
+  app.className = "app player-shell";
+  app.innerHTML = `
+    <main class="player-page">
       <iframe
         id="player-frame"
         class="player-frame"
@@ -344,16 +333,6 @@ function renderPlayer() {
         allow="autoplay; fullscreen; gamepad; accelerometer; gyroscope; encrypted-media"
         sandbox="allow-scripts allow-same-origin allow-forms allow-pointer-lock allow-orientation-lock allow-popups allow-popups-to-escape-sandbox"
       ></iframe>
-  ` : `
-      <button class="start-player-overlay" data-action="start-player" aria-label="Start playable">
-        <span>Tap to start</span>
-      </button>
-  `;
-
-  app.className = "app player-shell";
-  app.innerHTML = `
-    <main class="player-page">
-      ${playerFrame}
       <button class="secret-zone secret-top-left" data-action="secret-tap" aria-label="Open controls"></button>
       <button class="secret-zone secret-top-right" data-action="secret-tap" aria-label="Open controls"></button>
       <button class="secret-zone secret-bottom-left" data-action="secret-tap" aria-label="Open controls"></button>
@@ -375,7 +354,7 @@ function renderPlayer() {
   `;
 
   wirePlayerEvents();
-  if (state.playerStarted) requestFullscreenSoon();
+  requestFullscreenSoon();
 }
 
 function renderStoreModal(intent) {
@@ -497,19 +476,13 @@ async function handleLibraryAction(event) {
     state.settingsOpen = false;
     render();
   }
-  if (action === "toggle-audio") {
-    state.audioMuted = !event.currentTarget.checked;
-    localStorage.setItem("audio-muted", state.audioMuted ? "1" : "0");
-    render();
-  }
   if (action === "mark-installed") {
     localStorage.setItem("install-onboarding-dismissed", "1");
     state.installDismissed = true;
     render();
   }
   if (action === "open-playable") {
-    await requestFullscreen();
-    await ensurePlayerReady();
+    requestFullscreen();
     location.hash = `#/player/${id}`;
   }
   if (action === "edit-playable") {
@@ -546,12 +519,7 @@ function wirePlayerEvents() {
     element.addEventListener("click", handlePlayerAction);
   });
   const frame = app.querySelector("#player-frame");
-  if (!frame) return;
-  frame.addEventListener("load", () => {
-    detectExternalFrameNavigation(frame);
-    postPlayerAudioPreference(frame);
-  });
-  postPlayerAudioPreference(frame);
+  frame.addEventListener("load", () => detectExternalFrameNavigation(frame));
 }
 
 function handlePlayerAction(event) {
@@ -559,18 +527,10 @@ function handlePlayerAction(event) {
   if (action === "secret-tap") {
     registerSecretTap();
   }
-  if (action === "start-player") {
-    requestFullscreen();
-    state.playerStarted = true;
-    state.controlsOpen = false;
-    state.storeIntent = null;
-    render();
-  }
   if (action === "reload-player" || action === "store-retry") {
     state.storeIntent = null;
     state.controlsOpen = false;
     state.reloadNonce += 1;
-    state.playerStarted = false;
     render();
   }
   if (action === "request-fullscreen") {
@@ -579,14 +539,6 @@ function handlePlayerAction(event) {
   if (action === "go-home") {
     location.hash = "#/";
   }
-}
-
-function postPlayerAudioPreference(frame = app.querySelector("#player-frame")) {
-  if (!frame?.contentWindow) return;
-  frame.contentWindow.postMessage({
-    type: "playable-audio-muted",
-    muted: state.audioMuted
-  }, "*");
 }
 
 async function importFiles(files) {
@@ -649,14 +601,6 @@ async function openShareSheet() {
       render();
     }
   }
-}
-
-async function ensurePlayerReady() {
-  if (!serviceWorkerPromise) return;
-  await Promise.race([
-    serviceWorkerPromise,
-    new Promise((resolve) => setTimeout(resolve, 1800))
-  ]);
 }
 
 async function loadDemoPlayables() {
