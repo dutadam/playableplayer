@@ -575,6 +575,22 @@ async function loadDemoPlayables() {
         accent: "#39d98a",
         background: "#152016"
       })
+    },
+    {
+      name: "Luna Royal Kingdom Preview",
+      sourceName: "luna-royal-kingdom-preview.html",
+      game: "Royal Kingdom",
+      creativeType: "Gameplay",
+      tags: ["luna", "preview", "remote-assets", "demo"],
+      htmlPath: `${basePath}luna/royal-kingdom-luna-preview.html`
+    },
+    {
+      name: "Luna Royal Match Preview",
+      sourceName: "luna-royal-match-preview.html",
+      game: "Royal Match",
+      creativeType: "Gameplay",
+      tags: ["luna", "preview", "remote-assets", "demo"],
+      htmlPath: `${basePath}luna/royal-match-luna-preview.html`
     }
   ];
 
@@ -585,7 +601,8 @@ async function loadDemoPlayables() {
     if (existingSources.has(demo.sourceName)) continue;
     const id = crypto.randomUUID();
     const createdAt = new Date().toISOString();
-    const blob = new Blob([demo.html], { type: "text/html; charset=utf-8" });
+    const html = demo.html || await loadBundledHtml(demo.htmlPath);
+    const blob = new Blob([html], { type: "text/html; charset=utf-8" });
     await savePlayable({
       id,
       name: demo.name,
@@ -609,6 +626,14 @@ async function loadDemoPlayables() {
 
   if (!added) state.error = "Demo playables are already in the library.";
   await refreshLibrary();
+}
+
+async function loadBundledHtml(path) {
+  const response = await fetch(path, { cache: "no-cache" });
+  if (!response.ok) {
+    throw new Error("Bundled playable could not be loaded.");
+  }
+  return response.text();
 }
 
 function createDemoHtml({ title, subtitle, mode, cta, accent, background }) {
