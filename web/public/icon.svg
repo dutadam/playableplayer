@@ -1,24 +1,16 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="Layer_2" data-name="Layer 2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 500">
   <defs>
-    <linearGradient id="dream-blue" x1="82" y1="42" x2="430" y2="478" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#4c52ff"/>
-      <stop offset=".52" stop-color="#2f34ff"/>
-      <stop offset="1" stop-color="#11157a"/>
-    </linearGradient>
-    <linearGradient id="gold" x1="160" y1="142" x2="360" y2="386" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#fff2a2"/>
-      <stop offset=".48" stop-color="#ffd13f"/>
-      <stop offset="1" stop-color="#f0a313"/>
-    </linearGradient>
-    <filter id="shadow" x="-20%" y="-20%" width="140%" height="150%" color-interpolation-filters="sRGB">
-      <feDropShadow dx="0" dy="18" stdDeviation="18" flood-color="#070a44" flood-opacity=".32"/>
-    </filter>
+    <style>
+      .cls-1 {
+        fill: #fff;
+      }
+
+      .cls-2 {
+        fill: #2d32ff;
+      }
+    </style>
   </defs>
-  <rect width="512" height="512" rx="112" fill="url(#dream-blue)"/>
-  <path d="M370 108c11 54 43 86 96 96-53 11-85 43-96 96-10-53-42-85-96-96 54-10 86-42 96-96Z" fill="#ffffff" opacity=".95"/>
-  <rect x="112" y="154" width="236" height="176" rx="36" fill="#ffffff" opacity=".18"/>
-  <rect x="154" y="112" width="236" height="176" rx="36" fill="#ffffff" opacity=".28"/>
-  <rect x="122" y="174" width="268" height="204" rx="42" fill="#ffffff" opacity=".96" filter="url(#shadow)"/>
-  <path d="M222 213c0-14 15-23 28-16l100 58c13 8 13 26 0 34l-100 58c-13 7-28-2-28-16V213Z" fill="url(#gold)"/>
-  <path d="M133 399h246" stroke="#ffd13f" stroke-width="24" stroke-linecap="round"/>
+  <rect class="cls-2" width="500" height="500"/>
+  <path class="cls-1" d="M382.67,126.25c-19.2-25.26-46.77-44.58-78.21-50.6-15.91-3.05-31.93-1.68-48.01-1.68H96.37c-4.04,0-7.33,3.28-7.33,7.33v337.71c0,4.05,3.29,7.33,7.33,7.33h86.99c4.05,0,7.33-3.28,7.33-7.33v-64.53c0-5.22,4.23-9.45,9.45-9.45h22.43l74.91-1.65c18.61-2.8,38.04-9.41,53.69-20.32,17.73-12.36,32.53-28.81,42.91-47.76,10.46-19.11,16.32-40.63,16.85-62.41.75-31.1-9.46-61.9-28.26-86.64ZM322.43,221.34l-108.81,65.81c-9.46,5.72-21.54-1.09-21.54-12.14v-131.63c0-11.06,12.08-17.87,21.54-12.15l108.81,65.82c9.12,5.52,9.12,18.76,0,24.29Z"/>
 </svg>

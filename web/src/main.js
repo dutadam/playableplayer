@@ -37,6 +37,7 @@ let deferredInstallPrompt;
 init();
 
 async function init() {
+  installDoubleTapZoomGuard();
   window.addEventListener("message", handleFrameMessage);
   window.addEventListener("hashchange", syncRoute);
   window.addEventListener("beforeinstallprompt", (event) => {
@@ -64,6 +65,18 @@ async function init() {
     state.isBooting = false;
     syncRoute();
   }
+}
+
+function installDoubleTapZoomGuard() {
+  let lastTouchEnd = 0;
+  document.addEventListener("touchend", (event) => {
+    if (document.body.classList.contains("player-active")) return;
+    const now = Date.now();
+    if (now - lastTouchEnd < 320) {
+      event.preventDefault();
+    }
+    lastTouchEnd = now;
+  }, { passive: false });
 }
 
 async function registerServiceWorker() {
