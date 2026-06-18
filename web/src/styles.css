@@ -55,7 +55,7 @@ button {
 
 .library-hero {
   display: grid;
-  gap: 20px;
+  gap: 14px;
   margin-bottom: 16px;
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -85,7 +85,7 @@ button {
 
 .hero-copy h1 {
   max-width: 560px;
-  font-size: clamp(28px, 8vw, 56px);
+  font-size: clamp(26px, 7vw, 48px);
   letter-spacing: 0;
   line-height: 1;
   overflow-wrap: anywhere;
@@ -93,8 +93,13 @@ button {
 
 .hero-actions {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr;
   gap: 10px;
+}
+
+.load-button {
+  min-height: 56px;
+  font-size: 18px;
 }
 
 .eyebrow {
@@ -236,14 +241,11 @@ h2 {
 }
 
 .share-hint svg {
-  width: 44px;
+  width: 72px;
   height: 44px;
-  flex: 0 0 44px;
-  border: 1px solid rgba(46, 50, 255, 0.28);
-  border-radius: 8px;
-  padding: 8px;
+  flex: 0 0 72px;
   stroke: currentColor;
-  stroke-width: 2.8;
+  stroke-width: 4;
   fill: none;
   stroke-linecap: round;
   stroke-linejoin: round;
@@ -314,7 +316,7 @@ h2 {
 
 .library-summary {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 8px;
   margin-bottom: 20px;
 }
@@ -348,6 +350,11 @@ h2 {
   justify-content: space-between;
   gap: 12px;
   margin-bottom: 10px;
+}
+
+.filter-group {
+  display: flex;
+  gap: 8px;
 }
 
 .section-heading h2 {
@@ -399,6 +406,7 @@ h2 {
   align-items: center;
   margin-bottom: 10px;
   padding: 8px;
+  border-left: 5px solid var(--game-color, var(--line));
 }
 
 .row-main {
@@ -443,7 +451,7 @@ h2 {
   place-items: center;
   border-radius: 8px;
   color: white;
-  background: var(--dream-blue);
+  background: var(--game-color, var(--dream-blue));
   font-size: 15px;
   font-weight: 900;
 }
@@ -473,6 +481,16 @@ h2 {
 .clear-library-button {
   width: 100%;
   margin-top: 10px;
+}
+
+.settings-actions {
+  display: grid;
+  gap: 10px;
+}
+
+.danger-action {
+  color: #9f1d2f;
+  background: #fff0f2;
 }
 
 .toast {
@@ -687,6 +705,11 @@ h2 {
     align-items: flex-start;
   }
 
+  .section-heading {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
   .toolbar-actions,
   .hero-actions {
     flex: 0 0 auto;
@@ -705,7 +728,7 @@ h2 {
   }
 
   .library-summary {
-    grid-template-columns: 1fr 1fr 1fr;
+    grid-template-columns: 1fr 1fr;
   }
 
   .library-summary div {
@@ -717,8 +740,13 @@ h2 {
     grid-template-columns: minmax(0, 1fr) 42px 42px;
   }
 
+  .filter-group {
+    width: 100%;
+    flex-direction: column;
+  }
+
   .filter-select {
-    width: min(46vw, 220px);
+    width: 100%;
   }
 
   .control-panel,

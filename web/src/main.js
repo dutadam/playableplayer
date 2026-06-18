@@ -6,7 +6,8 @@ const app = document.querySelector("#app");
 
 const GAME_OPTIONS = ["Royal Match", "Royal Kingdom", "Other"];
 const CREATIVE_TYPES = ["Gameplay", "Meta", "Rewarded", "Minigame", "Storefront", "Other"];
-const QUICK_TAGS = ["cta", "tutorial", "booster", "fail-state", "win-state", "seasonal", "character", "level", "offer"];
+const LANGUAGE_OPTIONS = ["English", "Turkish", "German", "French", "Spanish", "Italian", "Portuguese", "Arabic", "Japanese", "Korean", "Chinese", "Unknown"];
+const QUICK_TAGS = ["cta", "tutorial", "booster", "fail-state", "win-state", "seasonal", "character", "level", "offer", "luna"];
 
 const state = {
   playables: [],
@@ -19,7 +20,9 @@ const state = {
   storeIntent: null,
   pendingMetadata: null,
   editingPlayableId: null,
+  settingsOpen: false,
   gameFilter: localStorage.getItem("game-filter") || "All",
+  languageFilter: localStorage.getItem("language-filter") || "All",
   error: "",
   fullscreenState: "idle",
   reloadNonce: 0
@@ -122,14 +125,15 @@ function renderLibrary() {
   const rows = filteredItems.map(renderPlayableRow).join("");
   const bootNotice = state.isBooting ? `<section class="status-strip">Opening library...</section>` : "";
   const allTags = getAllTags(state.playables);
+  const allLanguages = getAllLanguages(state.playables);
 
   app.innerHTML = `
     <main class="library-page">
       <section class="library-hero">
         <div class="brand-row">
           ${renderDreamLogo()}
-          <button class="icon-button" data-action="refresh" aria-label="Refresh library">
-            <span aria-hidden="true">↻</span>
+          <button class="icon-button" data-action="open-settings" aria-label="Open settings">
+            <span aria-hidden="true">☰</span>
           </button>
         </div>
         <div class="hero-copy">
@@ -137,8 +141,7 @@ function renderLibrary() {
           <h1>Creative library and fullscreen player.</h1>
         </div>
         <div class="hero-actions">
-          <button class="primary-button" data-action="pick-file">Import playable</button>
-          <button class="secondary-button" data-action="load-demos">Load demos</button>
+          <button class="primary-button load-button" data-action="load-demos">Load Playable</button>
         </div>
       </section>
 
@@ -157,6 +160,10 @@ function renderLibrary() {
           <strong>${countByGame("Royal Kingdom")}</strong>
           <span>Royal Kingdom</span>
         </div>
+        <div>
+          <strong>${allLanguages.length}</strong>
+          <span>Languages</span>
+        </div>
       </section>
 
       <section class="list-section">
@@ -165,9 +172,14 @@ function renderLibrary() {
             <p class="eyebrow">Library</p>
             <h2>${state.gameFilter === "All" ? "All playables" : state.gameFilter}</h2>
           </div>
-          <select class="filter-select" data-action="filter-game" aria-label="Filter by game">
-            ${["All", ...GAME_OPTIONS].map((game) => `<option value="${game}" ${state.gameFilter === game ? "selected" : ""}>${game}</option>`).join("")}
-          </select>
+          <div class="filter-group">
+            <select class="filter-select" data-action="filter-game" aria-label="Filter by game">
+              ${["All", ...GAME_OPTIONS].map((game) => `<option value="${game}" ${state.gameFilter === game ? "selected" : ""}>${game}</option>`).join("")}
+            </select>
+            <select class="filter-select" data-action="filter-language" aria-label="Filter by language">
+              ${["All", ...LANGUAGE_OPTIONS].map((language) => `<option value="${language}" ${state.languageFilter === language ? "selected" : ""}>${language}</option>`).join("")}
+            </select>
+          </div>
         </div>
         ${allTags.length ? `<div class="tag-cloud">${allTags.slice(0, 10).map((tag) => `<span class="tag">${escapeHtml(tag)}</span>`).join("")}</div>` : ""}
         ${
@@ -179,9 +191,9 @@ function renderLibrary() {
           </div>`
         }
       </section>
-      ${state.playables.length ? `<button class="quiet-button clear-library-button" data-action="clear-library">Clear library</button>` : ""}
 
       ${state.error ? `<div class="toast" role="alert">${escapeHtml(state.error)}</div>` : ""}
+      ${state.settingsOpen ? renderSettingsSheet() : ""}
       ${state.pendingMetadata || state.editingPlayableId ? renderMetadataSheet() : ""}
       <input class="file-input" type="file" accept=".html,.htm,.zip" multiple />
     </main>
@@ -233,12 +245,11 @@ function renderInstallOnboarding() {
 function renderShareHint() {
   return `
     <div class="share-hint" aria-label="Safari share button">
-      <svg viewBox="0 0 44 44" aria-hidden="true">
-        <path d="M22 5v24" />
-        <path d="M13.5 13.5 22 5l8.5 8.5" />
-        <path d="M14 20H9v18h26V20h-5" />
+      <svg class="share-arrow" viewBox="0 0 72 44" aria-hidden="true">
+        <path d="M5 22h52" />
+        <path d="M45 10l12 12-12 12" />
       </svg>
-      <span>Use this Safari share icon</span>
+      <span>Point this at Safari's share icon</span>
     </div>
   `;
 }
@@ -247,13 +258,15 @@ function renderPlayableRow(item) {
   const tags = getPlayableTags(item);
   const game = item.game || "Unassigned";
   const creativeType = item.creativeType || "Uncategorized";
+  const language = item.language || "Unknown";
+  const color = gameColor(game);
   return `
-    <article class="playable-row">
+    <article class="playable-row" style="--game-color: ${color}">
       <button class="row-main" data-action="open-playable" data-id="${item.id}">
         <span class="play-icon">▶</span>
         <span>
           <strong>${escapeHtml(item.name)}</strong>
-          <small>${escapeHtml(game)} · ${escapeHtml(creativeType)} · ${item.fileCount} files · ${formatBytes(item.byteSize)}</small>
+          <small>${escapeHtml(game)} · ${escapeHtml(creativeType)} · ${escapeHtml(language)} · ${item.fileCount} files · ${formatBytes(item.byteSize)}</small>
           <span class="row-tags">${tags.slice(0, 4).map((tag) => `<em>${escapeHtml(tag)}</em>`).join("")}</span>
         </span>
       </button>
@@ -264,6 +277,27 @@ function renderPlayableRow(item) {
         <span aria-hidden="true">×</span>
       </button>
     </article>
+  `;
+}
+
+function renderSettingsSheet() {
+  return `
+    <section class="modal-backdrop metadata-backdrop" role="dialog" aria-modal="true" aria-label="Library settings">
+      <div class="metadata-sheet settings-sheet">
+        <div class="sheet-head">
+          <div>
+            <p class="eyebrow">Settings</p>
+            <h2>Library tools</h2>
+          </div>
+          <button class="icon-button" type="button" data-action="close-settings" aria-label="Close">×</button>
+        </div>
+        <div class="settings-actions">
+          <button class="secondary-button" data-action="pick-file">Import HTML or ZIP</button>
+          <button class="secondary-button" data-action="refresh">Refresh library</button>
+          ${state.playables.length ? `<button class="secondary-button danger-action" data-action="clear-library">Clear library</button>` : ""}
+        </div>
+      </div>
+    </section>
   `;
 }
 
@@ -368,6 +402,13 @@ function renderMetadataSheet() {
         </label>
 
         <label>
+          <span>Language</span>
+          <select name="language">
+            ${LANGUAGE_OPTIONS.map((language) => `<option value="${language}" ${(item.language || "Unknown") === language ? "selected" : ""}>${language}</option>`).join("")}
+          </select>
+        </label>
+
+        <label>
           <span>Tags</span>
           <input name="tags" value="${escapeHtml(tagText)}" placeholder="cta, tutorial, booster" />
         </label>
@@ -390,7 +431,7 @@ function wireLibraryEvents() {
     if (element.matches("select")) return;
     element.addEventListener("click", handleLibraryAction);
   });
-  app.querySelectorAll("select[data-action='filter-game']").forEach((element) => {
+  app.querySelectorAll("select[data-action='filter-game'], select[data-action='filter-language']").forEach((element) => {
     element.addEventListener("change", handleLibraryAction);
   });
   fileInput?.addEventListener("change", async () => {
@@ -412,6 +453,19 @@ async function handleLibraryAction(event) {
     localStorage.setItem("game-filter", state.gameFilter);
     render();
   }
+  if (action === "filter-language") {
+    state.languageFilter = event.currentTarget.value;
+    localStorage.setItem("language-filter", state.languageFilter);
+    render();
+  }
+  if (action === "open-settings") {
+    state.settingsOpen = true;
+    render();
+  }
+  if (action === "close-settings") {
+    state.settingsOpen = false;
+    render();
+  }
   if (action === "mark-installed") {
     localStorage.setItem("install-onboarding-dismissed", "1");
     state.installDismissed = true;
@@ -430,6 +484,7 @@ async function handleLibraryAction(event) {
   if (action === "close-metadata") {
     state.pendingMetadata = null;
     state.editingPlayableId = null;
+    state.settingsOpen = false;
     render();
   }
   if (action === "quick-tag") {
@@ -484,9 +539,12 @@ async function importFiles(files) {
   try {
     for (const file of files) {
       const imported = await importFile(file);
+      const context = await buildMetadataContext(imported);
+      const inferred = inferPlayableMetadata(context);
       imported.playable = {
         ...imported.playable,
-        ...inferPlayableMetadata(imported.playable.sourceName || imported.playable.name)
+        ...inferred,
+        name: createSmartPlayableName(imported.playable, inferred, state.playables)
       };
       await savePlayable(imported.playable, imported.files);
       state.pendingMetadata = imported.playable;
@@ -550,7 +608,8 @@ async function loadDemoPlayables() {
       sourceName: "luna-royal-kingdom-preview.html",
       game: "Royal Kingdom",
       creativeType: "Gameplay",
-      tags: ["luna", "preview", "remote-assets", "demo"],
+      language: "English",
+      tags: ["luna", "preview", "remote-assets", "demo", "lang-english"],
       htmlPath: `${basePath}luna/royal-kingdom-luna-preview.html`
     },
     {
@@ -558,7 +617,8 @@ async function loadDemoPlayables() {
       sourceName: "luna-royal-match-preview.html",
       game: "Royal Match",
       creativeType: "Gameplay",
-      tags: ["luna", "preview", "remote-assets", "demo"],
+      language: "English",
+      tags: ["luna", "preview", "remote-assets", "demo", "lang-english"],
       htmlPath: `${basePath}luna/royal-match-luna-preview.html`
     }
   ];
@@ -581,6 +641,7 @@ async function loadDemoPlayables() {
       createdAt,
       game: demo.game,
       creativeType: demo.creativeType,
+      language: demo.language,
       tags: demo.tags
     }, [{
       key: `${id}/index.html`,
@@ -614,6 +675,7 @@ async function saveMetadataFromSheet() {
     ...playable,
     game: String(formData.get("game") || "Other"),
     creativeType: String(formData.get("creativeType") || "Other"),
+    language: String(formData.get("language") || "Unknown"),
     tags: parseTags(String(formData.get("tags") || ""))
   };
 
@@ -631,14 +693,23 @@ function addQuickTag(tag) {
   input.value = [...tags].join(", ");
 }
 
-function inferPlayableMetadata(name) {
-  const source = String(name || "").toLowerCase();
-  const tags = new Set();
-  let game = "Royal Match";
-  let creativeType = "Gameplay";
+async function buildMetadataContext(imported) {
+  const entry = imported.files.find((file) => file.path === imported.playable.entryPath) || imported.files.find((file) => /html?$/i.test(file.path));
+  const html = entry ? await entry.blob.text().catch(() => "") : "";
+  return [imported.playable.sourceName, imported.playable.name, html.slice(0, 120000)].filter(Boolean).join("\n");
+}
 
-  if (source.includes("kingdom") || source.includes("rk")) game = "Royal Kingdom";
-  if (source.includes("match") || source.includes("rm")) game = "Royal Match";
+function inferPlayableMetadata(input) {
+  const source = String(input || "").toLowerCase();
+  const tags = new Set();
+  let game = "Other";
+  let creativeType = "Gameplay";
+  let language = inferLanguage(source);
+
+  if (/\b(royal[\s_-]*kingdom|kingdom|rk)\b/.test(source)) game = "Royal Kingdom";
+  if (/\b(royal[\s_-]*match|match|rm)\b/.test(source)) game = "Royal Match";
+  if (game === "Other" && source.includes("royal kingdom")) game = "Royal Kingdom";
+  if (game === "Other" && source.includes("royal match")) game = "Royal Match";
   if (source.includes("cta") || source.includes("store")) {
     tags.add("cta");
     creativeType = "Storefront";
@@ -651,23 +722,82 @@ function inferPlayableMetadata(name) {
   if (source.includes("win")) tags.add("win-state");
   if (source.includes("fail") || source.includes("lose")) tags.add("fail-state");
   if (source.includes("season") || source.includes("event")) tags.add("seasonal");
+  if (source.includes("luna")) tags.add("luna");
+  if (source.includes("playground")) tags.add("preview");
+  if (language !== "Unknown") tags.add(`lang-${language.toLowerCase()}`);
 
-  return { game, creativeType, tags: [...tags] };
+  return { game, creativeType, language, tags: [...tags] };
+}
+
+function inferLanguage(source) {
+  const languageRules = [
+    ["Turkish", /\b(tr|turkish|turkce|türkçe|turkiye|türkiye)\b|oyna|devam|mükemmel|mukemmel|seviye/],
+    ["English", /\b(en|eng|english|us|uk)\b|play now|harder than you think|amazing|level/],
+    ["German", /\b(de|deu|german|deutsch)\b|spielen|weiter/],
+    ["French", /\b(fr|fre|french|français|francais)\b|jouer|niveau/],
+    ["Spanish", /\b(es|spa|spanish|español|espanol)\b|jugar|nivel/],
+    ["Italian", /\b(it|ita|italian|italiano)\b|gioca|livello/],
+    ["Portuguese", /\b(pt|por|portuguese|português|portugues)\b|jogar|nível|nivel/],
+    ["Arabic", /\b(ar|ara|arabic)\b|العب|لعبة/],
+    ["Japanese", /\b(ja|jpn|japanese)\b|プレイ|ゲーム/],
+    ["Korean", /\b(ko|kor|korean)\b|플레이|게임/],
+    ["Chinese", /\b(zh|cn|chi|chinese)\b|游戏|立即/]
+  ];
+  return languageRules.find(([, pattern]) => pattern.test(source))?.[0] || "Unknown";
+}
+
+function createSmartPlayableName(playable, inferred, existingItems) {
+  const contextName = cleanupName(playable.sourceName || playable.name);
+  const parts = [inferred.game !== "Other" ? inferred.game : "", contextName, inferred.creativeType, inferred.language !== "Unknown" ? inferred.language : ""]
+    .filter(Boolean);
+  const base = dedupeNameParts(parts).join(" · ") || contextName || "Playable";
+  const existingNames = new Set(existingItems.map((item) => item.name));
+  if (!existingNames.has(base)) return base;
+  let index = 2;
+  while (existingNames.has(`${base} ${index}`)) index += 1;
+  return `${base} ${index}`;
+}
+
+function cleanupName(value) {
+  return String(value || "")
+    .replace(/\.[a-z0-9]+$/i, "")
+    .replace(/[_-]+/g, " ")
+    .replace(/\b(playable|preview|final|export|build|html|zip)\b/gi, "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+function dedupeNameParts(parts) {
+  const seen = new Set();
+  return parts.filter((part) => {
+    const key = part.toLowerCase();
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 }
 
 function normalizePlayable(item) {
   const inferred = inferPlayableMetadata(item.sourceName || item.name);
+  const language = item.language || inferred.language;
+  const tags = new Set(getPlayableTags(item).length ? getPlayableTags(item) : inferred.tags);
+  if (language && language !== "Unknown") tags.add(`lang-${language.toLowerCase()}`);
   return {
     ...item,
     game: item.game || inferred.game,
     creativeType: item.creativeType || inferred.creativeType,
-    tags: getPlayableTags(item).length ? getPlayableTags(item) : inferred.tags
+    language,
+    tags: [...tags]
   };
 }
 
 function getFilteredPlayables() {
-  if (state.gameFilter === "All") return state.playables;
-  return state.playables.filter((item) => (item.game || "Unassigned") === state.gameFilter);
+  return state.playables.filter((item) => {
+    const gameMatches = state.gameFilter === "All" || (item.game || "Unassigned") === state.gameFilter;
+    const languageMatches = state.languageFilter === "All" || (item.language || "Unknown") === state.languageFilter;
+    return gameMatches && languageMatches;
+  });
 }
 
 function countByGame(game) {
@@ -690,6 +820,16 @@ function getAllTags(items) {
     .map(([tag]) => tag);
 }
 
+function getAllLanguages(items) {
+  return [...new Set(items.map((item) => item.language || "Unknown").filter((language) => language !== "Unknown"))];
+}
+
+function gameColor(game) {
+  if (game === "Royal Match") return "#2e32ff";
+  if (game === "Royal Kingdom") return "#33d17a";
+  return "#657184";
+}
+
 function parseTags(value) {
   return [...new Set(
     value
@@ -700,10 +840,22 @@ function parseTags(value) {
 }
 
 function handleFrameMessage(event) {
-  if (event.data?.type !== "playable-store-intent") return;
-  state.storeIntent = { url: event.data.url };
+  const data = parseFrameMessage(event.data);
+  if (data?.type !== "playable-store-intent") return;
+  state.storeIntent = { url: data.url };
   state.controlsOpen = false;
   render();
+}
+
+function parseFrameMessage(data) {
+  if (typeof data === "string") {
+    try {
+      return JSON.parse(data);
+    } catch {
+      return null;
+    }
+  }
+  return data;
 }
 
 function detectExternalFrameNavigation(frame) {

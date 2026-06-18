@@ -64,6 +64,7 @@
             // and there're no other events with this type
             if ( data.type === 'success' ) {
                 showBanner( data.title );
+                parent.postMessage({ type: "playable-store-intent", url: data.title || "Luna CTA Button Clicked" }, "*");
             }
         }
 
