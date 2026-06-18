@@ -1,15 +1,16 @@
 :root {
-  color-scheme: dark;
+  color-scheme: light;
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  background: #10131b;
-  color: #fbfbff;
+  background: #ffffff;
+  color: #10131b;
   --dream-blue: #2e32ff;
   --ink: #10131b;
-  --panel: #171b25;
-  --panel-2: #202635;
-  --line: rgba(255, 255, 255, 0.1);
-  --muted: #a9b2c3;
+  --panel: #ffffff;
+  --panel-2: #eef1f7;
+  --line: #e3e7ef;
+  --muted: #657184;
   --gold: #ffd247;
+  --soft-blue: #f4f5ff;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
 }
@@ -21,15 +22,24 @@
 html,
 body,
 #app {
+  width: 100%;
   min-height: 100%;
   margin: 0;
+  overflow-x: hidden;
 }
 
 body {
-  background:
-    radial-gradient(circle at 78% -10%, rgba(46, 50, 255, 0.24), transparent 32%),
-    linear-gradient(180deg, #151b27 0%, #10131b 52%, #0b0d12 100%);
+  background: #ffffff;
   overscroll-behavior: none;
+}
+
+body.player-active {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #000;
 }
 
 button {
@@ -37,10 +47,10 @@ button {
 }
 
 .library-page {
-  width: min(920px, 100%);
+  width: min(920px, calc(100vw - 24px));
   min-height: 100svh;
   margin: 0 auto;
-  padding: calc(16px + env(safe-area-inset-top)) 16px calc(24px + env(safe-area-inset-bottom));
+  padding: calc(12px + env(safe-area-inset-top)) 0 calc(24px + env(safe-area-inset-bottom));
 }
 
 .library-hero {
@@ -49,11 +59,9 @@ button {
   margin-bottom: 16px;
   border: 1px solid var(--line);
   border-radius: 8px;
-  padding: 18px;
-  background:
-    linear-gradient(135deg, rgba(46, 50, 255, 0.2), transparent 42%),
-    rgba(16, 19, 27, 0.78);
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.22);
+  padding: 16px;
+  background: var(--soft-blue);
+  box-shadow: 0 12px 34px rgba(16, 19, 27, 0.08);
 }
 
 .brand-row,
@@ -65,7 +73,7 @@ button {
 }
 
 .dream-logo {
-  width: 154px;
+  width: clamp(116px, 36vw, 154px);
   color: var(--dream-blue);
 }
 
@@ -76,10 +84,11 @@ button {
 }
 
 .hero-copy h1 {
-  max-width: 620px;
-  font-size: clamp(34px, 9vw, 64px);
+  max-width: 560px;
+  font-size: clamp(28px, 8vw, 56px);
   letter-spacing: 0;
-  line-height: 0.95;
+  line-height: 1;
+  overflow-wrap: anywhere;
 }
 
 .hero-actions {
@@ -130,7 +139,7 @@ h2 {
   border: 0;
   border-radius: 8px;
   padding: 0 15px;
-  color: #fbfbff;
+  color: var(--ink);
   background: var(--panel-2);
 }
 
@@ -141,13 +150,13 @@ h2 {
 }
 
 .secondary-button {
-  background: #f7f7ff;
+  background: #f7f8ff;
   color: #11131a;
   font-weight: 700;
 }
 
 .quiet-button {
-  color: #b9c4d4;
+  color: var(--muted);
   background: transparent;
 }
 
@@ -167,7 +176,7 @@ h2 {
 .playable-row {
   border: 1px solid var(--line);
   border-radius: 8px;
-  background: rgba(23, 27, 37, 0.86);
+  background: #ffffff;
 }
 
 .install-card {
@@ -186,10 +195,10 @@ h2 {
 
 .status-strip {
   margin-bottom: 14px;
-  border: 1px solid #2a3039;
+  border: 1px solid var(--line);
   border-radius: 8px;
   padding: 12px 14px;
-  color: #cbd5e1;
+  color: var(--muted);
   background: var(--panel);
 }
 
@@ -206,13 +215,13 @@ h2 {
 .drop-zone strong {
   display: block;
   margin-bottom: 6px;
-  color: #f7f7f2;
+  color: var(--ink);
   font-size: 20px;
 }
 
 .drop-zone.dragging {
-  border-color: #f3c94a;
-  background: #222127;
+  border-color: var(--dream-blue);
+  background: var(--soft-blue);
 }
 
 .library-summary {
@@ -226,7 +235,7 @@ h2 {
   border: 1px solid var(--line);
   border-radius: 8px;
   padding: 12px;
-  background: rgba(23, 27, 37, 0.72);
+  background: #ffffff;
 }
 
 .library-summary strong,
@@ -264,9 +273,10 @@ h2 {
   border: 1px solid var(--line);
   border-radius: 8px;
   padding: 0 12px;
-  color: #fbfbff;
-  background: #10131b;
+  color: var(--ink);
+  background: #ffffff;
   font: inherit;
+  max-width: 100%;
 }
 
 .tag-cloud,
@@ -283,8 +293,8 @@ h2 {
   border: 1px solid rgba(46, 50, 255, 0.34);
   border-radius: 999px;
   padding: 5px 8px;
-  color: #dfe2ff;
-  background: rgba(46, 50, 255, 0.16);
+  color: var(--dream-blue);
+  background: rgba(46, 50, 255, 0.08);
   font-size: 11px;
   font-style: normal;
   font-weight: 700;
@@ -296,7 +306,7 @@ h2 {
 
 .playable-row {
   display: grid;
-  grid-template-columns: 1fr 44px 44px;
+  grid-template-columns: minmax(0, 1fr) 44px 44px;
   gap: 8px;
   align-items: center;
   margin-bottom: 10px;
@@ -313,6 +323,10 @@ h2 {
   color: inherit;
   background: transparent;
   text-align: left;
+}
+
+.row-main > span:last-child {
+  min-width: 0;
 }
 
 .row-main strong,
@@ -357,7 +371,7 @@ h2 {
 
 .empty-state strong {
   margin-top: 14px;
-  color: #fbfbff;
+  color: var(--ink);
 }
 
 .empty-state p {
@@ -393,6 +407,8 @@ h2 {
 .player-frame {
   width: 100vw;
   height: 100dvh;
+  max-width: 100vw;
+  max-height: 100dvh;
   margin: 0;
   overflow: hidden;
   background: #000;
@@ -451,7 +467,7 @@ h2 {
   gap: 14px;
   align-items: center;
   justify-content: space-between;
-  border: 1px solid #333a45;
+  border: 1px solid rgba(255, 255, 255, 0.16);
   border-radius: 8px;
   padding: 14px;
   background: rgba(17, 19, 24, 0.96);
@@ -465,8 +481,8 @@ h2 {
   border: 1px solid var(--line);
   border-radius: 8px;
   padding: 18px;
-  background: #171b25;
-  box-shadow: 0 18px 70px rgba(0, 0, 0, 0.55);
+  background: #ffffff;
+  box-shadow: 0 18px 70px rgba(16, 19, 27, 0.2);
 }
 
 .sheet-head {
@@ -542,6 +558,18 @@ h2 {
 }
 
 @media (max-width: 620px) {
+  .library-page {
+    width: min(100%, calc(100vw - 24px));
+  }
+
+  .brand-row {
+    gap: 10px;
+  }
+
+  .hero-copy h1 {
+    font-size: clamp(28px, 10vw, 40px);
+  }
+
   .library-toolbar {
     align-items: flex-start;
   }
@@ -563,8 +591,17 @@ h2 {
     grid-template-columns: 1fr 1fr 1fr;
   }
 
+  .library-summary div {
+    min-width: 0;
+    padding: 10px;
+  }
+
   .playable-row {
-    grid-template-columns: 1fr 42px 42px;
+    grid-template-columns: minmax(0, 1fr) 42px 42px;
+  }
+
+  .filter-select {
+    width: min(46vw, 220px);
   }
 
   .control-panel,

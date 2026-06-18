@@ -94,7 +94,9 @@ async function refreshLibrary() {
 }
 
 async function loadSortedPlayables() {
-  return (await listPlayables()).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+  return (await listPlayables())
+    .map(normalizePlayable)
+    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 }
 
 function render() {
@@ -106,6 +108,7 @@ function render() {
 }
 
 function renderLibrary() {
+  document.body.classList.remove("player-active");
   app.className = "app library-shell";
   const installCard = shouldShowInstallCard() ? renderInstallCard() : "";
   const filteredItems = getFilteredPlayables();
@@ -248,6 +251,7 @@ function renderDreamLogo() {
 }
 
 function renderPlayer() {
+  document.body.classList.add("player-active");
   const item = state.activePlayable;
   const source = `${basePath}playables/${encodeURIComponent(item.id)}/${encodePath(item.entryPath)}?r=${state.reloadNonce}`;
   app.className = "app player-shell";
@@ -591,6 +595,16 @@ function inferPlayableMetadata(name) {
   if (source.includes("season") || source.includes("event")) tags.add("seasonal");
 
   return { game, creativeType, tags: [...tags] };
+}
+
+function normalizePlayable(item) {
+  const inferred = inferPlayableMetadata(item.sourceName || item.name);
+  return {
+    ...item,
+    game: item.game || inferred.game,
+    creativeType: item.creativeType || inferred.creativeType,
+    tags: getPlayableTags(item).length ? getPlayableTags(item) : inferred.tags
+  };
 }
 
 function getFilteredPlayables() {

@@ -2,7 +2,7 @@ const DB_NAME = "playable-player-db";
 const DB_VERSION = 1;
 const PLAYABLE_STORE = "playables";
 const FILE_STORE = "files";
-const APP_CACHE = "playable-player-shell-v2";
+const APP_CACHE = "playable-player-shell-v3";
 
 const STORE_HOSTS = [
   "apps.apple.com",
@@ -124,6 +124,23 @@ function getScopeRelativePath(pathname) {
 }
 
 function injectBridge(html) {
+  const fitStyles = `<style id="playable-player-fit">
+html, body {
+  margin: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+  overscroll-behavior: none !important;
+  touch-action: manipulation;
+  background: #000;
+}
+canvas, video {
+  max-width: 100vw !important;
+  max-height: 100dvh !important;
+}
+</style>`;
   const bridge = `<script>
 (() => {
   const storeHosts = ${JSON.stringify(STORE_HOSTS)};
@@ -161,16 +178,50 @@ function injectBridge(html) {
     event.stopImmediatePropagation();
     report(action);
   }, true);
+  const fitPlayable = () => {
+    const body = document.body;
+    if (!body || body.dataset.playablePlayerFit === "manual") return;
+    body.style.transform = "";
+    body.style.width = "";
+    body.style.height = "";
+    body.style.left = "";
+    body.style.top = "";
+    body.style.transformOrigin = "top left";
+    body.style.position = "relative";
+    const viewportWidth = window.innerWidth || document.documentElement.clientWidth;
+    const viewportHeight = window.innerHeight || document.documentElement.clientHeight;
+    const contentWidth = Math.max(body.scrollWidth, document.documentElement.scrollWidth);
+    const contentHeight = Math.max(body.scrollHeight, document.documentElement.scrollHeight);
+    if (!viewportWidth || !viewportHeight || !contentWidth || !contentHeight) return;
+    const needsFit = contentWidth > viewportWidth + 2 || contentHeight > viewportHeight + 2;
+    if (!needsFit) {
+      return;
+    }
+    const scale = Math.min(viewportWidth / contentWidth, viewportHeight / contentHeight);
+    body.style.width = contentWidth + "px";
+    body.style.height = contentHeight + "px";
+    body.style.transform = "scale(" + scale + ")";
+    body.style.left = Math.max(0, (viewportWidth - contentWidth * scale) / 2) + "px";
+    body.style.top = Math.max(0, (viewportHeight - contentHeight * scale) / 2) + "px";
+  };
+  window.addEventListener("load", fitPlayable);
+  window.addEventListener("resize", fitPlayable);
+  window.addEventListener("orientationchange", () => setTimeout(fitPlayable, 250));
+  setTimeout(fitPlayable, 50);
+  setTimeout(fitPlayable, 500);
 })();
 </script>`;
 
+  if (!/<meta[^>]+name=["']viewport["']/i.test(html)) {
+    html = html.replace(/<head([^>]*)>/i, `<head$1><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">`);
+  }
   if (/<head[^>]*>/i.test(html)) {
-    return html.replace(/<head([^>]*)>/i, `<head$1>${bridge}`);
+    return html.replace(/<head([^>]*)>/i, `<head$1>${fitStyles}${bridge}`);
   }
   if (/<body[^>]*>/i.test(html)) {
-    return html.replace(/<body([^>]*)>/i, `<body$1>${bridge}`);
+    return html.replace(/<body([^>]*)>/i, `<body$1>${fitStyles}${bridge}`);
   }
-  return `${bridge}${html}`;
+  return `${fitStyles}${bridge}${html}`;
 }
 
 function isHtmlPath(path) {
