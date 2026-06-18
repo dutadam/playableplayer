@@ -14,7 +14,7 @@ const state = {
   isBooting: true,
   serviceWorkerReady: false,
   isImporting: false,
-  installDismissed: localStorage.getItem("install-dismissed") === "1",
+  installDismissed: localStorage.getItem("install-onboarding-dismissed") === "1",
   controlsOpen: false,
   storeIntent: null,
   pendingMetadata: null,
@@ -29,12 +29,18 @@ let fileInput;
 let tripleTapTimes = [];
 const basePath = normalizeBasePath(import.meta.env.BASE_URL);
 let serviceWorkerPromise;
+let deferredInstallPrompt;
 
 init();
 
 async function init() {
   window.addEventListener("message", handleFrameMessage);
   window.addEventListener("hashchange", syncRoute);
+  window.addEventListener("beforeinstallprompt", (event) => {
+    event.preventDefault();
+    deferredInstallPrompt = event;
+    render();
+  });
 
   serviceWorkerPromise = registerServiceWorker()
     .then(() => {
@@ -110,7 +116,7 @@ function render() {
 function renderLibrary() {
   document.body.classList.remove("player-active");
   app.className = "app library-shell";
-  const installCard = shouldShowInstallCard() ? renderInstallCard() : "";
+  const installCard = shouldShowInstallCard() ? renderInstallOnboarding() : "";
   const filteredItems = getFilteredPlayables();
   const rows = filteredItems.map(renderPlayableRow).join("");
   const bootNotice = state.isBooting ? `<section class="status-strip">Opening library...</section>` : "";
@@ -138,9 +144,19 @@ function renderLibrary() {
       ${installCard}
       ${bootNotice}
 
-      <section class="drop-zone" data-action="pick-file">
-        <strong>${state.isImporting ? "Importing..." : "Drop HTML or ZIP"}</strong>
-        <span>Files stay on this device. ZIP builds keep their asset folders.</span>
+      <section class="quick-start">
+        <div>
+          <strong>1</strong>
+          <span>Import HTML or ZIP</span>
+        </div>
+        <div>
+          <strong>2</strong>
+          <span>Pick game and tags</span>
+        </div>
+        <div>
+          <strong>3</strong>
+          <span>Triple tap a corner to exit</span>
+        </div>
       </section>
 
       <section class="library-summary">
@@ -191,20 +207,31 @@ function renderLibrary() {
 }
 
 function renderInstallCard() {
+  return renderInstallOnboarding();
+}
+
+function renderInstallOnboarding() {
   const platform = detectPlatform();
-  const copy = platform === "ios"
-    ? "Open this from your Home Screen for the cleanest fullscreen experience."
-    : "Install this app for a browser-UI-free player experience.";
   const steps = platform === "ios"
-    ? "Share → Add to Home Screen"
-    : "Use the browser install prompt or Add to Home Screen.";
+    ? ["Tap Share", "Choose Add to Home Screen", "Open from the new icon"]
+    : ["Tap Install or Share", "Choose Add to Home Screen", "Open from the new icon"];
+  const canShare = typeof navigator.share === "function";
+  const hasInstallPrompt = Boolean(deferredInstallPrompt);
+  const actionLabel = hasInstallPrompt ? "Install app" : "Open share sheet";
 
   return `
-    <section class="install-card">
+    <section class="install-card onboarding-card">
       <div>
-        <h2>Install on this device</h2>
-        <p>${copy}</p>
-        <strong>${steps}</strong>
+        <p class="eyebrow">One-time setup</p>
+        <h2>Add Playable Player to Home Screen</h2>
+        <p>Use it from the Home Screen for the cleanest player experience and saved local library.</p>
+        <ol class="onboarding-steps">
+          ${steps.map((step) => `<li>${step}</li>`).join("")}
+        </ol>
+        <div class="onboarding-actions">
+          ${canShare || hasInstallPrompt ? `<button class="primary-button" data-action="open-share">${actionLabel}</button>` : ""}
+          <button class="secondary-button" data-action="mark-installed">I added it</button>
+        </div>
       </div>
       <button class="quiet-button" data-action="dismiss-install">Dismiss</button>
     </section>
@@ -366,17 +393,6 @@ function wireLibraryEvents() {
     await importFiles([...fileInput.files]);
     fileInput.value = "";
   });
-  const dropZone = app.querySelector(".drop-zone");
-  dropZone.addEventListener("dragover", (event) => {
-    event.preventDefault();
-    dropZone.classList.add("dragging");
-  });
-  dropZone.addEventListener("dragleave", () => dropZone.classList.remove("dragging"));
-  dropZone.addEventListener("drop", async (event) => {
-    event.preventDefault();
-    dropZone.classList.remove("dragging");
-    await importFiles([...event.dataTransfer.files]);
-  });
 }
 
 async function handleLibraryAction(event) {
@@ -386,13 +402,19 @@ async function handleLibraryAction(event) {
   if (action === "pick-file") fileInput.click();
   if (action === "refresh") await refreshLibrary();
   if (action === "load-sample") await loadSamplePlayable();
+  if (action === "open-share") await openShareSheet();
   if (action === "filter-game") {
     state.gameFilter = event.currentTarget.value;
     localStorage.setItem("game-filter", state.gameFilter);
     render();
   }
   if (action === "dismiss-install") {
-    localStorage.setItem("install-dismissed", "1");
+    localStorage.setItem("install-onboarding-dismissed", "1");
+    state.installDismissed = true;
+    render();
+  }
+  if (action === "mark-installed") {
+    localStorage.setItem("install-onboarding-dismissed", "1");
     state.installDismissed = true;
     render();
   }
@@ -477,6 +499,39 @@ async function importFiles(files) {
   } finally {
     state.isImporting = false;
     render();
+  }
+}
+
+async function openShareSheet() {
+  if (deferredInstallPrompt) {
+    deferredInstallPrompt.prompt();
+    const choice = await deferredInstallPrompt.userChoice;
+    deferredInstallPrompt = null;
+    if (choice?.outcome === "accepted") {
+      localStorage.setItem("install-onboarding-dismissed", "1");
+      state.installDismissed = true;
+    }
+    render();
+    return;
+  }
+
+  if (typeof navigator.share !== "function") {
+    state.error = "Use the browser share button, then choose Add to Home Screen.";
+    render();
+    return;
+  }
+
+  try {
+    await navigator.share({
+      title: "Playable Player",
+      text: "Add Playable Player to your Home Screen.",
+      url: location.href.split("#")[0]
+    });
+  } catch (error) {
+    if (error?.name !== "AbortError") {
+      state.error = "Share sheet could not be opened. Use the browser share button manually.";
+      render();
+    }
   }
 }
 

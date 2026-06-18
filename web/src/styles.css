@@ -171,7 +171,6 @@ h2 {
 }
 
 .install-card,
-.drop-zone,
 .empty-state,
 .playable-row {
   border: 1px solid var(--line);
@@ -193,6 +192,55 @@ h2 {
   color: var(--muted);
 }
 
+.onboarding-card {
+  display: grid;
+}
+
+.onboarding-card h2 {
+  margin-bottom: 8px;
+  font-size: 22px;
+}
+
+.onboarding-steps {
+  display: grid;
+  gap: 8px;
+  margin: 14px 0;
+  padding: 0;
+  list-style: none;
+}
+
+.onboarding-steps li {
+  position: relative;
+  min-height: 36px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 8px 10px 8px 38px;
+  color: var(--ink);
+  background: var(--soft-blue);
+}
+
+.onboarding-steps li::before {
+  position: absolute;
+  top: 7px;
+  left: 9px;
+  display: grid;
+  width: 22px;
+  height: 22px;
+  place-items: center;
+  border-radius: 999px;
+  color: white;
+  background: var(--dream-blue);
+  font-size: 12px;
+  font-weight: 800;
+  content: counter(list-item);
+}
+
+.onboarding-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
 .status-strip {
   margin-bottom: 14px;
   border: 1px solid var(--line);
@@ -202,26 +250,42 @@ h2 {
   background: var(--panel);
 }
 
-.drop-zone {
+.quick-start {
   display: grid;
-  min-height: 116px;
-  place-items: center;
-  margin-bottom: 22px;
-  border-style: dashed;
-  color: var(--muted);
-  text-align: center;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-bottom: 16px;
 }
 
-.drop-zone strong {
+.quick-start div {
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 12px;
+  background: #ffffff;
+}
+
+.quick-start strong,
+.quick-start span {
   display: block;
-  margin-bottom: 6px;
-  color: var(--ink);
-  font-size: 20px;
 }
 
-.drop-zone.dragging {
-  border-color: var(--dream-blue);
-  background: var(--soft-blue);
+.quick-start strong {
+  width: 28px;
+  height: 28px;
+  margin-bottom: 10px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  color: white;
+  background: var(--dream-blue);
+  font-size: 14px;
+}
+
+.quick-start span {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.25;
 }
 
 .library-summary {
@@ -585,6 +649,11 @@ h2 {
 
   .install-card {
     display: block;
+  }
+
+  .onboarding-actions,
+  .quick-start {
+    grid-template-columns: 1fr;
   }
 
   .library-summary {
