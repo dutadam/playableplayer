@@ -223,6 +223,32 @@ h2 {
   line-height: 1.45;
 }
 
+.share-hint {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid rgba(46, 50, 255, 0.22);
+  border-radius: 8px;
+  padding: 12px;
+  color: var(--dream-blue);
+  background: #ffffff;
+  font-weight: 800;
+}
+
+.share-hint svg {
+  width: 44px;
+  height: 44px;
+  flex: 0 0 44px;
+  border: 1px solid rgba(46, 50, 255, 0.28);
+  border-radius: 8px;
+  padding: 8px;
+  stroke: currentColor;
+  stroke-width: 2.8;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
 .onboarding-steps {
   display: grid;
   gap: 10px;

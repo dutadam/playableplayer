@@ -214,6 +214,7 @@ function renderInstallOnboarding() {
           <h1>Add Playable Player to Home Screen.</h1>
           <p>Fullscreen testing works best after the app opens from its own Home Screen icon. The library will unlock after this step.</p>
         </div>
+        ${platform === "ios" ? renderShareHint() : ""}
         <ol class="onboarding-steps">
           ${steps.map((step) => `<li>${step}</li>`).join("")}
         </ol>
@@ -227,6 +228,19 @@ function renderInstallOnboarding() {
     </main>
   `;
   wireLibraryEvents();
+}
+
+function renderShareHint() {
+  return `
+    <div class="share-hint" aria-label="Safari share button">
+      <svg viewBox="0 0 44 44" aria-hidden="true">
+        <path d="M22 5v24" />
+        <path d="M13.5 13.5 22 5l8.5 8.5" />
+        <path d="M14 20H9v18h26V20h-5" />
+      </svg>
+      <span>Use this Safari share icon</span>
+    </div>
+  `;
 }
 
 function renderPlayableRow(item) {
@@ -280,7 +294,7 @@ function renderPlayer() {
         class="player-frame"
         title="${escapeHtml(item.name)}"
         src="${source}"
-        sandbox="allow-scripts allow-same-origin allow-forms allow-pointer-lock allow-orientation-lock"
+        sandbox="allow-scripts allow-same-origin allow-forms allow-pointer-lock allow-orientation-lock allow-popups allow-popups-to-escape-sandbox"
       ></iframe>
       <button class="secret-zone secret-top-left" data-action="secret-tap" aria-label="Open controls"></button>
       <button class="secret-zone secret-top-right" data-action="secret-tap" aria-label="Open controls"></button>
@@ -532,51 +546,6 @@ async function loadDemoPlayables() {
   state.error = "";
   const demos = [
     {
-      name: "Royal Match Store CTA Demo",
-      sourceName: "royal-match-store-cta-demo.html",
-      game: "Royal Match",
-      creativeType: "Storefront",
-      tags: ["cta", "store", "portrait", "demo"],
-      html: createDemoHtml({
-        title: "Royal Match",
-        subtitle: "Store CTA demo",
-        mode: "portrait",
-        cta: true,
-        accent: "#ffd247",
-        background: "#121824"
-      })
-    },
-    {
-      name: "Royal Match Tap Gameplay Demo",
-      sourceName: "royal-match-tap-gameplay-demo.html",
-      game: "Royal Match",
-      creativeType: "Gameplay",
-      tags: ["gameplay", "tap", "portrait", "demo"],
-      html: createDemoHtml({
-        title: "Tap to Match",
-        subtitle: "Portrait scaling demo",
-        mode: "portrait",
-        cta: false,
-        accent: "#2e32ff",
-        background: "#f5f6ff"
-      })
-    },
-    {
-      name: "Royal Kingdom Landscape Demo",
-      sourceName: "royal-kingdom-landscape-demo.html",
-      game: "Royal Kingdom",
-      creativeType: "Minigame",
-      tags: ["landscape", "fixed-canvas", "minigame", "demo"],
-      html: createDemoHtml({
-        title: "Royal Kingdom",
-        subtitle: "Landscape fixed-canvas demo",
-        mode: "landscape",
-        cta: true,
-        accent: "#39d98a",
-        background: "#152016"
-      })
-    },
-    {
       name: "Luna Royal Kingdom Preview",
       sourceName: "luna-royal-kingdom-preview.html",
       game: "Royal Kingdom",
@@ -594,16 +563,15 @@ async function loadDemoPlayables() {
     }
   ];
 
-  const existingSources = new Set(state.playables.map((item) => item.sourceName));
-  let added = 0;
-
+  const existingBySource = new Map(state.playables.map((item) => [item.sourceName, item]));
   for (const demo of demos) {
-    if (existingSources.has(demo.sourceName)) continue;
-    const id = crypto.randomUUID();
-    const createdAt = new Date().toISOString();
+    const existing = existingBySource.get(demo.sourceName);
+    const id = existing?.id || crypto.randomUUID();
+    const createdAt = existing?.createdAt || new Date().toISOString();
     const html = demo.html || await loadBundledHtml(demo.htmlPath);
     const blob = new Blob([html], { type: "text/html; charset=utf-8" });
     await savePlayable({
+      ...existing,
       id,
       name: demo.name,
       entryPath: "index.html",
@@ -621,10 +589,8 @@ async function loadDemoPlayables() {
       type: "text/html; charset=utf-8",
       blob
     }]);
-    added += 1;
   }
 
-  if (!added) state.error = "Demo playables are already in the library.";
   await refreshLibrary();
 }
 
@@ -634,58 +600,6 @@ async function loadBundledHtml(path) {
     throw new Error("Bundled playable could not be loaded.");
   }
   return response.text();
-}
-
-function createDemoHtml({ title, subtitle, mode, cta, accent, background }) {
-  const isLandscape = mode === "landscape";
-  const stageWidth = isLandscape ? 640 : 360;
-  const stageHeight = isLandscape ? 360 : 640;
-  const textColor = background === "#f5f6ff" ? "#10131b" : "#ffffff";
-  const ctaMarkup = cta
-    ? `<a class="cta" href="https://apps.apple.com/us/app/royal-match/id1482155847">Store CTA</a>`
-    : `<button class="cta" id="tapButton" type="button">Tap score: 0</button>`;
-
-  return `<!doctype html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
-  <title>${escapeHtml(title)} Demo</title>
-  <style>
-    html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: ${background}; color: ${textColor}; font-family: -apple-system, BlinkMacSystemFont, sans-serif; touch-action: manipulation; }
-    body { display: grid; place-items: center; }
-    .stage { position: relative; width: ${stageWidth}px; height: ${stageHeight}px; overflow: hidden; background: ${background}; }
-    .stage::before { position: absolute; inset: 18px; border: 8px solid ${accent}; border-radius: 28px; content: ""; opacity: 0.95; }
-    .content { position: absolute; inset: 0; display: grid; align-content: center; justify-items: center; gap: 18px; padding: 34px; text-align: center; }
-    h1 { margin: 0; font-size: ${isLandscape ? 42 : 46}px; line-height: 0.95; }
-    p { margin: 0; color: ${textColor}; font-size: 20px; opacity: 0.72; }
-    .tiles { display: grid; grid-template-columns: repeat(3, 54px); gap: 10px; }
-    .tile { width: 54px; height: 54px; border-radius: 12px; background: ${accent}; box-shadow: inset 0 -6px rgba(0,0,0,0.18); }
-    .tile:nth-child(2n) { transform: translateY(8px); opacity: 0.86; }
-    .cta { display: inline-grid; min-width: 220px; min-height: 58px; place-items: center; border: 0; border-radius: 8px; padding: 0 18px; color: #10131b; background: ${accent}; font-size: 20px; font-weight: 900; text-decoration: none; }
-  </style>
-</head>
-<body>
-  <main class="stage">
-    <section class="content">
-      <h1>${escapeHtml(title)}</h1>
-      <p>${escapeHtml(subtitle)}</p>
-      <div class="tiles" aria-hidden="true">${Array.from({ length: 6 }).map(() => `<span class="tile"></span>`).join("")}</div>
-      ${ctaMarkup}
-    </section>
-  </main>
-  <script>
-    let score = 0;
-    const button = document.querySelector("#tapButton");
-    if (button) {
-      button.addEventListener("click", () => {
-        score += 1;
-        button.textContent = "Tap score: " + score;
-      });
-    }
-  </script>
-</body>
-</html>`;
 }
 
 async function saveMetadataFromSheet() {

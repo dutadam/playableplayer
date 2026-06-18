@@ -33,6 +33,19 @@
 
         #iframe {
             z-index: 0;
+            display: block;
+            background: #000;
+        }
+
+        #luna-loading {
+            position: absolute;
+            inset: 0;
+            display: grid;
+            place-items: center;
+            background: #000;
+            color: white;
+            font: 700 18px -apple-system, BlinkMacSystemFont, sans-serif;
+            z-index: 2;
         }
     </style>
     <script>
@@ -66,6 +79,8 @@
         }
 
         function iframeLoaded() {
+            var loading = document.getElementById("luna-loading");
+            if (loading) loading.style.display = "none";
             var iframe = document.getElementById("iframe");
             var preloader = "{\"asset/preloader/icon\":[\"image\",\"https://assets.lunalabs.io/uploads/media/file/371749/9e97a04dee68cf7433fc9528d950b906/dade4ed4499a11d22514d5c3008c9713a9b9263b2de06688440b9129bbdde7f2.png\"],\"parameter/preloader/name\":[\"string\",\"Royal Match\"],\"parameter/preloader/color\":[\"color\",0.6392156862745098,0.4117647058823529,0.9882352941176472,1]}";
             var filters = "{}";
@@ -97,7 +112,8 @@
         }
     </script>
 </head>
-<body>
+<body data-playable-player-fit="manual">
+    <div id="luna-loading">Loading Luna preview...</div>
     <div id="banner" class="hidden"></div>
     <iframe id="iframe" onload="iframeLoaded()" src="https://assets.lunalabs.io/uploads/apps/app/414475/dd9d317f4253906d74ad9de93568fadb/data/index.html"></iframe>
 </body>
