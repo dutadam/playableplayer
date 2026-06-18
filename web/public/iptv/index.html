@@ -84,6 +84,27 @@ body{height:var(--vh);background:var(--bg);color:var(--text);
 .btn-primary{background:var(--accent);color:white}
 .btn-primary:active{transform:scale(.96);opacity:.85}
 
+/* Playlist list */
+.pl-list{width:100%;max-width:440px;display:flex;flex-direction:column;gap:8px}
+.pl-item{
+  display:flex;align-items:center;gap:12px;padding:12px 14px;
+  background:var(--surface);border:1px solid var(--border);border-radius:12px;
+  cursor:pointer;transition:border-color .15s;touch-action:manipulation;position:relative
+}
+.pl-item:active{border-color:var(--accent)}
+.pl-icon{width:36px;height:36px;border-radius:9px;background:var(--accent-dim);
+  display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.pl-icon svg{width:18px;height:18px;fill:var(--accent)}
+.pl-info{flex:1;min-width:0}
+.pl-name{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pl-meta{font-size:11px;color:var(--muted);margin-top:2px}
+.pl-type{font-size:10px;color:var(--accent);font-weight:600;letter-spacing:.5px;text-transform:uppercase;margin-top:3px}
+.pl-del{width:34px;height:34px;border:none;background:none;color:var(--muted);
+  cursor:pointer;display:flex;align-items:center;justify-content:center;
+  border-radius:8px;flex-shrink:0;touch-action:manipulation;padding:0}
+.pl-del:active{background:rgba(255,95,122,.12);color:var(--danger)}
+.pl-del svg{width:16px;height:16px;fill:currentColor}
+
 /* ── APP SCREEN ── */
 #app-screen{display:none;flex-direction:column;height:var(--vh);overflow:hidden}
 #app-screen.active{display:flex}
@@ -412,7 +433,13 @@ body{height:var(--vh);background:var(--bg);color:var(--text);
     <div class="resume-arrow"><svg viewBox="0 0 24 24"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg></div>
   </div>
 
-  <div class="section-label">YENİ PLAYLIST</div>
+  <!-- Saved Playlists -->
+  <div id="pl-list-wrap" style="display:none;width:100%;max-width:440px;display:none">
+    <div class="section-label">PLAYLİST'LERİM</div>
+    <div class="pl-list" id="pl-list"></div>
+  </div>
+
+  <div class="section-label">YENİ PLAYLIST EKLE</div>
 
   <div class="drop-zone" id="drop-zone">
     <input type="file" id="file-input" accept=".m3u,.m3u8,.txt,text/plain">
@@ -597,6 +624,83 @@ let RECENT=S.get('recent',[]); // [{n,g,l,u,ts}]
 let COLLAPSED={};
 let listWrap,listEl,rafId=null;
 let scrollSave={};
+
+// ── Playlist Manager ──
+let PLAYLISTS=S.get('pl_list',[]); // [{id,name,type,url,ts,count}]
+
+function autoSavePL(source,channels){
+  if(!source)return;
+  const existing=PLAYLISTS.find(p=>
+    (source.type==='url'&&p.url&&p.url===source.url)||
+    (source.type==='file'&&p.name===source.name)
+  );
+  const data=channels.map(c=>({n:c.n,g:c.g,l:c.l,u:c.u}));
+  if(existing){
+    existing.ts=Date.now();existing.count=channels.length;
+    try{S.set('pl_'+existing.id,data);}catch{}
+  } else {
+    const id=Date.now().toString(36)+Math.random().toString(36).slice(2,5);
+    const name=source.name||(source.url?new URL(source.url).hostname:'Playlist');
+    PLAYLISTS.unshift({id,name,type:source.type,url:source.url||null,ts:Date.now(),count:channels.length});
+    if(PLAYLISTS.length>10){const old=PLAYLISTS.pop();S.del('pl_'+old.id);}
+    try{S.set('pl_'+id,data);}catch{}
+  }
+  S.set('pl_list',PLAYLISTS);
+  renderPLList();
+}
+
+function loadPL(id){
+  const pl=PLAYLISTS.find(p=>p.id===id);
+  if(!pl)return;
+  const chs=S.get('pl_'+id,null);
+  if(!chs||!chs.length){
+    if(pl.type==='url'&&pl.url){loadURL(pl.url);return;}
+    showToast('Playlist verisi bulunamadı','info');return;
+  }
+  setP(50);
+  const full=chs.map((c,i)=>({id:i,...c}));
+  setTimeout(()=>initApp(full,{type:pl.type,name:pl.name,url:pl.url,ts:pl.ts}),60);
+}
+
+function deletePL(id,e){
+  e.stopPropagation();
+  PLAYLISTS=PLAYLISTS.filter(p=>p.id!==id);
+  S.set('pl_list',PLAYLISTS);S.del('pl_'+id);
+  renderPLList();
+  showToast('Playlist silindi','info');
+}
+
+function renamePL(id,e){
+  e.stopPropagation();
+  const pl=PLAYLISTS.find(p=>p.id===id);if(!pl)return;
+  const name=prompt('Playlist adı:',pl.name);
+  if(name&&name.trim()){pl.name=name.trim();S.set('pl_list',PLAYLISTS);renderPLList();}
+}
+
+function renderPLList(){
+  const wrap=document.getElementById('pl-list-wrap');
+  const list=document.getElementById('pl-list');
+  if(!wrap||!list)return;
+  if(!PLAYLISTS.length){wrap.style.display='none';return;}
+  wrap.style.display='';
+  list.innerHTML=PLAYLISTS.map(pl=>`
+    <div class="pl-item" data-pl-id="${esc(pl.id)}">
+      <div class="pl-icon"><svg viewBox="0 0 24 24"><path d="M4 6h16v2H4zm0 5h16v2H4zm0 5h16v2H4z"/></svg></div>
+      <div class="pl-info">
+        <div class="pl-name">${esc(pl.name)}</div>
+        <div class="pl-meta">${numFmt(pl.count)} kanal · ${ago(pl.ts)}</div>
+        <div class="pl-type">${pl.type==='url'?'🔗 URL':'📁 Dosya'}</div>
+      </div>
+      <button class="pl-del" data-del-id="${esc(pl.id)}" aria-label="Sil">
+        <svg viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
+      </button>
+    </div>`).join('');
+  list.querySelectorAll('.pl-item').forEach(el=>{
+    el.addEventListener('click',()=>loadPL(el.dataset.plId));
+    el.addEventListener('dblclick',e=>renamePL(el.dataset.plId,e));
+    el.querySelector('.pl-del').addEventListener('click',e=>deletePL(el.dataset.delId,e));
+  });
+}
 
 // ── Player State ──
 let hlsInstance=null;
@@ -1311,7 +1415,7 @@ function initApp(channels,source){
     CAT=saved.cat;
     scrollSave=saved.scroll||{};
   }
-  if(source)S.set('src',source);
+  if(source){S.set('src',source);autoSavePL(source,ALL);}
   try{const compact=ALL.map(c=>({n:c.n,g:c.g,l:c.l,u:c.u}));S.set('chs',compact);}catch{}
 
   document.getElementById('load-screen').style.display='none';
@@ -1390,6 +1494,7 @@ function setupResume(){
   });
 }
 setupResume();
+renderPLList();
 
 // ── Events ──
 const dropZone=document.getElementById('drop-zone');
@@ -1434,6 +1539,7 @@ document.getElementById('back-btn').addEventListener('click',()=>{
   ALL=[];FILTERED=[];
   if(listEl)listEl.innerHTML='';
   document.getElementById('chip-bar').innerHTML='';
+  renderPLList();
 });
 
 document.getElementById('bs-overlay').addEventListener('click',closeSheet);
