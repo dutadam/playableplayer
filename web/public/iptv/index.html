@@ -472,6 +472,9 @@ body{height:var(--vh);background:var(--bg);color:var(--text);
       <input class="search-input" id="search-input" type="search" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Kanal ara…">
       <button class="clear-btn" id="clear-btn"><svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></button>
     </div>
+    <button class="icon-btn" id="export-btn" aria-label="Favorileri dışa aktar" style="display:none" title="Favorileri M3U olarak indir">
+      <svg viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
+    </button>
   </div>
 
   <div class="chip-bar" id="chip-bar"></div>
@@ -815,6 +818,10 @@ function buildChips(){
       ${ico?`<span class="chip-icon">${ico}</span>`:''}${esc(c)}<span class="chip-cnt">${numFmt(cnt)}</span></div>`;
   });
   bar.innerHTML=html;
+  // show export button only on Favoriler tab
+  const exportBtn=document.getElementById('export-btn');
+  if(exportBtn)exportBtn.style.display=CAT==='⭐ Favoriler'?'':'none';
+
   bar.querySelectorAll('.chip').forEach(el=>{
     el.addEventListener('click',()=>{
       scrollSave[CAT]=listWrap?listWrap.scrollTop:0;
@@ -823,6 +830,7 @@ function buildChips(){
       el.classList.add('active');
       el.scrollIntoView({behavior:'smooth',block:'nearest',inline:'center'});
       S.set('state',{cat:CAT,scroll:scrollSave});
+      if(exportBtn)exportBtn.style.display=CAT==='⭐ Favoriler'?'':'none';
       applyFilters();
       requestAnimationFrame(()=>{if(listWrap)listWrap.scrollTop=scrollSave[CAT]||0;});
     });
@@ -1548,7 +1556,27 @@ document.getElementById('bs-copy').addEventListener('click',()=>{if(SEL){copyLin
 document.getElementById('bs-vlc').addEventListener('click',()=>{if(SEL){addRecent(SEL);openVLC(SEL);closeSheet();}});
 document.getElementById('bs-ext').addEventListener('click',()=>{if(SEL){window.open(SEL.u,'_blank');closeSheet();}});
 
+// ── Export Favorites ──
+function exportFavoritesM3U(){
+  const favChs=ALL.filter(ch=>FAVS.has(ch.u));
+  if(!favChs.length){showToast('Hiç favori kanal yok','info');return;}
+  let m3u='#EXTM3U\n';
+  favChs.forEach(ch=>{
+    const logo=ch.l?` tvg-logo="${ch.l}"`:'';
+    m3u+=`#EXTINF:-1${logo} group-title="${ch.g}",${ch.n}\n${ch.u}\n`;
+  });
+  const blob=new Blob([m3u],{type:'audio/x-mpegurl'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='favoriler.m3u';
+  document.body.appendChild(a);a.click();
+  setTimeout(()=>{URL.revokeObjectURL(a.href);document.body.removeChild(a);},1000);
+  showToast(`✓ ${favChs.length} kanal indirildi`,'ok');
+}
+
 window.addEventListener('resize',()=>{if(ALL.length)doVirtualRender();});
+
+document.getElementById('export-btn').addEventListener('click',exportFavoritesM3U);
 
 // ── PWA Service Worker ──
 if('serviceWorker' in navigator){
