@@ -124,8 +124,6 @@ function renderLibrary() {
   const filteredItems = getFilteredPlayables();
   const rows = filteredItems.map(renderPlayableRow).join("");
   const bootNotice = state.isBooting ? `<section class="status-strip">Opening library...</section>` : "";
-  const allTags = getAllTags(state.playables);
-  const allLanguages = getAllLanguages(state.playables);
 
   app.innerHTML = `
     <main class="library-page">
@@ -148,22 +146,18 @@ function renderLibrary() {
       ${bootNotice}
 
       <section class="library-summary">
-        <div>
+        <button class="summary-card ${state.gameFilter === "All" ? "active" : ""}" data-action="set-game-filter" data-game="All">
           <strong>${state.playables.length}</strong>
           <span>Total</span>
-        </div>
-        <div>
+        </button>
+        <button class="summary-card ${state.gameFilter === "Royal Match" ? "active" : ""}" style="--game-color: ${gameColor("Royal Match")}" data-action="set-game-filter" data-game="Royal Match">
           <strong>${countByGame("Royal Match")}</strong>
           <span>Royal Match</span>
-        </div>
-        <div>
+        </button>
+        <button class="summary-card ${state.gameFilter === "Royal Kingdom" ? "active" : ""}" style="--game-color: ${gameColor("Royal Kingdom")}" data-action="set-game-filter" data-game="Royal Kingdom">
           <strong>${countByGame("Royal Kingdom")}</strong>
           <span>Royal Kingdom</span>
-        </div>
-        <div>
-          <strong>${allLanguages.length}</strong>
-          <span>Languages</span>
-        </div>
+        </button>
       </section>
 
       <section class="list-section">
@@ -173,15 +167,11 @@ function renderLibrary() {
             <h2>${state.gameFilter === "All" ? "All playables" : state.gameFilter}</h2>
           </div>
           <div class="filter-group">
-            <select class="filter-select" data-action="filter-game" aria-label="Filter by game">
-              ${["All", ...GAME_OPTIONS].map((game) => `<option value="${game}" ${state.gameFilter === game ? "selected" : ""}>${game}</option>`).join("")}
-            </select>
             <select class="filter-select" data-action="filter-language" aria-label="Filter by language">
-              ${["All", ...LANGUAGE_OPTIONS].map((language) => `<option value="${language}" ${state.languageFilter === language ? "selected" : ""}>${language}</option>`).join("")}
+              ${["All", ...LANGUAGE_OPTIONS].map((language) => `<option value="${language}" ${state.languageFilter === language ? "selected" : ""}>${language === "All" ? "All languages" : language}</option>`).join("")}
             </select>
           </div>
         </div>
-        ${allTags.length ? `<div class="tag-cloud">${allTags.slice(0, 10).map((tag) => `<span class="tag">${escapeHtml(tag)}</span>`).join("")}</div>` : ""}
         ${
           rows ||
           `<div class="empty-state">
@@ -255,27 +245,29 @@ function renderShareHint() {
 }
 
 function renderPlayableRow(item) {
-  const tags = getPlayableTags(item);
+  const tags = getDisplayTags(item);
   const game = item.game || "Unassigned";
   const creativeType = item.creativeType || "Uncategorized";
   const language = item.language || "Unknown";
-  const color = gameColor(game);
+  const theme = gameTheme(game);
   return `
-    <article class="playable-row" style="--game-color: ${color}">
+    <article class="playable-row" style="--game-color: ${theme.primary}; --game-soft: ${theme.soft}; --game-ink: ${theme.ink}">
       <button class="row-main" data-action="open-playable" data-id="${item.id}">
         <span class="play-icon">▶</span>
-        <span>
-          <strong>${escapeHtml(item.name)}</strong>
+        <span class="playable-copy">
+          <strong>${escapeHtml(getDisplayName(item))}</strong>
           <small>${escapeHtml(game)} · ${escapeHtml(creativeType)} · ${escapeHtml(language)} · ${item.fileCount} files · ${formatBytes(item.byteSize)}</small>
           <span class="row-tags">${tags.slice(0, 4).map((tag) => `<em>${escapeHtml(tag)}</em>`).join("")}</span>
         </span>
       </button>
-      <button class="icon-button" data-action="edit-playable" data-id="${item.id}" aria-label="Edit ${escapeHtml(item.name)}">
-        <span aria-hidden="true">⋯</span>
-      </button>
-      <button class="icon-button danger" data-action="delete-playable" data-id="${item.id}" aria-label="Delete ${escapeHtml(item.name)}">
-        <span aria-hidden="true">×</span>
-      </button>
+      <div class="row-actions">
+        <button class="icon-button subtle" data-action="edit-playable" data-id="${item.id}" aria-label="Edit ${escapeHtml(item.name)}">
+          <span aria-hidden="true">⋯</span>
+        </button>
+        <button class="icon-button danger subtle" data-action="delete-playable" data-id="${item.id}" aria-label="Delete ${escapeHtml(item.name)}">
+          <span aria-hidden="true">×</span>
+        </button>
+      </div>
     </article>
   `;
 }
@@ -431,7 +423,7 @@ function wireLibraryEvents() {
     if (element.matches("select")) return;
     element.addEventListener("click", handleLibraryAction);
   });
-  app.querySelectorAll("select[data-action='filter-game'], select[data-action='filter-language']").forEach((element) => {
+  app.querySelectorAll("select[data-action='filter-language']").forEach((element) => {
     element.addEventListener("change", handleLibraryAction);
   });
   fileInput?.addEventListener("change", async () => {
@@ -450,6 +442,11 @@ async function handleLibraryAction(event) {
   if (action === "open-share") await openShareSheet();
   if (action === "filter-game") {
     state.gameFilter = event.currentTarget.value;
+    localStorage.setItem("game-filter", state.gameFilter);
+    render();
+  }
+  if (action === "set-game-filter") {
+    state.gameFilter = event.currentTarget.dataset.game || "All";
     localStorage.setItem("game-filter", state.gameFilter);
     render();
   }
@@ -604,21 +601,21 @@ async function loadDemoPlayables() {
   state.error = "";
   const demos = [
     {
-      name: "Luna Royal Kingdom Preview",
+      name: "King Richard Luna Preview",
       sourceName: "luna-royal-kingdom-preview.html",
       game: "Royal Kingdom",
       creativeType: "Gameplay",
       language: "English",
-      tags: ["luna", "preview", "remote-assets", "demo", "lang-english"],
+      tags: ["luna", "remote-preview", "gameplay", "landscape", "store-cta", "lang-english"],
       htmlPath: `${basePath}luna/royal-kingdom-luna-preview.html`
     },
     {
-      name: "Luna Royal Match Preview",
+      name: "King Robert Luna Preview",
       sourceName: "luna-royal-match-preview.html",
       game: "Royal Match",
       creativeType: "Gameplay",
       language: "English",
-      tags: ["luna", "preview", "remote-assets", "demo", "lang-english"],
+      tags: ["luna", "remote-preview", "gameplay", "portrait", "store-cta", "lang-english"],
       htmlPath: `${basePath}luna/royal-match-luna-preview.html`
     }
   ];
@@ -717,13 +714,21 @@ function inferPlayableMetadata(input) {
   if (source.includes("reward")) creativeType = "Rewarded";
   if (source.includes("meta")) creativeType = "Meta";
   if (source.includes("mini")) creativeType = "Minigame";
+  if (creativeType === "Gameplay") tags.add("gameplay");
   if (source.includes("tutorial")) tags.add("tutorial");
   if (source.includes("booster")) tags.add("booster");
   if (source.includes("win")) tags.add("win-state");
   if (source.includes("fail") || source.includes("lose")) tags.add("fail-state");
   if (source.includes("season") || source.includes("event")) tags.add("seasonal");
+  if (source.includes("portrait") || source.includes("dik") || source.includes("vertical")) tags.add("portrait");
+  if (source.includes("landscape") || source.includes("yatay") || source.includes("horizontal")) tags.add("landscape");
+  if (source.includes("puzzle")) tags.add("puzzle");
+  if (source.includes("builder")) tags.add("builder");
+  if (source.includes("king robert") || source.includes("robert")) tags.add("king-robert");
+  if (source.includes("king richard") || source.includes("richard")) tags.add("king-richard");
+  if (source.includes("princess")) tags.add("princess");
   if (source.includes("luna")) tags.add("luna");
-  if (source.includes("playground")) tags.add("preview");
+  if (source.includes("playground")) tags.add("remote-preview");
   if (language !== "Unknown") tags.add(`lang-${language.toLowerCase()}`);
 
   return { game, creativeType, language, tags: [...tags] };
@@ -748,7 +753,7 @@ function inferLanguage(source) {
 
 function createSmartPlayableName(playable, inferred, existingItems) {
   const contextName = cleanupName(playable.sourceName || playable.name);
-  const parts = [inferred.game !== "Other" ? inferred.game : "", contextName, inferred.creativeType, inferred.language !== "Unknown" ? inferred.language : ""]
+  const parts = [contextName, inferred.creativeType, inferred.language !== "Unknown" ? inferred.language : ""]
     .filter(Boolean);
   const base = dedupeNameParts(parts).join(" · ") || contextName || "Playable";
   const existingNames = new Set(existingItems.map((item) => item.name));
@@ -808,26 +813,64 @@ function getPlayableTags(item) {
   return Array.isArray(item.tags) ? item.tags : [];
 }
 
-function getAllTags(items) {
-  const counts = new Map();
-  for (const item of items) {
-    for (const tag of getPlayableTags(item)) {
-      counts.set(tag, (counts.get(tag) || 0) + 1);
-    }
-  }
-  return [...counts.entries()]
-    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
-    .map(([tag]) => tag);
+function getDisplayTags(item) {
+  const hidden = new Set(["demo", "preview", "remote-assets"]);
+  const labels = {
+    "lang-english": "English",
+    "lang-turkish": "Turkish",
+    "remote-preview": "Remote preview",
+    "store-cta": "Store CTA",
+    "win-state": "Win state",
+    "fail-state": "Fail state",
+    "king-robert": "King Robert",
+    "king-richard": "King Richard",
+    gameplay: "Gameplay",
+    luna: "Luna"
+  };
+  return getPlayableTags(item)
+    .filter((tag) => !hidden.has(tag))
+    .map((tag) => labels[tag] || titleCaseTag(tag))
+    .filter((tag, index, list) => list.indexOf(tag) === index);
 }
 
-function getAllLanguages(items) {
-  return [...new Set(items.map((item) => item.language || "Unknown").filter((language) => language !== "Unknown"))];
+function getDisplayName(item) {
+  const game = item.game || "";
+  let name = cleanupName(item.name || item.sourceName || "Playable");
+  if (game) {
+    const gamePattern = new RegExp(`\\b${escapeRegExp(game)}\\b`, "ig");
+    name = name.replace(gamePattern, "").replace(/\s+/g, " ").trim();
+  }
+  name = name
+    .replace(/\bRoyal\b\s*/gi, "")
+    .replace(/\bPreview\b\s+\bPreview\b/gi, "Preview")
+    .replace(/\s+/g, " ")
+    .trim();
+  return name || "Playable Variant";
+}
+
+function titleCaseTag(tag) {
+  return String(tag || "")
+    .replace(/^lang-/, "")
+    .replace(/[-_]+/g, " ")
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
 function gameColor(game) {
-  if (game === "Royal Match") return "#2e32ff";
-  if (game === "Royal Kingdom") return "#33d17a";
-  return "#657184";
+  return gameTheme(game).primary;
+}
+
+function gameTheme(game) {
+  if (game === "Royal Match") {
+    return { primary: "#2e32ff", soft: "#eef0ff", ink: "#171a8f" };
+  }
+  if (game === "Royal Kingdom") {
+    return { primary: "#24c96b", soft: "#eafbf2", ink: "#106b3c" };
+  }
+  return { primary: "#657184", soft: "#f3f5f8", ink: "#374151" };
+}
+
+function escapeRegExp(value) {
+  return String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 function parseTags(value) {
