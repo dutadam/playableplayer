@@ -683,7 +683,7 @@ function renderBrowse(){
   Object.entries(catMap).sort(([,a],[,b])=>b.length-a.length).forEach(([cat,chs])=>{
     // Try series grouping for this category
     const sg=groupBySeries(chs);
-    if(sg&&sg.shows.length>=2){
+    if(sg&&sg.shows.length>=1){
       rows.appendChild(createSeriesRow(cat,sg.shows,chs,cat));
       if(sg.rest.length>0)rows.appendChild(createRow(cat+' · Kanallar',sg.rest.slice(0,20),cat));
     } else {

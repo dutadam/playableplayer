@@ -1,4 +1,4 @@
-const CACHE = 'm3u-player-v1';
+const CACHE = 'm3u-player-v2';
 const SHELL = [
   './',
   './index.html',
@@ -38,8 +38,9 @@ self.addEventListener('fetch', e => {
         }
         return res;
       }).catch(() => cached);
-      // Cache-first for app shell, network-first otherwise
-      return cached || network;
+      // Network-first for index.html, cache-first for other assets
+      const isShell=url.pathname.endsWith('/')||url.pathname.endsWith('/index.html')||url.pathname.endsWith('/iptv/');
+      return isShell ? network : (cached || network);
     })
   );
 });
