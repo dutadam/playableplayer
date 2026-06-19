@@ -403,6 +403,30 @@ body{height:var(--vh);background:var(--bg);color:var(--text);
 .xt-json-file-btn svg{width:16px;height:16px;fill:currentColor;flex-shrink:0}
 .xt-json-file-btn input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;font-size:16px}
 .xt-json-file-btn:active{background:rgba(79,127,255,.25)}
+/* SERIES OVERLAY */
+#series-overlay{display:none;position:fixed;inset:0;background:var(--bg);z-index:70;flex-direction:column}
+#series-overlay.active{display:flex}
+.series-topbar{display:flex;align-items:center;gap:10px;padding:calc(14px + var(--safe-t)) calc(14px + var(--safe-r)) 12px calc(14px + var(--safe-l));background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0}
+.series-topbar-title{font-size:17px;font-weight:700;flex:1;text-align:center}
+#series-scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.series-hero{display:flex;gap:14px;padding:16px calc(14px + var(--safe-l));align-items:flex-start}
+.series-poster{width:110px;flex-shrink:0;border-radius:8px;object-fit:cover;aspect-ratio:2/3;background:var(--elevated)}
+.series-meta{flex:1;min-width:0}
+.series-meta-name{font-size:17px;font-weight:700;color:var(--text);margin-bottom:6px;line-height:1.3}
+.series-meta-genre{font-size:12px;color:var(--accent);margin-bottom:8px}
+.series-meta-plot{font-size:12px;color:var(--text-dim);line-height:1.6;display:-webkit-box;-webkit-line-clamp:6;-webkit-box-orient:vertical;overflow:hidden}
+.series-actions{display:flex;flex-direction:column;gap:8px;padding:0 calc(14px + var(--safe-l)) 16px}
+#series-ep-list{padding:0 0 calc(20px + var(--safe-b))}
+.series-season-head{padding:10px calc(14px + var(--safe-l));font-size:13px;font-weight:700;color:var(--text-dim);background:var(--surface);border-top:1px solid var(--border);border-bottom:1px solid var(--border);letter-spacing:.04em;text-transform:uppercase}
+.series-ep-item{display:flex;align-items:center;gap:12px;padding:12px calc(14px + var(--safe-l));border-bottom:1px solid var(--border);cursor:pointer;touch-action:manipulation}
+.series-ep-item:active{background:var(--elevated)}
+.series-ep-num{font-size:13px;font-weight:700;color:var(--accent);min-width:32px;flex-shrink:0}
+.series-ep-thumb{width:72px;height:40px;border-radius:5px;object-fit:cover;background:var(--elevated);flex-shrink:0}
+.series-ep-info{flex:1;min-width:0}
+.series-ep-title{font-size:14px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.series-ep-dur{font-size:11px;color:var(--text-dim);margin-top:2px}
+.series-ep-play{width:32px;height:32px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.series-ep-play svg{width:16px;height:16px;fill:#fff;margin-left:2px}
 /* TOAST */
 #toast{position:fixed;bottom:calc(20px + var(--safe-b));left:50%;transform:translateX(-50%) translateY(80px);background:var(--elevated);border:1px solid var(--border);border-radius:10px;padding:10px 18px;font-size:13px;font-weight:500;transition:transform .25s cubic-bezier(.34,1.56,.64,1);z-index:1000;white-space:nowrap;pointer-events:none;box-shadow:0 8px 30px rgba(0,0,0,.5)}
 #toast.show{transform:translateX(-50%) translateY(0)}
@@ -487,6 +511,35 @@ body{height:var(--vh);background:var(--bg);color:var(--text);
       <input type="file" id="xt-json-file" accept=".json,application/json,text/plain">
     </label>
     <button class="btn btn-primary" id="xt-json-load-btn" style="width:100%;font-size:15px;padding:13px">Yapıştırılanı Yükle</button>
+</div>
+</div>
+<!-- SERIES DETAIL OVERLAY -->
+<div id="series-overlay">
+  <div class="series-topbar">
+    <button class="search-cancel" id="series-close-btn">Kapat</button>
+    <span class="series-topbar-title" id="series-ovl-title"></span>
+  </div>
+  <div id="series-scroll">
+    <div class="series-hero">
+      <img class="series-poster" id="series-poster" src="" alt="" onerror="this.style.display='none'">
+      <div class="series-meta">
+        <div class="series-meta-name" id="series-meta-name"></div>
+        <div class="series-meta-genre" id="series-meta-genre"></div>
+        <div class="series-meta-plot" id="series-meta-plot"></div>
+      </div>
+    </div>
+    <div class="series-actions">
+      <button class="xt-json-newtab-btn" id="series-get-eps-btn">
+        <svg viewBox="0 0 24 24"><path d="M19 19H5V5h7V3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7h-2v7zM14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3h-7z"/></svg>
+        Bölümleri Getir (JSON indir)
+      </button>
+      <label class="xt-json-file-btn" for="series-info-file">
+        <svg viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm4 18H6V4h7v5h5v11z"/></svg>
+        İndirilen series_info.json dosyasını seç
+        <input type="file" id="series-info-file" accept=".json,application/json,text/plain">
+      </label>
+    </div>
+    <div id="series-ep-list"></div>
   </div>
 </div>
 <!-- BROWSE SCREEN -->
@@ -661,6 +714,8 @@ const S={_p:'m3u_',get(k,d){try{const v=localStorage.getItem(this._p+k);return v
 let ALL=[],FAVS=new Set(S.get('favs',[])),RECENT=S.get('recent',[]),GRID_MODE=S.get('grid',false);
 let SEL=null,HERO_CH=null,CURRENT_CAT=null,CAT_CHANNELS=[],CAT_GRID=GRID_MODE;
 let SERIES_EXP={},SEASON_COL={},PLAYLISTS=S.get('pl_list',[]);
+let XTREAM_SERIES_META=S.get('xt_series_meta',{});
+let _curSeriesId=null;
 let hlsInstance=null,PLAY_IDX=-1,PLAY_LIST=[],overlayTimer=null,wakeLock=null;
 let EPG={};
 let PROGRESS=S.get('prog_v1',{});let _progTimer=null,_lastPos=0;
@@ -1153,7 +1208,12 @@ function openSeriesScreen(sv,catChs,catKey){
 }
 document.getElementById('ss-back-btn').addEventListener('click',()=>document.getElementById('series-screen').classList.remove('active'));
 // Player
-function openPlayer(ch,idx){SEL=ch;PLAY_IDX=idx;document.getElementById('player-screen').classList.add('active');if(navigator.wakeLock)navigator.wakeLock.request('screen').then(wl=>{wakeLock=wl;}).catch(()=>{});playChannel(ch);showOverlay();}
+function openPlayer(ch,idx){
+  if(ch.u&&ch.u.startsWith('_xts_')){openSeriesDetail(ch);return;}
+  SEL=ch;PLAY_IDX=idx;document.getElementById('player-screen').classList.add('active');
+  if(navigator.wakeLock)navigator.wakeLock.request('screen').then(wl=>{wakeLock=wl;}).catch(()=>{});
+  playChannel(ch);showOverlay();
+}
 function closePlayer(){const v=document.getElementById('pv');v.pause();if(hlsInstance){hlsInstance.destroy();hlsInstance=null;}v.src='';if(wakeLock){wakeLock.release();wakeLock=null;}if(document.fullscreenElement||document.webkitFullscreenElement)(document.exitFullscreen||document.webkitExitFullscreen||function(){}).call(document);document.getElementById('player-screen').classList.remove('active');clearTimeout(overlayTimer);}
 // Ordered stream-URL candidates: prefer HTTPS:443 (plays natively on iOS — no CORS, no mixed-content, no VLC)
 function streamSources(origUrl){
@@ -1518,6 +1578,71 @@ Object.entries({live:'get_live_streams',vod:'get_vod_streams',series:'get_series
     window.open(url,'_blank');
   });
 });
+// ── Series Detail Overlay ─────────────────────────────────────────────────
+function openSeriesDetail(ch){
+  const sid=ch.u.replace('_xts_','');
+  _curSeriesId=sid;
+  const meta=XTREAM_SERIES_META[sid]||{};
+  document.getElementById('series-ovl-title').textContent=ch.n;
+  document.getElementById('series-meta-name').textContent=ch.n;
+  document.getElementById('series-meta-genre').textContent=meta.genre||'';
+  document.getElementById('series-meta-plot').textContent=meta.plot||'';
+  const poster=document.getElementById('series-poster');
+  if(ch.l){poster.src=ch.l;poster.style.display='';}else poster.style.display='none';
+  document.getElementById('series-ep-list').innerHTML='<div style="padding:24px;text-align:center;color:var(--text-dim);font-size:13px">Bölümleri getirmek için yukarıdaki butona bas →<br>Safari JSON\'u indirir, sonra seç</div>';
+  document.getElementById('series-overlay').classList.add('active');
+}
+function processSeriesInfoJson(text){
+  text=(text||'').trim();
+  if(!text){showToast('JSON boş','info');return;}
+  let data;try{data=JSON.parse(text);}catch{showToast('Geçersiz JSON','info',3000);return;}
+  const info=data.info||{};
+  const episodesMap=data.episodes||{};
+  const c=getXtCreds(),server=c.server?_xtNorm(c.server):'',usr=c.user,pwd=c.pass;
+  const container=document.getElementById('series-ep-list');
+  container.innerHTML='';
+  let totalEps=0;
+  Object.entries(episodesMap).sort(([a],[b])=>+a-+b).forEach(([season,eps])=>{
+    const sh=document.createElement('div');sh.className='series-season-head';
+    sh.textContent='Sezon '+season;container.appendChild(sh);
+    [...eps].sort((a,b)=>+a.episode_num-+b.episode_num).forEach(ep=>{
+      const ext=ep.container_extension||'mkv';
+      const url=server&&usr&&pwd?server+'/series/'+usr+'/'+pwd+'/'+ep.id+'.'+ext:'';
+      if(!url)return;
+      totalEps++;
+      const thumb=ep.info&&ep.info.movie_image?ep.info.movie_image:'';
+      const dur=ep.info&&ep.info.duration?ep.info.duration:'';
+      const row=document.createElement('div');row.className='series-ep-item';
+      row.innerHTML='<div class="series-ep-num">S'+String(season).padStart(2,'0')+'E'+String(ep.episode_num).padStart(2,'0')+'</div>'+(thumb?'<img class="series-ep-thumb" src="'+esc(thumb)+'" loading="lazy" onerror="this.style.display=\'none\'">':'')+'<div class="series-ep-info"><div class="series-ep-title">'+esc(ep.title||('Bölüm '+ep.episode_num))+'</div>'+(dur?'<div class="series-ep-dur">'+esc(dur)+'</div>':'')+'</div><div class="series-ep-play"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></div>';
+      row.addEventListener('click',()=>{
+        document.getElementById('series-overlay').classList.remove('active');
+        const ch={id:-1,n:esc(ep.title||info.name+' S'+season+'E'+ep.episode_num),g:'Dizi',l:thumb||info.cover||'',u:url,tid:''};
+        openPlayer(ch,-1);
+      });
+      container.appendChild(row);
+    });
+  });
+  if(!totalEps){container.innerHTML='<div style="padding:24px;text-align:center;color:var(--text-dim);font-size:13px">Bu dizide oynatılabilir bölüm bulunamadı</div>';return;}
+  showToast(totalEps+' bölüm yüklendi','ok');
+}
+document.getElementById('series-close-btn').addEventListener('click',()=>document.getElementById('series-overlay').classList.remove('active'));
+document.getElementById('series-get-eps-btn').addEventListener('click',()=>{
+  if(!_curSeriesId){showToast('Seri ID bulunamadı','info');return;}
+  const c=getXtCreds();
+  const base=c.server?_xtNorm(c.server):'';
+  if(!base||!c.user||!c.pass){showToast('Önce sunucu bilgilerini gir','info');return;}
+  const url=base+'/player_api.php?username='+encodeURIComponent(c.user)+'&password='+encodeURIComponent(c.pass)+'&action=get_series_info&series_id='+_curSeriesId;
+  window.open(url,'_blank');
+});
+document.getElementById('series-info-file').addEventListener('change',e=>{
+  const f=e.target.files[0];if(!f)return;
+  const r=new FileReader();
+  r.onload=ev=>processSeriesInfoJson(ev.target.result);
+  r.onerror=()=>showToast('Dosya okunamadı','info');
+  r.readAsText(f,'utf-8');
+  e.target.value='';
+});
+// ── /Series Detail Overlay ────────────────────────────────────────────────
 function processXtJson(text){
   text=(text||'').trim();
   if(!text){showToast('JSON içeriği boş','info');return;}
@@ -1526,8 +1651,39 @@ function processXtJson(text){
   if(data&&data.user_info&&data.user_info.status&&/(expired|disable|banned)/i.test(data.user_info.status)){showToast('Hesabın süresi dolmuş veya devre dışı','info',5000);return;}
   const arr=Array.isArray(data)?data:(data&&Array.isArray(data.available_channels)?data.available_channels:null);
   if(!arr){showToast('Kanal dizisi bulunamadı — doğru linki açtığından emin ol','info',4000);return;}
-  // Series listing has series_id but no stream_id — can't play directly
-  if(arr.length&&arr[0].series_id&&!arr[0].stream_id){showToast('Dizi listesi alındı ama bölümler için ayrı bir akış gerekiyor — henüz desteklenmiyor','info',5000);return;}
+  // Series listing: has series_id but no stream_id
+  if(arr.length&&arr[0].series_id!==undefined&&!arr[0].stream_id){
+    const c=getXtCreds(),server=c.server?_xtNorm(c.server):'',usr=c.user,pwd=c.pass;
+    const chs=[];let xi=0;
+    const newMeta={};
+    arr.forEach(s=>{
+      if(!s.series_id)return;
+      const sid=String(s.series_id);
+      newMeta[sid]={name:String(s.name||''),genre:String(s.genre||''),plot:String(s.plot||''),cover:String(s.cover||'')};
+      chs.push({id:xi++,n:String(s.name||'Dizi'),g:String(s.category_name||s.genre||'Dizi'),l:String(s.cover||''),u:'_xts_'+sid,tid:''});
+    });
+    if(!chs.length){showToast('Dizi listesi boş','info');return;}
+    XTREAM_SERIES_META=Object.assign(XTREAM_SERIES_META,newMeta);
+    S.set('xt_series_meta',XTREAM_SERIES_META);
+    if(server&&usr&&pwd)S.set('xtream_creds',{server,user:usr,pass:pwd});
+    document.getElementById('xt-json-overlay').classList.remove('active');
+    document.getElementById('xt-json-ta').value='';
+    // Merge with existing Xtream playlist
+    const existingPl=server&&usr?PLAYLISTS.find(p=>p.type==='xtream'&&p.xtream&&p.xtream.server===server&&p.xtream.user===usr):null;
+    let finalChs=chs;
+    if(existingPl){
+      const existing=S.get('pl_'+existingPl.id,[])||[];
+      const existingUrls=new Set(existing.map(ch=>ch.u));
+      const newOnly=chs.filter(ch=>!existingUrls.has(ch.u));
+      if(newOnly.length){
+        finalChs=[...existing,...newOnly].map((ch,i)=>({...ch,id:i}));
+        showToast(newOnly.length+' dizi eklendi (toplam: '+numFmt(finalChs.length)+')','ok');
+      } else {finalChs=existing.map((ch,i)=>({...ch,id:i}));showToast('Diziler zaten mevcut','info');}
+    } else {showToast(numFmt(chs.length)+' dizi yüklendi','ok');}
+    let hn=server;try{hn=new URL(server).hostname;}catch{}
+    initApp(finalChs,{type:'xtream',url:null,name:'Xtream: '+hn,ts:Date.now(),xtream:server&&usr&&pwd?{server,user:usr,pass:pwd}:null});
+    return;
+  }
   const c=getXtCreds(),usr=c.user,pwd=c.pass;
   const server=c.server?_xtNorm(c.server):'';
   const chs=[];let xi=0;
