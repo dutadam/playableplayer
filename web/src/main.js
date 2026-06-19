@@ -323,27 +323,43 @@ function renderDreamLogo() {
   `;
 }
 
+function renderGameStartLogo(item) {
+  const logoPath = gameLogoPath(item.game);
+  if (logoPath) {
+    return `<img class="game-start-logo" src="${logoPath}" alt="${escapeHtml(item.game)}">`;
+  }
+  return `<span class="game-start-fallback">${escapeHtml(item.game || "Playable")}</span>`;
+}
+
+function gameLogoPath(game) {
+  if (game === "Royal Match") return `${basePath}game-logos/royal-match.png`;
+  if (game === "Royal Kingdom") return `${basePath}game-logos/royal-kingdom.png`;
+  return "";
+}
+
 function renderPlayer() {
   document.body.classList.add("player-active");
   const item = state.activePlayable;
   const source = `${basePath}playables/${encodeURIComponent(item.id)}/${encodePath(item.entryPath)}?r=${state.reloadNonce}`;
+  const theme = gameTheme(item.game);
 
   app.className = "app player-shell";
   app.innerHTML = `
-    <main class="player-page">
-      <iframe
-        id="player-frame"
-        class="player-frame"
-        title="${escapeHtml(item.name)}"
-        src="${source}"
-        allow="autoplay; fullscreen; gamepad; accelerometer; gyroscope; encrypted-media"
-        sandbox="allow-scripts allow-same-origin allow-forms allow-pointer-lock allow-orientation-lock allow-popups allow-popups-to-escape-sandbox"
-      ></iframe>
-      ${state.audioUnlocked ? "" : `
-        <button class="audio-start-screen" data-action="unlock-audio" aria-label="Start playable with sound">
-          <span class="audio-start-logo">${renderDreamLogo()}</span>
+    <main class="player-page" style="--game-color: ${theme.primary}; --game-accent: ${theme.accent}; --game-soft: ${theme.soft}; --game-ink: ${theme.ink}">
+      ${state.audioUnlocked ? `
+        <iframe
+          id="player-frame"
+          class="player-frame"
+          title="${escapeHtml(item.name)}"
+          src="${source}"
+          allow="autoplay; fullscreen; gamepad; accelerometer; gyroscope; encrypted-media"
+          sandbox="allow-scripts allow-same-origin allow-forms allow-pointer-lock allow-orientation-lock allow-popups allow-popups-to-escape-sandbox"
+        ></iframe>
+      ` : `
+        <button class="audio-start-screen" data-action="unlock-audio" aria-label="Start ${escapeHtml(item.name)} with sound">
+          <span class="audio-start-logo">${renderGameStartLogo(item)}</span>
           <span class="audio-start-title">Tap to start</span>
-          <span class="audio-start-copy">Sound will start with the playable.</span>
+          <span class="audio-start-copy">${escapeHtml(item.name)}</span>
         </button>
       `}
       <button class="secret-zone secret-top-left" data-action="secret-tap" aria-label="Open controls"></button>
@@ -532,7 +548,11 @@ function wirePlayerEvents() {
     element.addEventListener("click", handlePlayerAction);
   });
   const frame = app.querySelector("#player-frame");
-  frame.addEventListener("load", () => detectExternalFrameNavigation(frame));
+  if (!frame) return;
+  frame.addEventListener("load", () => {
+    detectExternalFrameNavigation(frame);
+    if (state.audioUnlocked) unlockPlayerAudio();
+  });
 }
 
 function handlePlayerAction(event) {
@@ -541,9 +561,10 @@ function handlePlayerAction(event) {
     registerSecretTap();
   }
   if (action === "unlock-audio") {
-    unlockPlayerAudio();
+    primeParentAudio();
     state.audioUnlocked = true;
-    event.currentTarget.remove();
+    render();
+    unlockPlayerAudio();
   }
   if (action === "reload-player" || action === "store-retry") {
     state.storeIntent = null;
@@ -570,6 +591,23 @@ function unlockPlayerAudio() {
     // Cross-origin nested frames cannot be touched directly; the bridge message is the fallback.
   }
   frame.contentWindow.postMessage({ type: "playable-audio-unlock" }, "*");
+}
+
+function primeParentAudio() {
+  const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+  if (!AudioContextClass) return;
+  try {
+    const context = new AudioContextClass();
+    const oscillator = context.createOscillator();
+    const gain = context.createGain();
+    gain.gain.value = 0.0001;
+    oscillator.connect(gain);
+    gain.connect(context.destination);
+    oscillator.start(0);
+    oscillator.stop(context.currentTime + 0.04);
+    context.resume?.();
+    setTimeout(() => context.close?.(), 250);
+  } catch {}
 }
 
 async function importFiles(files) {
