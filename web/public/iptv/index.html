@@ -765,6 +765,9 @@ function autoSavePL(source,channels){
 function loadPL(id){
   const pl=PLAYLISTS.find(p=>p.id===id);if(!pl)return;
   if(pl.type==='xtream'&&pl.xtream){
+    // Cache-first: paste/login once, then open instantly & offline forever (Yenile re-fetches)
+    const cached=S.get('pl_'+id,null);
+    if(cached&&cached.length){setP(50);setTimeout(()=>initApp(cached.map((c,i)=>({id:i,...c})),{type:'xtream',name:pl.name,url:null,xtream:pl.xtream,ts:pl.ts}),60);return;}
     const x=pl.xtream;
     const si=document.getElementById('xt-server'),ui=document.getElementById('xt-user'),pi=document.getElementById('xt-pass');
     if(si)si.value=x.server;if(ui)ui.value=x.user;if(pi)pi.value=x.pass;
@@ -1135,13 +1138,29 @@ document.getElementById('ss-back-btn').addEventListener('click',()=>document.get
 // Player
 function openPlayer(ch,idx){SEL=ch;PLAY_IDX=idx;document.getElementById('player-screen').classList.add('active');if(navigator.wakeLock)navigator.wakeLock.request('screen').then(wl=>{wakeLock=wl;}).catch(()=>{});playChannel(ch);showOverlay();}
 function closePlayer(){const v=document.getElementById('pv');v.pause();if(hlsInstance){hlsInstance.destroy();hlsInstance=null;}v.src='';if(wakeLock){wakeLock.release();wakeLock=null;}if(document.fullscreenElement||document.webkitFullscreenElement)(document.exitFullscreen||document.webkitExitFullscreen||function(){}).call(document);document.getElementById('player-screen').classList.remove('active');clearTimeout(overlayTimer);}
+// Ordered stream-URL candidates: prefer HTTPS:443 (plays natively on iOS — no CORS, no mixed-content, no VLC)
+function streamSources(origUrl){
+  const httpsPage=location.protocol==='https:';
+  let u;try{u=new URL(origUrl);}catch{return[origUrl];}
+  const out=[];const add=s=>{if(s&&out.indexOf(s)<0)out.push(s);};
+  if(u.protocol==='https:'){add(origUrl);}
+  else{
+    const path=u.pathname+u.search;
+    add('https://'+u.hostname+path);                     // 443
+    if(u.port)add('https://'+u.hostname+':'+u.port+path);// same-port over https
+    if(!httpsPage)add(origUrl);                          // original http only when page itself is http (native app)
+  }
+  if(!out.length)add(origUrl);
+  return out;
+}
 function playChannel(ch){
   const video=document.getElementById('pv');
   document.getElementById('p-ch-name').textContent=ch.n;document.getElementById('p-ch-group').textContent=ch.g;
   updatePlayerEPG();updatePFavBtn();updatePosLabel();showPlayerLoading(true,ch.n);hidePlayerError();addRecent(ch);
   if(hlsInstance){hlsInstance.destroy();hlsInstance=null;}video.src='';
   const origUrl=ch.u,isHTTP=origUrl.startsWith('http://'),isHTTPS=location.protocol==='https:';
-  let url=isHTTPS&&isHTTP?'https://'+origUrl.slice(7):origUrl;
+  const sources=streamSources(origUrl);let srcIdx=0;
+  function nextSource(){srcIdx++;return srcIdx<sources.length;}
   function tryHLS(src){
     if(typeof Hls!=='undefined'&&Hls.isSupported()){
       hlsInstance=new Hls({enableWorker:true,lowLatencyMode:true,maxBufferLength:30,maxMaxBufferLength:60,fragLoadingTimeOut:12000,manifestLoadingTimeOut:12000,xhrSetup:(xhr)=>{xhr.timeout=15000;}});
@@ -1150,6 +1169,7 @@ function playChannel(ch){
       hlsInstance.on(Hls.Events.ERROR,(evt,data)=>{
         if(!data.fatal)return;
         if(data.type===Hls.ErrorTypes.NETWORK_ERROR){
+          if(nextSource()){if(hlsInstance){hlsInstance.destroy();hlsInstance=null;}tryHLS(sources[srcIdx]);return;}
           if(isHTTP&&isHTTPS)showPlayerError('Bu yayın HTTP protokolü kullanıyor ancak sayfa HTTPS üzerinden yüklendi.\nTarayıcı güvenlik politikası engelledi.\n\nVLC veya başka bir uygulama ile açabilirsiniz.');
           else showPlayerError('Ağ hatası: Yayına ulaşılamadı.\nURL geçersiz veya sunucu yanıt vermiyor.');
         } else if(data.type===Hls.ErrorTypes.MEDIA_ERROR)hlsInstance.recoverMediaError();
@@ -1170,11 +1190,12 @@ function playChannel(ch){
         const m3u8=src.split('?')[0]+'.m3u8'+(src.includes('?')?'?'+src.split('?').slice(1).join('?'):'');
         tryNative(m3u8,true);return;
       }
+      if(nextSource()){tryNative(sources[srcIdx]);return;}
       if(isHTTP&&isHTTPS)showPlayerError('Bu yayın HTTP protokolü kullanıyor.\nHTTPS sayfasında oynatılamaz.\nVLC veya başka uygulama kullanın.');
       else showPlayerError('Oynatılamadı: '+e.message);
     });
   }
-  tryHLS(url);
+  tryHLS(sources[0]);
 }
 function showPlayerLoading(show,name){document.getElementById('p-loading').classList.toggle('show',show);if(name&&show)document.getElementById('p-loading-name').textContent=name;}
 function hidePlayerError(){document.getElementById('p-error').classList.remove('show');showOverlay();}
@@ -1359,30 +1380,50 @@ const _savedUrl=S.get('settings_url','');
 if(_savedUrl&&!urlInput.value)urlInput.value=_savedUrl;
 // Xtream Codes
 function _xtNorm(s){s=s.trim();while(s.endsWith('/'))s=s.slice(0,-1);if(!s.startsWith('http'))s='http://'+s;return s;}
-async function _xtFetch(apiUrl,cancelSig){
-  const isHttp=apiUrl.startsWith('http://');
-  const px=[
-    ...(isHttp?[{lbl:'HTTPS Doğrudan',u:apiUrl.replace('http://','https://')}]:[]),
-    {lbl:'Doğrudan',u:apiUrl},
-    {lbl:'Proxy 1',u:'https://corsproxy.io/?'+encodeURIComponent(apiUrl)},
-    {lbl:'Proxy 2',u:'https://api.allorigins.win/raw?url='+encodeURIComponent(apiUrl)},
-    {lbl:'Proxy 3',u:'https://thingproxy.freeboard.io/fetch/'+apiUrl},
-    {lbl:'Proxy 4',u:'https://api.codetabs.com/v1/proxy?quest='+encodeURIComponent(apiUrl)},
+// Direct HTTPS base variants for an http panel (panel may answer on 443 / same-port https → no proxy, and streams play natively on iOS)
+function _xtDirectBases(server){
+  let u;try{u=new URL(server);}catch{return[{lbl:'Doğrudan',base:server.replace(/\/+$/,'')}];}
+  if(u.protocol==='https:')return[{lbl:'Doğrudan',base:server.replace(/\/+$/,'')}];
+  const bases=[{lbl:'HTTPS 443',base:'https://'+u.hostname}];
+  if(u.port)bases.push({lbl:'HTTPS '+u.port,base:'https://'+u.hostname+':'+u.port});
+  return bases;
+}
+function _proxyCands(fullUrl,base){
+  return[
+    {lbl:'Proxy 1',url:'https://corsproxy.io/?url='+encodeURIComponent(fullUrl),base,wrap:null},
+    {lbl:'Proxy 2',url:'https://api.allorigins.win/raw?url='+encodeURIComponent(fullUrl),base,wrap:null},
+    {lbl:'Proxy 3',url:'https://api.allorigins.win/get?url='+encodeURIComponent(fullUrl),base,wrap:'allorigins'},
+    {lbl:'Proxy 4',url:'https://thingproxy.freeboard.io/fetch/'+fullUrl,base,wrap:null},
+    {lbl:'Proxy 5',url:'https://api.codetabs.com/v1/proxy?quest='+encodeURIComponent(fullUrl),base,wrap:null},
   ];
-  for(let i=0;i<px.length;i++){
-    if(cancelSig.aborted)return null;
-    _urlProgUpdate(i,px.length,px[i].lbl);
-    try{
-      const rc=new AbortController();const rt=setTimeout(()=>rc.abort(),30000);
-      cancelSig.addEventListener('abort',()=>rc.abort(),{once:true});
-      const res=await fetch(px[i].u,{signal:rc.signal});
+}
+// Race all candidates in parallel; resolve with first whose body passes validate(body)→parsedValue (else null/false)
+async function raceFetch(cands,validate,cancelSig,timeoutMs){
+  const ctrls=[];
+  const tasks=cands.map(c=>new Promise((resolve,reject)=>{
+    const rc=new AbortController();ctrls.push(rc);
+    const rt=setTimeout(()=>{rc.abort();reject();},timeoutMs||18000);
+    if(cancelSig)cancelSig.addEventListener('abort',()=>{rc.abort();reject();},{once:true});
+    fetch(c.url,{signal:rc.signal}).then(res=>{if(!res.ok)throw 0;return res.text();}).then(t=>{
       clearTimeout(rt);
-      if(cancelSig.aborted)return null;
-      if(res.ok){const t=await res.text();try{const j=JSON.parse(t);return j;}catch{}}
-    }catch{}
-    if(cancelSig.aborted)return null;
-  }
-  return null;
+      let body=t;
+      if(c.wrap==='allorigins'){try{body=JSON.parse(t).contents;}catch{throw 0;}}
+      const v=validate(body);
+      if(v==null||v===false)throw 0;
+      resolve({data:v,base:c.base,body,lbl:c.lbl});
+    }).catch(()=>{clearTimeout(rt);reject();});
+  }));
+  try{const w=await Promise.any(tasks);ctrls.forEach(rc=>{try{rc.abort();}catch{}});return w;}
+  catch{return null;}
+}
+async function _xtFetch(server,user,pass,action,cancelSig){
+  const path='/player_api.php?username='+encodeURIComponent(user)+'&password='+encodeURIComponent(pass)+'&action='+action;
+  const cands=[];
+  _xtDirectBases(server).forEach(b=>cands.push({lbl:b.lbl,url:b.base+path,base:b.base,wrap:null}));
+  const full=server.replace(/\/+$/,'')+path;
+  _proxyCands(full,server.replace(/\/+$/,'')).forEach(c=>cands.push(c));
+  const validate=(body)=>{try{const j=JSON.parse(body);if(Array.isArray(j))return j;if(j&&typeof j==='object'&&j.user_info)return j;return null;}catch{return null;}};
+  return await raceFetch(cands,validate,cancelSig,18000);
 }
 async function loadXtream(server,user,pass){
   server=_xtNorm(server);
@@ -1392,9 +1433,9 @@ async function loadXtream(server,user,pass){
   statusEl.textContent='';statusEl.style.color='var(--text-dim)';
   if(_urlAbortCtrl)_urlAbortCtrl.abort();
   _urlAbortCtrl=new AbortController();const cancelSig=_urlAbortCtrl.signal;
-  const isHttp=server.startsWith('http://');
-  setP(5);_urlProgShow(isHttp?6:5);
-  const base=server+'/player_api.php?username='+encodeURIComponent(user)+'&password='+encodeURIComponent(pass);
+  setP(8);_urlProgShow(0);
+  document.getElementById('url-prog-title').textContent='Bağlanılıyor…';
+  document.getElementById('url-prog-sub').textContent='Birden çok yöntem aynı anda deneniyor…';
   const reset=()=>{btn.disabled=false;btn.textContent='Xtream Codes ile Giriş Yap';};
   function fallbackM3U(){
     _urlProgHide();setP(0);reset();
@@ -1404,12 +1445,11 @@ async function loadXtream(server,user,pass){
     setTimeout(()=>loadURL(m3u),300);
   }
   try{
-    document.getElementById('url-prog-title').textContent='Canlı kanallar yükleniyor…';
-    const live=await _xtFetch(base+'&action=get_live_streams',cancelSig);
+    const liveRes=await _xtFetch(server,user,pass,'get_live_streams',cancelSig);
     if(cancelSig.aborted){_urlProgHide();reset();return;}
-    if(live===null){fallbackM3U();return;}
+    if(liveRes===null){fallbackM3U();return;}
+    const live=liveRes.data;
     if(!Array.isArray(live)){
-      // Check if server returned an auth error object
       if(live&&live.user_info){
         const ui=live.user_info;
         if(ui.auth===0||ui.auth==='0'){
@@ -1417,30 +1457,32 @@ async function loadXtream(server,user,pass){
           statusEl.textContent='Kullanıcı adı veya şifre hatalı';statusEl.style.color='var(--danger)';
           showToast('Giriş başarısız — şifre hatalı','info',4500);return;
         }
-        if(ui.status&&/(expired|disable)/i.test(ui.status)){
+        if(ui.status&&/(expired|disable|banned)/i.test(ui.status)){
           _urlProgHide();setP(0);reset();
           statusEl.textContent='Hesabınızın süresi dolmuş veya devre dışı';statusEl.style.color='var(--danger)';
           showToast('Hesap süresi dolmuş','info',4500);return;
         }
-        // Auth seems OK but no array — server might use different format, try M3U
-        fallbackM3U();return;
       }
       fallbackM3U();return;
     }
+    // Working base — if a direct HTTPS variant won, streams will play natively on iOS (no proxy, no mixed-content, no VLC)
+    const base=liveRes.base;
     setP(55);
     document.getElementById('url-prog-title').textContent='Filmler yükleniyor…';
-    const vod=await _xtFetch(base+'&action=get_vod_streams',cancelSig);
+    const vodRes=await _xtFetch(server,user,pass,'get_vod_streams',cancelSig);
     if(cancelSig.aborted){_urlProgHide();reset();return;}
+    const vod=vodRes&&Array.isArray(vodRes.data)?vodRes.data:null;
     setP(88);
     const chs=[];let xi=0;
-    live.forEach(ch=>{if(!ch.stream_id)return;chs.push({id:xi++,n:String(ch.name||'Kanal'),g:String(ch.category_name||'Canlı TV'),l:String(ch.stream_icon||''),u:server+'/live/'+user+'/'+pass+'/'+ch.stream_id+'.m3u8',tid:String(ch.epg_channel_id||'')});});
-    if(Array.isArray(vod))vod.forEach(ch=>{if(!ch.stream_id)return;const ext=ch.container_extension||'mp4';chs.push({id:xi++,n:String(ch.name||'Film'),g:String(ch.category_name||'Film'),l:String(ch.stream_icon||ch.cover||''),u:server+'/movie/'+user+'/'+pass+'/'+ch.stream_id+'.'+ext,tid:''});});
+    live.forEach(ch=>{if(!ch.stream_id)return;chs.push({id:xi++,n:String(ch.name||'Kanal'),g:String(ch.category_name||'Canlı TV'),l:String(ch.stream_icon||''),u:base+'/live/'+user+'/'+pass+'/'+ch.stream_id+'.m3u8',tid:String(ch.epg_channel_id||'')});});
+    if(vod)vod.forEach(ch=>{if(!ch.stream_id)return;const ext=ch.container_extension||'mp4';chs.push({id:xi++,n:String(ch.name||'Film'),g:String(ch.category_name||'Film'),l:String(ch.stream_icon||ch.cover||''),u:base+'/movie/'+user+'/'+pass+'/'+ch.stream_id+'.'+ext,tid:''});});
     if(!chs.length){_urlProgHide();setP(0);reset();statusEl.textContent='Kanal listesi boş';statusEl.style.color='var(--danger)';return;}
-    S.set('xtream_creds',{server,user,pass});
+    S.set('xtream_creds',{server:base,user,pass});
     _urlProgHide();setP(100);reset();
-    statusEl.textContent='✓ '+numFmt(chs.length)+' içerik yüklendi';statusEl.style.color='var(--success)';
-    let hn=server;try{hn=new URL(server).hostname;}catch{}
-    initApp(chs,{type:'xtream',url:null,name:'Xtream: '+hn,ts:Date.now(),xtream:{server,user,pass}});
+    const viaHttps=base.startsWith('https://');
+    statusEl.textContent='✓ '+numFmt(chs.length)+' içerik yüklendi'+(viaHttps?' · HTTPS (VLC gerekmez)':'');statusEl.style.color='var(--success)';
+    let hn=base;try{hn=new URL(base).hostname;}catch{}
+    initApp(chs,{type:'xtream',url:null,name:'Xtream: '+hn,ts:Date.now(),xtream:{server:base,user,pass}});
   }catch(e){
     if(cancelSig.aborted){_urlProgHide();reset();return;}
     _urlProgHide();setP(0);reset();
