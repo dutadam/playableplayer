@@ -1320,7 +1320,9 @@ if(_savedUrl&&!urlInput.value)urlInput.value=_savedUrl;
 // Xtream Codes
 function _xtNorm(s){s=s.trim();while(s.endsWith('/'))s=s.slice(0,-1);if(!s.startsWith('http'))s='http://'+s;return s;}
 async function _xtFetch(apiUrl,cancelSig){
+  const isHttp=apiUrl.startsWith('http://');
   const px=[
+    ...(isHttp?[{lbl:'HTTPS Doğrudan',u:apiUrl.replace('http://','https://')}]:[]),
     {lbl:'Doğrudan',u:apiUrl},
     {lbl:'Proxy 1',u:'https://corsproxy.io/?'+encodeURIComponent(apiUrl)},
     {lbl:'Proxy 2',u:'https://api.allorigins.win/raw?url='+encodeURIComponent(apiUrl)},
@@ -1331,12 +1333,12 @@ async function _xtFetch(apiUrl,cancelSig){
     if(cancelSig.aborted)return null;
     _urlProgUpdate(i,px.length,px[i].lbl);
     try{
-      const rc=new AbortController();const rt=setTimeout(()=>rc.abort(),25000);
+      const rc=new AbortController();const rt=setTimeout(()=>rc.abort(),30000);
       cancelSig.addEventListener('abort',()=>rc.abort(),{once:true});
       const res=await fetch(px[i].u,{signal:rc.signal});
       clearTimeout(rt);
       if(cancelSig.aborted)return null;
-      if(res.ok){const t=await res.text();try{return JSON.parse(t);}catch{}}
+      if(res.ok){const t=await res.text();try{const j=JSON.parse(t);return j;}catch{}}
     }catch{}
     if(cancelSig.aborted)return null;
   }
@@ -1350,17 +1352,40 @@ async function loadXtream(server,user,pass){
   statusEl.textContent='';statusEl.style.color='var(--text-dim)';
   if(_urlAbortCtrl)_urlAbortCtrl.abort();
   _urlAbortCtrl=new AbortController();const cancelSig=_urlAbortCtrl.signal;
-  setP(5);_urlProgShow(5);
+  const isHttp=server.startsWith('http://');
+  setP(5);_urlProgShow(isHttp?6:5);
   const base=server+'/player_api.php?username='+encodeURIComponent(user)+'&password='+encodeURIComponent(pass);
   const reset=()=>{btn.disabled=false;btn.textContent='Xtream Codes ile Giriş Yap';};
+  function fallbackM3U(){
+    _urlProgHide();setP(0);reset();
+    const m3u=server+'/get.php?username='+encodeURIComponent(user)+'&password='+encodeURIComponent(pass)+'&type=m3u_plus';
+    statusEl.textContent='JSON API başarısız, M3U deneniyor…';statusEl.style.color='var(--text-dim)';
+    showToast('JSON API başarısız, M3U deneniyor…','info',2500);
+    setTimeout(()=>loadURL(m3u),300);
+  }
   try{
     document.getElementById('url-prog-title').textContent='Canlı kanallar yükleniyor…';
     const live=await _xtFetch(base+'&action=get_live_streams',cancelSig);
     if(cancelSig.aborted){_urlProgHide();reset();return;}
+    if(live===null){fallbackM3U();return;}
     if(!Array.isArray(live)){
-      _urlProgHide();setP(0);reset();
-      statusEl.textContent='Bağlantı başarısız — sunucu adresi, kullanıcı adı veya şifre hatalı';statusEl.style.color='var(--danger)';
-      showToast('Xtream bağlantısı kurulamadı','info',4500);return;
+      // Check if server returned an auth error object
+      if(live&&live.user_info){
+        const ui=live.user_info;
+        if(ui.auth===0||ui.auth==='0'){
+          _urlProgHide();setP(0);reset();
+          statusEl.textContent='Kullanıcı adı veya şifre hatalı';statusEl.style.color='var(--danger)';
+          showToast('Giriş başarısız — şifre hatalı','info',4500);return;
+        }
+        if(ui.status&&/(expired|disable)/i.test(ui.status)){
+          _urlProgHide();setP(0);reset();
+          statusEl.textContent='Hesabınızın süresi dolmuş veya devre dışı';statusEl.style.color='var(--danger)';
+          showToast('Hesap süresi dolmuş','info',4500);return;
+        }
+        // Auth seems OK but no array — server might use different format, try M3U
+        fallbackM3U();return;
+      }
+      fallbackM3U();return;
     }
     setP(55);
     document.getElementById('url-prog-title').textContent='Filmler yükleniyor…';
@@ -1368,7 +1393,7 @@ async function loadXtream(server,user,pass){
     if(cancelSig.aborted){_urlProgHide();reset();return;}
     setP(88);
     const chs=[];let xi=0;
-    if(Array.isArray(live))live.forEach(ch=>{if(!ch.stream_id)return;chs.push({id:xi++,n:String(ch.name||'Kanal'),g:String(ch.category_name||'Canlı TV'),l:String(ch.stream_icon||''),u:server+'/live/'+user+'/'+pass+'/'+ch.stream_id+'.m3u8',tid:String(ch.epg_channel_id||'')});});
+    live.forEach(ch=>{if(!ch.stream_id)return;chs.push({id:xi++,n:String(ch.name||'Kanal'),g:String(ch.category_name||'Canlı TV'),l:String(ch.stream_icon||''),u:server+'/live/'+user+'/'+pass+'/'+ch.stream_id+'.m3u8',tid:String(ch.epg_channel_id||'')});});
     if(Array.isArray(vod))vod.forEach(ch=>{if(!ch.stream_id)return;const ext=ch.container_extension||'mp4';chs.push({id:xi++,n:String(ch.name||'Film'),g:String(ch.category_name||'Film'),l:String(ch.stream_icon||ch.cover||''),u:server+'/movie/'+user+'/'+pass+'/'+ch.stream_id+'.'+ext,tid:''});});
     if(!chs.length){_urlProgHide();setP(0);reset();statusEl.textContent='Kanal listesi boş';statusEl.style.color='var(--danger)';return;}
     S.set('xtream_creds',{server,user,pass});
