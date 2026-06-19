@@ -1510,8 +1510,11 @@ document.getElementById('xt-json-load-btn').addEventListener('click',()=>{
   const text=document.getElementById('xt-json-ta').value.trim();
   if(!text){showToast('JSON içeriğini yapıştırın','info');return;}
   let data;try{data=JSON.parse(text);}catch{showToast('Geçersiz JSON — tam olarak kopyalandığından emin olun','info',3500);return;}
+  // Auth-error response: {"user_info":{"auth":0}} → wrong credentials
+  if(data&&data.user_info&&(data.user_info.auth===0||data.user_info.auth==='0')){showToast('auth:0 — kullanıcı adı veya şifre hatalı. Sağlayıcıdan birebir kontrol edin (büyük/küçük harf!)','info',5000);return;}
+  if(data&&data.user_info&&data.user_info.status&&/(expired|disable|banned)/i.test(data.user_info.status)){showToast('Hesabın süresi dolmuş veya devre dışı','info',5000);return;}
   const arr=Array.isArray(data)?data:(data&&Array.isArray(data.available_channels)?data.available_channels:null);
-  if(!arr){showToast('Kanal dizisi bulunamadı','info',3500);return;}
+  if(!arr){showToast('Kanal dizisi bulunamadı — get_live_streams linkini açtığınızdan emin olun','info',4000);return;}
   const srv=document.getElementById('xt-server').value.trim(),usr=document.getElementById('xt-user').value.trim(),pwd=document.getElementById('xt-pass').value.trim();
   const server=srv?_xtNorm(srv):'';
   const chs=[];let xi=0;
