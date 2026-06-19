@@ -391,7 +391,9 @@ body{height:var(--vh);background:var(--bg);color:var(--text);
 .xt-hint-url{flex:1;font-size:10px;font-family:monospace;color:var(--accent);background:var(--elevated);padding:8px 10px;border-radius:8px;word-break:break-all;line-height:1.5;user-select:all;-webkit-user-select:all}
 .xt-copy-url-btn{flex-shrink:0;padding:8px 14px;border-radius:8px;border:none;background:var(--accent-dim);color:var(--accent);font-size:12px;font-weight:600;cursor:pointer;touch-action:manipulation;white-space:nowrap;-webkit-appearance:none;align-self:center}
 .xt-copy-url-btn:active{background:var(--accent);color:white}
+.xt-hint-actions{display:flex;flex-direction:column;gap:8px;width:100%}
 .xt-json-newtab-btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:11px;border-radius:10px;border:none;background:var(--accent);color:#fff;font-size:14px;font-weight:700;cursor:pointer;touch-action:manipulation;-webkit-appearance:none}
+.xt-json-newtab-btn.secondary{background:var(--surface);color:var(--text);border:1px solid var(--border)}
 .xt-json-newtab-btn svg{width:16px;height:16px;fill:currentColor;flex-shrink:0}
 .xt-json-newtab-btn:active{opacity:.82}
 #xt-json-ta{flex:1;background:var(--elevated);color:var(--text);font-size:11px;font-family:monospace;border:none;padding:14px;resize:none;outline:none;-webkit-overflow-scrolling:touch;line-height:1.5}
@@ -461,14 +463,20 @@ body{height:var(--vh);background:var(--bg);color:var(--text);
     <button class="search-cancel" id="xt-json-close-btn">İptal</button>
   </div>
   <div class="xt-json-hint">
-    <div class="xt-hint-steps"><b>1.</b> "Yeni sekmede aç" → Safari JSON'u indirir (player_api.json)<br><b>2.</b> Bu uygulamaya geri dön<br><b>3.</b> "İndirdiğin player_api.json dosyasını seç" → biter</div>
-    <button class="xt-json-newtab-btn" id="xt-open-api-btn">
-      <svg viewBox="0 0 24 24"><path d="M19 19H5V5h7V3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7h-2v7zM14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3h-7z"/></svg>
-      Yeni sekmede aç (JSON indir)
-    </button>
-    <div class="xt-hint-url-row">
-      <div class="xt-hint-url" id="xt-api-url-txt">Önce sunucu, kullanıcı adı ve şifre girin</div>
-      <button class="xt-copy-url-btn" id="xt-copy-api-btn">Kopyala</button>
+    <div class="xt-hint-steps"><b>1.</b> Aşağıdan tür seç → Safari indirir<br><b>2.</b> Uygulamaya geri dön → dosyayı seç<br><b>Not:</b> Canlı + Film JSON ayrı ayrı yüklenebilir, birleştirilir</div>
+    <div class="xt-hint-actions">
+      <button class="xt-json-newtab-btn" id="xt-open-live-btn">
+        <svg viewBox="0 0 24 24"><path d="M19 19H5V5h7V3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7h-2v7zM14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3h-7z"/></svg>
+        Canlı Kanallar JSON
+      </button>
+      <button class="xt-json-newtab-btn secondary" id="xt-open-vod-btn">
+        <svg viewBox="0 0 24 24"><path d="M19 19H5V5h7V3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7h-2v7zM14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3h-7z"/></svg>
+        Filmler JSON
+      </button>
+      <button class="xt-json-newtab-btn secondary" id="xt-open-series-btn">
+        <svg viewBox="0 0 24 24"><path d="M19 19H5V5h7V3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7h-2v7zM14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3h-7z"/></svg>
+        Diziler JSON
+      </button>
     </div>
   </div>
   <textarea id="xt-json-ta" placeholder="JSON içeriğini buraya yapıştırın…&#10;&#10;Nasıl yapılır:&#10;1. Yukarıdaki linki kopyala → Safari'de aç&#10;2. Uzun bas → Tümünü Seç → Kopyala&#10;3. Buraya yapıştır → Yükle'ye bas"></textarea>
@@ -1498,48 +1506,68 @@ document.getElementById('xt-login-btn').addEventListener('click',()=>{const c=ge
 ['xt-server','xt-user','xt-pass'].forEach(id=>{document.getElementById(id).addEventListener('keydown',e=>{if(e.key==='Enter'){e.target.blur();const c=getXtCreds();loadXtream(c.server,c.user,c.pass);}});});
 // Xtream JSON download/load overlay
 function openXtJsonOverlay(){
-  const apiUrl=xtApiUrl('get_live_streams')||'Önce sunucu, kullanıcı adı ve şifre girin';
-  document.getElementById('xt-api-url-txt').textContent=apiUrl;
   document.getElementById('settings-overlay').classList.remove('active');
   document.getElementById('xt-json-overlay').classList.add('active');
 }
 document.getElementById('xt-json-open-btn').addEventListener('click',openXtJsonOverlay);
 document.getElementById('xt-json-close-btn').addEventListener('click',()=>document.getElementById('xt-json-overlay').classList.remove('active'));
-document.getElementById('xt-open-api-btn').addEventListener('click',()=>{
-  const url=xtApiUrl('get_live_streams');
-  if(!url){showToast('Önce sunucu, kullanıcı adı ve şifre girin','info');return;}
-  window.open(url,'_blank');
-});
-document.getElementById('xt-copy-api-btn').addEventListener('click',()=>{
-  const url=document.getElementById('xt-api-url-txt').textContent;
-  if(!url||url.includes('girin'))return;
-  if(navigator.clipboard?.writeText)navigator.clipboard.writeText(url).then(()=>showToast('Link kopyalandı','ok')).catch(()=>fbCopy(url));else fbCopy(url);
+Object.entries({live:'get_live_streams',vod:'get_vod_streams',series:'get_series'}).forEach(([k,action])=>{
+  document.getElementById('xt-open-'+k+'-btn').addEventListener('click',()=>{
+    const url=xtApiUrl(action);
+    if(!url){showToast('Önce sunucu, kullanıcı adı ve şifre girin','info');return;}
+    window.open(url,'_blank');
+  });
 });
 function processXtJson(text){
   text=(text||'').trim();
   if(!text){showToast('JSON içeriği boş','info');return;}
   let data;try{data=JSON.parse(text);}catch{showToast('Geçersiz JSON — dosya/metin tam değil','info',3500);return;}
-  // Auth-error response: {"user_info":{"auth":0}} → wrong credentials
   if(data&&data.user_info&&(data.user_info.auth===0||data.user_info.auth==='0')){showToast('auth:0 — kullanıcı adı veya şifre hatalı. Sağlayıcıdan birebir kontrol edin (büyük/küçük harf!)','info',5000);return;}
   if(data&&data.user_info&&data.user_info.status&&/(expired|disable|banned)/i.test(data.user_info.status)){showToast('Hesabın süresi dolmuş veya devre dışı','info',5000);return;}
   const arr=Array.isArray(data)?data:(data&&Array.isArray(data.available_channels)?data.available_channels:null);
-  if(!arr){showToast('Kanal dizisi bulunamadı — get_live_streams linkini açtığınızdan emin olun','info',4000);return;}
+  if(!arr){showToast('Kanal dizisi bulunamadı — doğru linki açtığından emin ol','info',4000);return;}
+  // Series listing has series_id but no stream_id — can't play directly
+  if(arr.length&&arr[0].series_id&&!arr[0].stream_id){showToast('Dizi listesi alındı ama bölümler için ayrı bir akış gerekiyor — henüz desteklenmiyor','info',5000);return;}
   const c=getXtCreds(),usr=c.user,pwd=c.pass;
   const server=c.server?_xtNorm(c.server):'';
   const chs=[];let xi=0;
   arr.forEach(ch=>{
     if(!ch.stream_id)return;
-    const u2=server&&usr&&pwd?server+'/live/'+usr+'/'+pwd+'/'+ch.stream_id+'.m3u8':(ch.stream_url||ch.url||'');
+    const isVod=ch.stream_type==='movie'||(ch.container_extension&&ch.stream_type!=='live');
+    let u2;
+    if(isVod){
+      const ext=ch.container_extension||'mp4';
+      u2=server&&usr&&pwd?server+'/movie/'+usr+'/'+pwd+'/'+ch.stream_id+'.'+ext:(ch.stream_url||ch.url||'');
+    } else {
+      u2=server&&usr&&pwd?server+'/live/'+usr+'/'+pwd+'/'+ch.stream_id+'.m3u8':(ch.stream_url||ch.url||'');
+    }
     if(!u2)return;
-    chs.push({id:xi++,n:String(ch.name||'Kanal'),g:String(ch.category_name||ch.group_title||'Canlı TV'),l:String(ch.stream_icon||ch.logo||''),u:u2,tid:String(ch.epg_channel_id||'')});
+    const grp=String(ch.category_name||ch.group_title||(isVod?'Film':'Canlı TV'));
+    chs.push({id:xi++,n:String(ch.name||'Kanal'),g:grp,l:String(ch.stream_icon||ch.logo||''),u:u2,tid:String(ch.epg_channel_id||'')});
   });
-  if(!chs.length){showToast('JSON içinde kanal bulunamadı','info',3500);return;}
+  if(!chs.length){showToast('JSON içinde içerik bulunamadı','info',3500);return;}
   if(server&&usr&&pwd)S.set('xtream_creds',{server,user:usr,pass:pwd});
   document.getElementById('xt-json-overlay').classList.remove('active');
   document.getElementById('xt-json-ta').value='';
-  showToast(numFmt(chs.length)+' kanal yüklendi','ok');
+  // Merge with existing Xtream playlist for same server/user
+  let finalChs=chs;
+  const existingPl=server&&usr?PLAYLISTS.find(p=>p.type==='xtream'&&p.xtream&&p.xtream.server===server&&p.xtream.user===usr):null;
+  if(existingPl){
+    const existing=S.get('pl_'+existingPl.id,[])||[];
+    const existingUrls=new Set(existing.map(ch=>ch.u));
+    const newOnly=chs.filter(ch=>!existingUrls.has(ch.u));
+    if(newOnly.length){
+      finalChs=[...existing,...newOnly].map((ch,i)=>({...ch,id:i}));
+      showToast(numFmt(newOnly.length)+' yeni içerik eklendi (toplam: '+numFmt(finalChs.length)+')','ok');
+    } else {
+      finalChs=existing.map((ch,i)=>({...ch,id:i}));
+      showToast(numFmt(chs.length)+' içerik zaten mevcut','info');
+    }
+  } else {
+    showToast(numFmt(chs.length)+' içerik yüklendi','ok');
+  }
   let hn=server;try{hn=new URL(server).hostname;}catch{}
-  initApp(chs,{type:'xtream',url:null,name:'Xtream: '+hn,ts:Date.now(),xtream:server&&usr&&pwd?{server,user:usr,pass:pwd}:null});
+  initApp(finalChs,{type:'xtream',url:null,name:'Xtream: '+hn,ts:Date.now(),xtream:server&&usr&&pwd?{server,user:usr,pass:pwd}:null});
 }
 document.getElementById('xt-json-load-btn').addEventListener('click',()=>processXtJson(document.getElementById('xt-json-ta').value));
 document.getElementById('xt-json-file').addEventListener('change',e=>{
