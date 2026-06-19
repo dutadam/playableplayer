@@ -111,11 +111,11 @@ body{height:var(--vh);background:var(--bg);color:var(--text);
 .row-more:active{opacity:.6}
 .row-scroll{display:flex;gap:10px;overflow-x:auto;padding:0 calc(14px + var(--safe-l));padding-right:calc(14px + var(--safe-r));scrollbar-width:none;-webkit-overflow-scrolling:touch;scroll-snap-type:x mandatory}
 .row-scroll::-webkit-scrollbar{display:none}
-.b-card{flex-shrink:0;width:min(46vw,210px);background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden;cursor:pointer;touch-action:manipulation;position:relative;scroll-snap-align:start;transition:border-color .15s,transform .1s}
+.b-card{flex-shrink:0;width:min(40vw,170px);background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden;cursor:pointer;touch-action:manipulation;position:relative;scroll-snap-align:start;transition:border-color .15s,transform .1s}
 .b-card:active{transform:scale(.96)}
 .b-card.playing{border-color:var(--accent)}
-.b-card-logo{aspect-ratio:16/9;background:var(--elevated);display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative}
-.b-card-logo img{width:100%;height:100%;object-fit:cover;padding:0}
+.b-card-logo{aspect-ratio:9/16;background:var(--elevated);display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative}
+.b-card-logo img{width:100%;height:100%;object-fit:contain;padding:10px}
 .b-card-init{font-size:22px;font-weight:800;color:var(--text-dim)}
 .b-card-play-ov{position:absolute;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .15s}
 .b-card:active .b-card-play-ov{opacity:1}
@@ -318,6 +318,24 @@ body{height:var(--vh);background:var(--bg);color:var(--text);
 /* PiP button */
 #p-pip-btn{display:none}
 #p-pip-btn.show{display:flex}
+/* SETTINGS OVERLAY */
+#settings-overlay{display:none;position:fixed;inset:0;z-index:52;background:var(--bg);flex-direction:column}
+#settings-overlay.active{display:flex}
+.settings-topbar{display:flex;align-items:center;gap:10px;padding:calc(14px + var(--safe-t)) calc(14px + var(--safe-r)) 12px calc(14px + var(--safe-l));background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0}
+.settings-topbar-title{font-size:17px;font-weight:700;flex:1}
+#settings-body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:20px calc(14px + var(--safe-r)) calc(32px + var(--safe-b)) calc(14px + var(--safe-l));display:flex;flex-direction:column;gap:24px}
+.settings-sec-label{font-size:11px;color:var(--text-dim);font-weight:600;letter-spacing:1px;text-transform:uppercase;margin-bottom:10px}
+.settings-row{display:flex;gap:8px;align-items:stretch}
+.settings-input{flex:1;background:var(--surface);border:1px solid var(--border);border-radius:10px;color:var(--text);font-size:15px;padding:11px 14px;outline:none;transition:border .2s;-webkit-appearance:none;min-width:0}
+.settings-input::placeholder{color:var(--text-dim)}
+.settings-input:focus{border-color:var(--accent)}
+.settings-hint{font-size:11px;color:var(--text-dim);margin-top:8px;line-height:1.6;word-break:break-all}
+.settings-hint code{font-family:monospace;background:var(--elevated);padding:1px 5px;border-radius:4px;font-size:11px;color:var(--accent)}
+.btn-refresh{padding:11px 16px;border-radius:10px;border:none;cursor:pointer;font-size:14px;font-weight:600;white-space:nowrap;touch-action:manipulation;-webkit-appearance:none}
+.btn-refresh:active{opacity:.75}
+.btn-refresh.primary{background:var(--accent);color:white}
+.btn-refresh.epg{background:rgba(61,235,160,.15);color:var(--success)}
+.settings-status{font-size:12px;color:var(--text-dim);min-height:16px;margin-top:6px}
 /* TOAST */
 #toast{position:fixed;bottom:calc(20px + var(--safe-b));left:50%;transform:translateX(-50%) translateY(80px);background:var(--elevated);border:1px solid var(--border);border-radius:10px;padding:10px 18px;font-size:13px;font-weight:500;transition:transform .25s cubic-bezier(.34,1.56,.64,1);z-index:1000;white-space:nowrap;pointer-events:none;box-shadow:0 8px 30px rgba(0,0,0,.5)}
 #toast.show{transform:translateX(-50%) translateY(0)}
@@ -364,6 +382,7 @@ body{height:var(--vh);background:var(--bg);color:var(--text);
       <span class="browse-nav-title">M3U Player</span>
     </div>
     <button class="nav-btn" id="browse-search-btn"><svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg></button>
+    <button class="nav-btn" id="browse-settings-btn"><svg viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.3.06-.61.06-.94s-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.56-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.07.63-.07.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg></button>
     <button class="nav-btn" id="browse-back-btn"><svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg></button>
   </nav>
   <div id="browse-scroll">
@@ -413,6 +432,35 @@ body{height:var(--vh);background:var(--bg);color:var(--text);
   <div class="ss-banner" id="ss-banner"></div>
   <div class="ss-meta-bar" id="ss-meta-bar"></div>
   <div id="ss-content"></div>
+</div>
+<!-- SETTINGS OVERLAY -->
+<div id="settings-overlay">
+  <div class="settings-topbar">
+    <span class="settings-topbar-title">Ayarlar</span>
+    <button class="search-cancel" id="settings-close-btn">Kapat</button>
+  </div>
+  <div id="settings-body">
+    <div>
+      <div class="settings-sec-label">M3U Playlist URL</div>
+      <div class="settings-row">
+        <input class="settings-input" id="settings-url-input" type="url" inputmode="url" autocomplete="url" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="http://sunucu:8080/get.php?username=…">
+        <button class="btn-refresh primary" id="settings-refresh-btn">Yenile</button>
+      </div>
+      <div class="settings-hint">
+        Xtream Codes formatı:<br>
+        <code>http://sunucu:8080/get.php?username=KULLANICI&amp;password=ŞİFRE&amp;type=m3u_plus</code>
+      </div>
+      <div class="settings-status" id="settings-url-status"></div>
+    </div>
+    <div>
+      <div class="settings-sec-label">EPG (Program Rehberi)</div>
+      <div class="settings-row">
+        <input class="settings-input" id="settings-epg-input" type="url" inputmode="url" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="https://…/epg.xml veya epg.xml.gz">
+        <button class="btn-refresh epg" id="settings-epg-btn">Yükle</button>
+      </div>
+      <div class="settings-status" id="settings-epg-status"></div>
+    </div>
+  </div>
 </div>
 <!-- PLAYER SCREEN -->
 <div id="player-screen">
@@ -739,6 +787,33 @@ document.getElementById('hero-fav-btn').addEventListener('click',()=>{if(HERO_CH
 document.getElementById('hero-info-btn').addEventListener('click',()=>{if(HERO_CH)openSheet(HERO_CH);});
 document.getElementById('browse-search-btn').addEventListener('click',openSearch);
 document.getElementById('browse-back-btn').addEventListener('click',()=>{document.getElementById('browse-screen').classList.remove('active');document.getElementById('load-screen').style.display='flex';ALL=[];RECENT=S.get('recent',[]);renderPLList();});
+// Settings
+function openSettings(){
+  const urlPl=PLAYLISTS.find(p=>p.type==='url'&&p.url);
+  const savedUrl=urlPl?urlPl.url:(S.get('settings_url','')||'');
+  document.getElementById('settings-url-input').value=savedUrl;
+  document.getElementById('settings-epg-input').value=S.get('epg_url','')||'';
+  document.getElementById('settings-url-status').textContent='';
+  document.getElementById('settings-epg-status').textContent=document.getElementById('epg-status').textContent||'';
+  document.getElementById('settings-overlay').classList.add('active');
+}
+function closeSettings(){document.getElementById('settings-overlay').classList.remove('active');}
+document.getElementById('browse-settings-btn').addEventListener('click',openSettings);
+document.getElementById('settings-close-btn').addEventListener('click',closeSettings);
+document.getElementById('settings-refresh-btn').addEventListener('click',()=>{
+  const url=document.getElementById('settings-url-input').value.trim();
+  if(!url){document.getElementById('settings-url-status').textContent='URL girin';return;}
+  const statusEl=document.getElementById('settings-url-status');
+  closeSettings();
+  loadURL(url,statusEl);
+});
+document.getElementById('settings-url-input').addEventListener('keydown',e=>{if(e.key==='Enter'){e.target.blur();document.getElementById('settings-refresh-btn').click();}});
+document.getElementById('settings-epg-btn').addEventListener('click',()=>{
+  const url=document.getElementById('settings-epg-input').value.trim();
+  loadEPG(url).then(()=>{
+    document.getElementById('settings-epg-status').textContent=document.getElementById('epg-status').textContent||'';
+  });
+});
 // Search
 let sdt=null;
 function openSearch(){document.getElementById('search-overlay').classList.add('active');setTimeout(()=>document.getElementById('search-main-input').focus(),100);}
@@ -1010,11 +1085,28 @@ function initApp(channels,source){
   renderBrowse();setP(100);
 }
 function loadText(text,source){setP(35);setTimeout(()=>{const chs=parseM3U(text);setP(80);if(!chs.length){showToast('M3U içinde kanal bulunamadı','info');setP(0);return;}setTimeout(()=>initApp(chs,source),60);},40);}
-async function loadURL(url){
+function makeSignal(ms){try{return AbortSignal.timeout(ms);}catch{const c=new AbortController();setTimeout(()=>c.abort(),ms);return c.signal;}}
+async function loadURL(url,statusEl){
   url=url.trim();if(!url.startsWith('http')){showToast('Geçerli bir URL girin','info');return;}setP(15);
-  const proxies=['https://corsproxy.io/?'+encodeURIComponent(url),'https://api.allorigins.win/raw?url='+encodeURIComponent(url)];
-  for(const proxy of proxies){try{const res=await fetch(proxy,{signal:AbortSignal.timeout?AbortSignal.timeout(12000):undefined});if(res.ok){setP(65);loadText(await res.text(),{type:'url',url,name:url.split('/').pop()||url,ts:Date.now()});return;}}catch{}}
-  setP(0);showToast('URL yüklenemedi','info');
+  if(statusEl)statusEl.textContent='Yükleniyor…';
+  const proxies=[url,'https://corsproxy.io/?'+encodeURIComponent(url),'https://api.allorigins.win/raw?url='+encodeURIComponent(url)];
+  for(const proxy of proxies){
+    try{
+      const res=await fetch(proxy,{signal:makeSignal(30000)});
+      if(res.ok){
+        const text=await res.text();
+        if(!text.includes('#EXTM3U')){continue;}
+        setP(65);
+        if(statusEl)statusEl.textContent='';
+        loadText(text,{type:'url',url,name:url.split('/').pop()||url,ts:Date.now()});
+        S.set('settings_url',url);
+        return;
+      }
+    }catch{}
+  }
+  setP(0);
+  if(statusEl)statusEl.textContent='Yüklenemedi – URL geçerli mi?';
+  showToast('URL yüklenemedi','info');
 }
 // File/Drop
 const dropZone=document.getElementById('drop-zone');
@@ -1026,6 +1118,9 @@ function readFile(f){setP(20);const r=new FileReader();r.onload=e=>loadText(e.ta
 const urlInput=document.getElementById('url-input');
 document.getElementById('url-load-btn').addEventListener('click',()=>loadURL(urlInput.value));
 urlInput.addEventListener('keydown',e=>{if(e.key==='Enter'){urlInput.blur();loadURL(urlInput.value);}});
+// Pre-fill URL input from saved settings
+const _savedUrl=S.get('settings_url','');
+if(_savedUrl&&!urlInput.value)urlInput.value=_savedUrl;
 // PWA
 if('serviceWorker' in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
 // Start
@@ -1034,11 +1129,17 @@ const savedEpgUrl=S.get('epg_url','');
 if(savedEpgUrl){document.getElementById('epg-url-input').value=savedEpgUrl;loadEPG(savedEpgUrl);}
 // Auto-open single playlist
 (function(){
-  if(PLAYLISTS.length!==1)return;
-  const pl=PLAYLISTS[0];
-  const chs=S.get('pl_'+pl.id,null);
-  if(chs&&chs.length){setTimeout(()=>loadPL(pl.id),200);return;}
-  if(pl.type==='url'&&pl.url){setTimeout(()=>loadURL(pl.url),200);}
+  if(PLAYLISTS.length===1){
+    const pl=PLAYLISTS[0];
+    const chs=S.get('pl_'+pl.id,null);
+    if(chs&&chs.length){setTimeout(()=>loadPL(pl.id),200);return;}
+    if(pl.type==='url'&&pl.url){setTimeout(()=>loadURL(pl.url),200);return;}
+  }
+  // No playlists yet but URL saved in settings → auto-fetch
+  if(!PLAYLISTS.length){
+    const su=S.get('settings_url','');
+    if(su)setTimeout(()=>loadURL(su),200);
+  }
 })();
 </script>
 </body>
