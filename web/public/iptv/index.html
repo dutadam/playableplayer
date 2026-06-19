@@ -71,10 +71,11 @@ body{height:var(--vh);background:var(--bg);color:var(--text);
 /* BROWSE */
 #browse-screen{display:none;flex-direction:column;height:var(--vh);background:var(--bg);position:absolute;inset:0}
 #browse-screen.active{display:flex}
-.browse-nav{position:absolute;top:0;left:0;right:0;z-index:10;display:flex;align-items:center;gap:10px;
-  padding:calc(12px + var(--safe-t)) calc(14px + var(--safe-r)) 12px calc(14px + var(--safe-l));
-  background:linear-gradient(to bottom,rgba(11,11,16,.95) 0%,transparent 100%);transition:background .3s}
+.browse-nav{position:absolute;top:0;left:0;right:0;z-index:10;display:flex;flex-direction:column;
+  background:linear-gradient(to bottom,rgba(11,11,16,.97) 0%,transparent 100%);transition:background .3s}
 .browse-nav.scrolled{background:rgba(11,11,16,.92);backdrop-filter:blur(12px)}
+.browse-nav-row{display:flex;align-items:center;gap:10px;
+  padding:calc(12px + var(--safe-t)) calc(14px + var(--safe-r)) 8px calc(14px + var(--safe-l))}
 .browse-nav-logo{display:flex;align-items:center;gap:8px;flex:1}
 .browse-nav-icon{width:28px;height:28px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center}
 .browse-nav-icon svg{width:14px;height:14px;fill:white}
@@ -82,12 +83,17 @@ body{height:var(--vh);background:var(--bg);color:var(--text);
 .nav-btn{width:38px;height:38px;border-radius:10px;border:none;background:rgba(255,255,255,.08);color:white;display:flex;align-items:center;justify-content:center;cursor:pointer;touch-action:manipulation;flex-shrink:0}
 .nav-btn svg{width:20px;height:20px;fill:currentColor}
 .nav-btn:active{background:rgba(255,255,255,.18)}
+#browse-tabs{display:flex;gap:6px;padding:2px calc(14px + var(--safe-l)) 10px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+#browse-tabs::-webkit-scrollbar{display:none}
+.browse-tab{flex-shrink:0;padding:5px 14px;border-radius:20px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.06);color:rgba(255,255,255,.6);font-size:13px;font-weight:600;cursor:pointer;touch-action:manipulation;transition:all .15s;-webkit-appearance:none}
+.browse-tab.active{background:var(--accent);border-color:var(--accent);color:white}
+.browse-tab:active{opacity:.75}
 #browse-scroll{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
 #browse-hero{position:relative;height:min(90vw,480px);overflow:hidden;flex-shrink:0}
 .hero-bg{position:absolute;inset:0;background-size:cover;background-position:center;filter:brightness(0.6) saturate(1.15)}
 .hero-bg.channel{background-size:contain;background-repeat:no-repeat;background-position:center;filter:blur(28px) brightness(0.4) saturate(1.2);transform:scale(1.12)}
 .hero-overlay{position:absolute;inset:0;background:var(--hero-grad)}
-.hero-content{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 20px;padding-top:calc(60px + var(--safe-t))}
+.hero-content{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 20px;padding-top:calc(104px + var(--safe-t))}
 .hero-logo-ch{width:100px;height:100px;background:rgba(255,255,255,.07);border-radius:18px;display:flex;align-items:center;justify-content:center;overflow:hidden;backdrop-filter:blur(4px);border:1px solid rgba(255,255,255,.12)}
 .hero-logo-ch img{width:80px;height:80px;object-fit:contain}
 .hero-logo-ch-init{font-size:36px;font-weight:800;color:white}
@@ -568,14 +574,22 @@ body{height:var(--vh);background:var(--bg);color:var(--text);
 <!-- BROWSE SCREEN -->
 <div id="browse-screen">
   <nav class="browse-nav" id="browse-nav">
-    <div class="browse-nav-logo">
-      <div class="browse-nav-icon"><svg viewBox="0 0 24 24"><path d="M4 6h16v2H4zm0 5h16v2H4zm0 5h16v2H4z"/></svg></div>
-      <span class="browse-nav-title">M3U Player</span>
+    <div class="browse-nav-row">
+      <div class="browse-nav-logo">
+        <div class="browse-nav-icon"><svg viewBox="0 0 24 24"><path d="M4 6h16v2H4zm0 5h16v2H4zm0 5h16v2H4z"/></svg></div>
+        <span class="browse-nav-title">M3U Player</span>
+      </div>
+      <button class="nav-btn" id="browse-search-btn"><svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg></button>
+      <button class="nav-btn" id="browse-fav-btn"><svg viewBox="0 0 24 24"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg></button>
+      <button class="nav-btn" id="browse-settings-btn"><svg viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.3.06-.61.06-.94s-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.56-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.07.63-.07.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg></button>
+      <button class="nav-btn" id="browse-back-btn"><svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg></button>
     </div>
-    <button class="nav-btn" id="browse-search-btn"><svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg></button>
-    <button class="nav-btn" id="browse-fav-btn"><svg viewBox="0 0 24 24"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg></button>
-    <button class="nav-btn" id="browse-settings-btn"><svg viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.3.06-.61.06-.94s-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.56-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.07.63-.07.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg></button>
-    <button class="nav-btn" id="browse-back-btn"><svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg></button>
+    <div id="browse-tabs">
+      <button class="browse-tab active" data-tab="all">Tümü</button>
+      <button class="browse-tab" data-tab="tv">📺 TV</button>
+      <button class="browse-tab" data-tab="series">🎬 Dizi</button>
+      <button class="browse-tab" data-tab="movie">🎥 Film</button>
+    </div>
   </nav>
   <div id="browse-scroll">
     <div id="browse-hero">
@@ -744,7 +758,7 @@ const isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent)&&!window.MSStream;
 // Storage
 const S={_p:'m3u_',get(k,d){try{const v=localStorage.getItem(this._p+k);return v!=null?JSON.parse(v):d}catch{return d}},set(k,v){try{localStorage.setItem(this._p+k,JSON.stringify(v))}catch(e){if(e.name==='QuotaExceededError')try{localStorage.removeItem(this._p+'chs')}catch{}}},del(k){try{localStorage.removeItem(this._p+k)}catch{}}};
 // State
-let ALL=[],FAVS=new Set(S.get('favs',[])),RECENT=S.get('recent',[]),GRID_MODE=S.get('grid',false);
+let ALL=[],FAVS=new Set(S.get('favs',[])),RECENT=S.get('recent',[]),GRID_MODE=S.get('grid',false),BROWSE_TAB='all';
 let SEL=null,HERO_CH=null,CURRENT_CAT=null,CAT_CHANNELS=[],CAT_GRID=GRID_MODE;
 let SERIES_EXP={},SEASON_COL={},PLAYLISTS=S.get('pl_list',[]);
 let XTREAM_SERIES_META=S.get('xt_series_meta',{});
@@ -810,6 +824,16 @@ function detectSeries(name){
   m=name.match(/^(.+?)\s+[Bb][öo]l[üu]m\s*(\d{1,3})(?:\s*[-–:]\s*(.+))?$/i);
   if(m)return{show:m[1].trim(),s:1,e:+m[2],t:m[3]?.trim()||null};
   return null;
+}
+function chType(ch){
+  if(!ch||!ch.u)return'tv';
+  if(ch.u.startsWith('_xts_')||ch.u.includes('/series/'))return'series';
+  if(ch.u.includes('/movie/'))return'movie';
+  if(ch.u.includes('/live/'))return'tv';
+  const g=(ch.g||'').toLowerCase();
+  if(/film|movie|vod|sinema|cinema/.test(g))return'movie';
+  if(/dizi|series|show|seri\b|diziler/.test(g))return'series';
+  return'tv';
 }
 function groupBySeries(channels){
   const map={},rest=[];
@@ -1021,14 +1045,18 @@ function createRecentRow(items){
   return div;
 }
 function renderBrowse(){
-  const heroCh=RECENT.length>0?(ALL.find(c=>c.u===RECENT[0].u)||ALL[0]):ALL[0];
+  const pool=BROWSE_TAB==='all'?ALL:ALL.filter(ch=>chType(ch)===BROWSE_TAB);
+  // update tab active state
+  document.querySelectorAll('.browse-tab').forEach(btn=>btn.classList.toggle('active',btn.dataset.tab===BROWSE_TAB));
+  const heroCh=RECENT.length>0?(pool.find(c=>c.u===RECENT[0].u)||pool[0]):pool[0];
   if(heroCh)renderHero(heroCh);
   const rows=document.getElementById('browse-rows');rows.innerHTML='';
-  if(FAVS.size>0){const fc=ALL.filter(c=>FAVS.has(c.u)).slice(0,20);if(fc.length)rows.appendChild(createRow('Favorilerim',fc,'⭐ Favoriler'));}
-  if(RECENT.length>0){const ri=buildRecentItems();if(ri.length)rows.appendChild(createRecentRow(ri));}
-  const catMap={};ALL.forEach(ch=>{(catMap[ch.g]=catMap[ch.g]||[]).push(ch);});
+  if(BROWSE_TAB==='all'){
+    if(FAVS.size>0){const fc=ALL.filter(c=>FAVS.has(c.u)).slice(0,20);if(fc.length)rows.appendChild(createRow('Favorilerim',fc,'⭐ Favoriler'));}
+    if(RECENT.length>0){const ri=buildRecentItems();if(ri.length)rows.appendChild(createRecentRow(ri));}
+  }
+  const catMap={};pool.forEach(ch=>{(catMap[ch.g]=catMap[ch.g]||[]).push(ch);});
   Object.entries(catMap).sort(([,a],[,b])=>b.length-a.length).forEach(([cat,chs])=>{
-    // Try series grouping for this category
     const sg=groupBySeries(chs);
     if(sg&&sg.shows.length>=1){
       rows.appendChild(createSeriesRow(cat,sg.shows,chs,cat));
@@ -1037,6 +1065,7 @@ function renderBrowse(){
       rows.appendChild(createRow(cat,chs.slice(0,20),cat));
     }
   });
+  if(!pool.length){const em=document.createElement('div');em.style.cssText='text-align:center;color:var(--text-dim);font-size:14px;padding:48px 20px';em.textContent='Bu kategoride içerik yok';rows.appendChild(em);}
 }
 function createSeriesRow(title,shows,allChs,catKey){
   const div=document.createElement('div');div.className='browse-row';
@@ -1061,7 +1090,8 @@ document.getElementById('hero-play-btn').addEventListener('click',()=>{if(HERO_C
 document.getElementById('hero-fav-btn').addEventListener('click',()=>{if(HERO_CH)toggleFav(HERO_CH,document.getElementById('hero-fav-btn'));});
 document.getElementById('hero-info-btn').addEventListener('click',()=>{if(HERO_CH)openSheet(HERO_CH);});
 document.getElementById('browse-search-btn').addEventListener('click',openSearch);
-document.getElementById('browse-back-btn').addEventListener('click',()=>{document.getElementById('browse-screen').classList.remove('active');document.getElementById('load-screen').style.display='flex';ALL=[];RECENT=S.get('recent',[]);renderPLList();});
+document.getElementById('browse-back-btn').addEventListener('click',()=>{document.getElementById('browse-screen').classList.remove('active');document.getElementById('load-screen').style.display='flex';ALL=[];RECENT=S.get('recent',[]);BROWSE_TAB='all';renderPLList();});
+document.getElementById('browse-tabs').addEventListener('click',e=>{const btn=e.target.closest('.browse-tab');if(!btn)return;BROWSE_TAB=btn.dataset.tab;renderBrowse();document.getElementById('browse-scroll').scrollTo({top:0,behavior:'smooth'});});
 // Settings
 function openSettings(){
   const urlPl=PLAYLISTS.find(p=>p.type==='url'&&p.url);
@@ -1679,7 +1709,8 @@ function processSeriesInfoJson(text){
       row.innerHTML='<div class="series-ep-num">S'+String(season).padStart(2,'0')+'E'+String(ep.episode_num).padStart(2,'0')+'</div>'+(thumb?'<img class="series-ep-thumb" src="'+esc(thumb)+'" loading="lazy" onerror="this.style.display=\'none\'">':'')+'<div class="series-ep-info"><div class="series-ep-title">'+esc(ep.title||('Bölüm '+ep.episode_num))+'</div>'+(dur?'<div class="series-ep-dur">'+esc(dur)+'</div>':'')+'</div><div class="series-ep-play"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></div>';
       row.addEventListener('click',()=>{
         document.getElementById('series-overlay').classList.remove('active');
-        const ch={id:-1,n:esc(ep.title||info.name+' S'+season+'E'+ep.episode_num),g:'Dizi',l:thumb||info.cover||'',u:url,tid:''};
+        const sName=info.name||'';const epLabel=sName+' S'+season+'E'+String(ep.episode_num).padStart(2,'0')+(ep.title&&ep.title!==sName?' - '+ep.title:'');
+        const ch={id:-1,n:epLabel,g:'Dizi',l:thumb||info.cover||'',u:url,tid:''};
         openPlayer(ch,-1);
       });
       container.appendChild(row);
