@@ -556,24 +556,38 @@ function groupBySeries(channels){
   return{shows,rest};
 }
 // Playlist Manager
+function trySavePL(id,channels){
+  // Try full → no logos → first 20k no logos
+  const attempts=[
+    ()=>channels.map(c=>({n:c.n,g:c.g,l:c.l,u:c.u})),
+    ()=>channels.map(c=>({n:c.n,g:c.g,u:c.u})),
+    ()=>channels.slice(0,20000).map(c=>({n:c.n,g:c.g,u:c.u})),
+  ];
+  for(const fn of attempts){try{localStorage.setItem('m3u_pl_'+id,JSON.stringify(fn()));return true;}catch{}}
+  return false;
+}
 function autoSavePL(source,channels){
   if(!source)return;
   const existing=PLAYLISTS.find(p=>(source.type==='url'&&p.url===source.url)||(source.type==='file'&&p.name===source.name));
-  const data=channels.map(c=>({n:c.n,g:c.g,l:c.l,u:c.u}));
-  if(existing){existing.ts=Date.now();existing.count=channels.length;try{S.set('pl_'+existing.id,data);}catch{}}
-  else{
+  if(existing){
+    existing.ts=Date.now();existing.count=channels.length;
+    trySavePL(existing.id,channels);
+  } else {
     const id=Date.now().toString(36)+Math.random().toString(36).slice(2,5);
     let name=source.name||'Playlist';if(source.type==='url')try{name=new URL(source.url).hostname;}catch{}
     PLAYLISTS.unshift({id,name,type:source.type,url:source.url||null,ts:Date.now(),count:channels.length});
     if(PLAYLISTS.length>10){const old=PLAYLISTS.pop();S.del('pl_'+old.id);}
-    try{S.set('pl_'+id,data);}catch{}
+    trySavePL(id,channels);
   }
   S.set('pl_list',PLAYLISTS);renderPLList();
 }
 function loadPL(id){
   const pl=PLAYLISTS.find(p=>p.id===id);if(!pl)return;
   const chs=S.get('pl_'+id,null);
-  if(!chs||!chs.length){if(pl.type==='url'&&pl.url){loadURL(pl.url);return;}showToast('Playlist verisi bulunamadı','info');return;}
+  if(!chs||!chs.length){
+    if(pl.type==='url'&&pl.url){showToast('Playlist yeniden yükleniyor…','info');loadURL(pl.url);return;}
+    showToast('Dosyayı tekrar yükleyin (depolama doldu)','info');return;
+  }
   setP(50);setTimeout(()=>initApp(chs.map((c,i)=>({id:i,...c})),{type:pl.type,name:pl.name,url:pl.url,ts:pl.ts}),60);
 }
 function deletePL(id,e){e.stopPropagation();PLAYLISTS=PLAYLISTS.filter(p=>p.id!==id);S.set('pl_list',PLAYLISTS);S.del('pl_'+id);renderPLList();showToast('Playlist silindi','info');}
@@ -1006,6 +1020,14 @@ if('serviceWorker' in navigator)window.addEventListener('load',()=>navigator.ser
 renderPLList();
 const savedEpgUrl=S.get('epg_url','');
 if(savedEpgUrl){document.getElementById('epg-url-input').value=savedEpgUrl;loadEPG(savedEpgUrl);}
+// Auto-open single playlist
+(function(){
+  if(PLAYLISTS.length!==1)return;
+  const pl=PLAYLISTS[0];
+  const chs=S.get('pl_'+pl.id,null);
+  if(chs&&chs.length){setTimeout(()=>loadPL(pl.id),200);return;}
+  if(pl.type==='url'&&pl.url){setTimeout(()=>loadURL(pl.url),200);}
+})();
 </script>
 </body>
 </html>
