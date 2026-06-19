@@ -339,7 +339,13 @@ function renderPlayer() {
         allow="autoplay; fullscreen; gamepad; accelerometer; gyroscope; encrypted-media"
         sandbox="allow-scripts allow-same-origin allow-forms allow-pointer-lock allow-orientation-lock allow-popups allow-popups-to-escape-sandbox"
       ></iframe>
-      ${state.audioUnlocked ? "" : `<button class="audio-unlock-layer" data-action="unlock-audio" aria-label="Enable playable audio"></button>`}
+      ${state.audioUnlocked ? "" : `
+        <button class="audio-start-screen" data-action="unlock-audio" aria-label="Start playable with sound">
+          <span class="audio-start-logo">${renderDreamLogo()}</span>
+          <span class="audio-start-title">Tap to start</span>
+          <span class="audio-start-copy">Sound will start with the playable.</span>
+        </button>
+      `}
       <button class="secret-zone secret-top-left" data-action="secret-tap" aria-label="Open controls"></button>
       <button class="secret-zone secret-top-right" data-action="secret-tap" aria-label="Open controls"></button>
       <button class="secret-zone secret-bottom-left" data-action="secret-tap" aria-label="Open controls"></button>

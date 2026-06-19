@@ -604,14 +604,46 @@ h2 {
   border: 0;
 }
 
-.audio-unlock-layer {
+.audio-start-screen {
   position: fixed;
   inset: 0;
   z-index: 4;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 18px;
   border: 0;
-  padding: 0;
-  background: transparent;
+  padding: 32px;
+  color: #101623;
+  background:
+    radial-gradient(circle at 50% 36%, rgba(48, 49, 255, 0.12), transparent 34%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(246, 248, 255, 0.96));
   touch-action: manipulation;
+}
+
+.audio-start-logo {
+  display: block;
+  width: min(220px, 66vw);
+  color: var(--dream-blue);
+}
+
+.audio-start-logo .dream-logo {
+  width: 100%;
+}
+
+.audio-start-title {
+  display: block;
+  font-size: 34px;
+  font-weight: 900;
+}
+
+.audio-start-copy {
+  display: block;
+  max-width: 280px;
+  color: #637084;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.35;
 }
 
 .secret-zone {
