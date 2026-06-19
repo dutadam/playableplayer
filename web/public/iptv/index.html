@@ -82,12 +82,12 @@ body{height:var(--vh);background:var(--bg);color:var(--text);
 .nav-btn svg{width:20px;height:20px;fill:currentColor}
 .nav-btn:active{background:rgba(255,255,255,.18)}
 #browse-scroll{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
-#browse-hero{position:relative;height:300px;overflow:hidden;flex-shrink:0}
-.hero-bg{position:absolute;inset:-20px;background-size:cover;background-position:center;filter:blur(30px) brightness(0.4);transform:scale(1.1)}
+#browse-hero{position:relative;height:min(75vw,380px);overflow:hidden;flex-shrink:0}
+.hero-bg{position:absolute;inset:0;background-size:cover;background-position:center top;filter:brightness(0.45) saturate(1.3);transform:scale(1.04)}
 .hero-overlay{position:absolute;inset:0;background:var(--hero-grad)}
 .hero-content{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 20px;padding-top:calc(50px + var(--safe-t))}
-.hero-logo-wrap{width:90px;height:60px;display:flex;align-items:center;justify-content:center;margin-bottom:10px}
-.hero-logo-wrap img{max-width:90px;max-height:60px;object-fit:contain;filter:drop-shadow(0 4px 16px rgba(0,0,0,.7))}
+.hero-logo-wrap{width:160px;height:110px;display:flex;align-items:center;justify-content:center;margin-bottom:10px}
+.hero-logo-wrap img{max-width:160px;max-height:110px;object-fit:contain;filter:drop-shadow(0 4px 24px rgba(0,0,0,.8))}
 .hero-init{font-size:36px;font-weight:800;color:white;text-shadow:0 2px 16px rgba(0,0,0,.8)}
 .hero-bottom{position:absolute;bottom:0;left:0;right:0;padding:12px calc(14px + var(--safe-l)) 14px;display:flex;align-items:flex-end;justify-content:space-between;gap:12px}
 .hero-info{flex:1;min-width:0}
@@ -109,7 +109,7 @@ body{height:var(--vh);background:var(--bg);color:var(--text);
 .row-more:active{opacity:.6}
 .row-scroll{display:flex;gap:10px;overflow-x:auto;padding:0 calc(14px + var(--safe-l));padding-right:calc(14px + var(--safe-r));scrollbar-width:none;-webkit-overflow-scrolling:touch;scroll-snap-type:x mandatory}
 .row-scroll::-webkit-scrollbar{display:none}
-.b-card{flex-shrink:0;width:min(42vw,200px);background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden;cursor:pointer;touch-action:manipulation;position:relative;scroll-snap-align:start;transition:border-color .15s,transform .1s}
+.b-card{flex-shrink:0;width:min(46vw,210px);background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden;cursor:pointer;touch-action:manipulation;position:relative;scroll-snap-align:start;transition:border-color .15s,transform .1s}
 .b-card:active{transform:scale(.96)}
 .b-card.playing{border-color:var(--accent)}
 .b-card-logo{aspect-ratio:16/9;background:var(--elevated);display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative}
@@ -274,17 +274,17 @@ body{height:var(--vh);background:var(--bg);color:var(--text);
 .bs-action svg{width:20px;height:20px;fill:currentColor;opacity:.6;flex-shrink:0}
 .bs-sep{height:1px;background:var(--border);margin:0 16px}
 /* SERIES CARDS in row */
-.s-card{flex-shrink:0;width:min(42vw,200px);background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden;cursor:pointer;touch-action:manipulation;scroll-snap-align:start;transition:border-color .15s,transform .1s}
-.s-card:active{transform:scale(.96)}
-.s-card-banner{aspect-ratio:16/9;position:relative;overflow:hidden;background:var(--elevated);display:flex;align-items:center;justify-content:center}
-.s-card-bg{position:absolute;inset:-6px;background-size:cover;background-position:center;filter:blur(10px) brightness(.4)}
-.s-card-grad{position:absolute;inset:0;background:linear-gradient(to bottom,transparent 30%,rgba(11,11,16,.85) 100%)}
-.s-card-logo{position:relative;z-index:1;max-height:52px;max-width:80%;object-fit:contain;padding:6px}
-.s-card-init{position:relative;z-index:1;font-size:28px;font-weight:800;color:white}
-.s-card-eps-badge{position:absolute;bottom:6px;left:7px;z-index:2;font-size:9px;font-weight:700;background:var(--accent);color:white;padding:2px 6px;border-radius:4px}
-.s-card-info{padding:7px 9px 9px}
-.s-card-name{font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.s-card-meta{font-size:10px;color:var(--text-dim);margin-top:1px}
+.s-card{flex-shrink:0;width:min(44vw,200px);background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;cursor:pointer;touch-action:manipulation;scroll-snap-align:start;transition:border-color .15s,transform .1s}
+.s-card:active{transform:scale(.95);border-color:var(--accent)}
+.s-card-banner{aspect-ratio:2/3;position:relative;overflow:hidden;background:var(--elevated);display:flex;align-items:center;justify-content:center}
+.s-card-bg{position:absolute;inset:-4px;background-size:cover;background-position:center;filter:blur(4px) brightness(.55);transform:scale(1.08)}
+.s-card-grad{position:absolute;inset:0;background:linear-gradient(to bottom,rgba(0,0,0,.15) 0%,transparent 30%,rgba(11,11,16,.7) 75%,rgba(11,11,16,.95) 100%)}
+.s-card-logo{position:relative;z-index:1;max-height:70px;max-width:85%;object-fit:contain;padding:8px;filter:drop-shadow(0 2px 12px rgba(0,0,0,.8))}
+.s-card-init{position:relative;z-index:1;font-size:34px;font-weight:800;color:white;text-shadow:0 2px 16px rgba(0,0,0,.8)}
+.s-card-eps-badge{position:absolute;top:7px;right:7px;z-index:2;font-size:9px;font-weight:700;background:var(--accent);color:white;padding:3px 7px;border-radius:5px;backdrop-filter:blur(4px)}
+.s-card-info{padding:8px 10px 10px}
+.s-card-name{font-size:12px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.s-card-meta{font-size:10px;color:var(--text-dim);margin-top:2px}
 /* SERIES DETAIL SCREEN */
 #series-screen{display:none;flex-direction:column;height:var(--vh);background:var(--bg);position:absolute;inset:0;z-index:25}
 #series-screen.active{display:flex}
@@ -514,21 +514,31 @@ function parseM3U(text){
 // Series
 function detectSeries(name){
   let m;
-  // S01E01 / S01E01 - Title
-  m=name.match(/^(.+?)\s+[Ss](\d{1,2})[Ee](\d{1,3})(?:\s*[-–:]\s*(.+))?$/);
+  // S01E01 / S01 E01 / S01EP01 / S01 EP01 (space between S and E allowed)
+  m=name.match(/^(.+?)\s+[Ss](\d{1,2})\s*[Ee][Pp]?(\d{1,3})(?:\s*[-–:]\s*(.+))?$/);
   if(m)return{show:m[1].trim(),s:+m[2],e:+m[3],t:m[4]?.trim()||null};
   // 1x01 format
   m=name.match(/^(.+?)\s+(\d{1,2})[Xx](\d{1,3})(?:\s*[-–:]\s*(.+))?$/);
   if(m)return{show:m[1].trim(),s:+m[2],e:+m[3],t:m[4]?.trim()||null};
-  // Turkish: "Dizi Sezon 1 Bölüm 2" or "Dizi Sezon 1 Bolum 2"
+  // Turkish: "Dizi Sezon 1 Bölüm 2"
   m=name.match(/^(.+?)\s+[Ss]ezon\s*(\d{1,2})\s+[Bb][öo]l[üu]m\s*(\d{1,3})(?:\s*[-–:]\s*(.+))?$/i);
   if(m)return{show:m[1].trim(),s:+m[2],e:+m[3],t:m[4]?.trim()||null};
-  // Turkish short: "Dizi S1 B2" or "Dizi S01B02"
-  m=name.match(/^(.+?)\s+[Ss](\d{1,2})\s*[Bb](\d{1,3})(?:\s*[-–:]\s*(.+))?$/);
-  if(m)return{show:m[1].trim(),s:+m[2],e:+m[3],t:m[4]?.trim()||null};
-  // Turkish: trailing " - S01 B02" or "- Sezon 1 Bölüm 2"
+  // Turkish: "Dizi - Sezon 1 Bölüm 2"
   m=name.match(/^(.+?)\s*[-–]\s*[Ss]ezon\s*(\d{1,2})\s+[Bb][öo]l[üu]m\s*(\d{1,3})(?:\s*[-–:]\s*(.+))?$/i);
   if(m)return{show:m[1].trim(),s:+m[2],e:+m[3],t:m[4]?.trim()||null};
+  // Turkish short: "Dizi S1 B2"
+  m=name.match(/^(.+?)\s+[Ss](\d{1,2})\s*[Bb](\d{1,3})(?:\s*[-–:]\s*(.+))?$/);
+  if(m)return{show:m[1].trim(),s:+m[2],e:+m[3],t:m[4]?.trim()||null};
+  // Turkish: "Dizi | 47. Bölüm" or "Dizi | Bölüm 47"
+  m=name.match(/^(.+?)\s*\|\s*(\d{1,3})\.\s*[Bb][öo]l[üu]m(?:\s*[-–:]\s*(.+))?$/i);
+  if(m)return{show:m[1].trim(),s:1,e:+m[2],t:m[3]?.trim()||null};
+  m=name.match(/^(.+?)\s*\|\s*[Bb][öo]l[üu]m\s*(\d{1,3})(?:\s*[-–:]\s*(.+))?$/i);
+  if(m)return{show:m[1].trim(),s:1,e:+m[2],t:m[3]?.trim()||null};
+  // Turkish standalone: "Dizi 47. Bölüm" or "Dizi Bölüm 47"
+  m=name.match(/^(.+?)\s+(\d{1,3})\.\s*[Bb][öo]l[üu]m(?:\s*[-–:]\s*(.+))?$/i);
+  if(m)return{show:m[1].trim(),s:1,e:+m[2],t:m[3]?.trim()||null};
+  m=name.match(/^(.+?)\s+[Bb][öo]l[üu]m\s*(\d{1,3})(?:\s*[-–:]\s*(.+))?$/i);
+  if(m)return{show:m[1].trim(),s:1,e:+m[2],t:m[3]?.trim()||null};
   return null;
 }
 function groupBySeries(channels){
