@@ -470,7 +470,8 @@ body{height:var(--vh);background:var(--bg);color:var(--text);
       </div>
       <div class="settings-hint">
         Xtream Codes formatı:<br>
-        <code>http://sunucu:8080/get.php?username=KULLANICI&amp;password=ŞİFRE&amp;type=m3u_plus</code>
+        <code>http://sunucu:8080/get.php?username=KULLANICI&amp;password=ŞİFRE&amp;type=m3u_plus</code><br><br>
+        URL çalışmıyorsa: linki tarayıcıda aç, .m3u dosyasını indir, ana ekrandaki yükleme alanına sürükle-bırak.
       </div>
       <div class="settings-status" id="settings-url-status"></div>
     </div>
@@ -568,7 +569,7 @@ function dq(n){if(/\b(4K|UHD)\b/i.test(n))return '4K';if(/\bFHD\b/i.test(n)||/FU
 function qb(q,c){if(!q)return '';const k=c||'b-card-q';const qc=q==='4K'?'q-4k':q==='FHD'?'q-fhd':q==='HD'?'q-hd':'q-sd';return '<span class="'+k+' '+qc+'">'+q+'</span>';}
 function chi(n){return n.replace(/[^A-Za-z0-9ÇĞİÖŞÜçğışöşü]/g,'').slice(0,2).toUpperCase()||'??';}
 let toastT;
-function showToast(msg,type){const t=document.getElementById('toast');t.textContent=msg;t.className='show '+(type||'info');clearTimeout(toastT);toastT=setTimeout(()=>t.className='',2200);}
+function showToast(msg,type,dur){const t=document.getElementById('toast');t.textContent=msg;t.className='show '+(type||'info');clearTimeout(toastT);toastT=setTimeout(()=>t.className='',dur||2500);}
 function setP(p){const b=document.getElementById('progress');b.style.width=p+'%';if(p>=100)setTimeout(()=>b.style.width='0%',500);}
 // M3U Parser
 function parseM3U(text){
@@ -868,10 +869,17 @@ document.getElementById('browse-settings-btn').addEventListener('click',openSett
 document.getElementById('settings-close-btn').addEventListener('click',closeSettings);
 document.getElementById('settings-refresh-btn').addEventListener('click',()=>{
   const url=document.getElementById('settings-url-input').value.trim();
-  if(!url){document.getElementById('settings-url-status').textContent='URL girin';return;}
+  const btn=document.getElementById('settings-refresh-btn');
   const statusEl=document.getElementById('settings-url-status');
-  closeSettings();
-  loadURL(url,statusEl);
+  if(!url){statusEl.textContent='URL girin';return;}
+  btn.disabled=true;btn.textContent='Yükleniyor…';
+  statusEl.style.color='var(--text-dim)';
+  loadURL(url,statusEl,closeSettings).finally(()=>{
+    btn.disabled=false;btn.textContent='Yenile';
+    // color status based on success/failure
+    const ok=statusEl.textContent.startsWith('✓');
+    statusEl.style.color=ok?'var(--success)':'var(--danger)';
+  });
 });
 document.getElementById('settings-url-input').addEventListener('keydown',e=>{if(e.key==='Enter'){e.target.blur();document.getElementById('settings-refresh-btn').click();}});
 document.getElementById('settings-epg-btn').addEventListener('click',()=>{
@@ -1155,27 +1163,36 @@ function initApp(channels,source){
 }
 function loadText(text,source){setP(35);setTimeout(()=>{const chs=parseM3U(text);setP(80);if(!chs.length){showToast('M3U içinde kanal bulunamadı','info');setP(0);return;}setTimeout(()=>initApp(chs,source),60);},40);}
 function makeSignal(ms){try{return AbortSignal.timeout(ms);}catch{const c=new AbortController();setTimeout(()=>c.abort(),ms);return c.signal;}}
-async function loadURL(url,statusEl){
+async function loadURL(url,statusEl,onSuccess){
   url=url.trim();if(!url.startsWith('http')){showToast('Geçerli bir URL girin','info');return;}setP(15);
-  if(statusEl)statusEl.textContent='Yükleniyor…';
-  const proxies=[url,'https://corsproxy.io/?'+encodeURIComponent(url),'https://api.allorigins.win/raw?url='+encodeURIComponent(url)];
-  for(const proxy of proxies){
+  const proxies=[
+    {lbl:'Doğrudan',  u:url},
+    {lbl:'Proxy 1',   u:'https://corsproxy.io/?'+encodeURIComponent(url)},
+    {lbl:'Proxy 2',   u:'https://api.allorigins.win/raw?url='+encodeURIComponent(url)},
+    {lbl:'Proxy 3',   u:'https://thingproxy.freeboard.io/fetch/'+url},
+    {lbl:'Proxy 4',   u:'https://api.codetabs.com/v1/proxy?quest='+encodeURIComponent(url)},
+  ];
+  for(let i=0;i<proxies.length;i++){
+    const {lbl,u}=proxies[i];
+    if(statusEl)statusEl.textContent=lbl+' deneniyor… ('+(i+1)+'/'+proxies.length+')';
     try{
-      const res=await fetch(proxy,{signal:makeSignal(30000)});
+      const res=await fetch(u,{signal:makeSignal(25000)});
       if(res.ok){
         const text=await res.text();
-        if(!text.includes('#EXTM3U')){continue;}
-        setP(65);
-        if(statusEl)statusEl.textContent='';
-        loadText(text,{type:'url',url,name:url.split('/').pop()||url,ts:Date.now()});
-        S.set('settings_url',url);
-        return;
+        if(text.includes('#EXTM3U')||text.includes('#EXTINF')){
+          setP(65);
+          S.set('settings_url',url);
+          if(statusEl)statusEl.textContent='✓ Yüklendi';
+          if(onSuccess)onSuccess();
+          loadText(text,{type:'url',url,name:url.split('/').pop()||url,ts:Date.now()});
+          return;
+        }
       }
     }catch{}
   }
   setP(0);
-  if(statusEl)statusEl.textContent='Yüklenemedi – URL geçerli mi?';
-  showToast('URL yüklenemedi','info');
+  if(statusEl)statusEl.textContent='Başarısız — dosyayı indirip sürükleyin';
+  showToast('URL yüklenemedi — M3U dosyasını indirip sürükle-bırak deneyin','info',4500);
 }
 // File/Drop
 const dropZone=document.getElementById('drop-zone');
