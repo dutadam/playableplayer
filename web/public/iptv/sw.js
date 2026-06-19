@@ -39,7 +39,7 @@ self.addEventListener('fetch', e => {
         return res;
       }).catch(() => cached);
       // Network-first for index.html, cache-first for other assets
-      const isShell=url.pathname.endsWith('/')||url.pathname.endsWith('/index.html')||url.pathname.endsWith('/iptv/');
+      const isShell=url.pathname.endsWith('/')||url.pathname.endsWith('/index.html');
       return isShell ? network : (cached || network);
     })
   );

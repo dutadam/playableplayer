@@ -1,7 +1,7 @@
 {
   "name": "M3U Player",
   "short_name": "M3U Player",
-  "description": "IPTV browser and HLS player for M3U playlists",
+  "description": "M3U ve Xtream Codes oynatıcı — HLS, EPG, favoriler, son izlenenler, PWA",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

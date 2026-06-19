@@ -446,7 +446,7 @@ body{height:var(--vh);background:var(--bg);color:var(--text);
 <div id="load-screen">
   <div class="logo">
     <div class="logo-icon"><svg viewBox="0 0 24 24"><path d="M4 6h16v2H4zm0 5h16v2H4zm0 5h16v2H4z"/></svg></div>
-    <div><div class="logo-name">M3U Player</div><div class="logo-sub">IPTV Browser</div></div>
+    <div><div class="logo-name">M3U Player</div></div>
   </div>
   <div class="section-label" style="color:var(--success)">EPG (Program Rehberi)</div>
   <div class="epg-row">
@@ -514,6 +514,17 @@ body{height:var(--vh);background:var(--bg);color:var(--text);
         Diziler JSON
       </button>
     </div>
+    <div class="xt-hint-divider-row"><span>kategori adları (opsiyonel — gruplaması için)</span></div>
+    <div class="xt-hint-actions">
+      <button class="xt-json-newtab-btn secondary" id="xt-open-livecat-btn">
+        <svg viewBox="0 0 24 24"><path d="M19 19H5V5h7V3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7h-2v7zM14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3h-7z"/></svg>
+        Canlı Kategoriler JSON
+      </button>
+      <button class="xt-json-newtab-btn secondary" id="xt-open-vodcat-btn">
+        <svg viewBox="0 0 24 24"><path d="M19 19H5V5h7V3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7h-2v7zM14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3h-7z"/></svg>
+        Film Kategoriler JSON
+      </button>
+    </div>
   </div>
   <textarea id="xt-json-ta" placeholder="JSON içeriğini buraya yapıştırın…&#10;&#10;Nasıl yapılır:&#10;1. Yukarıdaki linki kopyala → Safari'de aç&#10;2. Uzun bas → Tümünü Seç → Kopyala&#10;3. Buraya yapıştır → Yükle'ye bas"></textarea>
   <div class="xt-json-bottom">
@@ -562,6 +573,7 @@ body{height:var(--vh);background:var(--bg);color:var(--text);
       <span class="browse-nav-title">M3U Player</span>
     </div>
     <button class="nav-btn" id="browse-search-btn"><svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg></button>
+    <button class="nav-btn" id="browse-fav-btn"><svg viewBox="0 0 24 24"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg></button>
     <button class="nav-btn" id="browse-settings-btn"><svg viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.3.06-.61.06-.94s-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.56-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.07.63-.07.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg></button>
     <button class="nav-btn" id="browse-back-btn"><svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg></button>
   </nav>
@@ -654,6 +666,13 @@ body{height:var(--vh);background:var(--bg);color:var(--text);
       </div>
       <div class="settings-status" id="settings-epg-status"></div>
     </div>
+    <div>
+      <div class="settings-sec-label">Son İzlenenler</div>
+      <div class="settings-row" style="align-items:center">
+        <div class="settings-hint" style="flex:1;margin:0">İzleme geçmişini ve ilerleme kayıtlarını temizle</div>
+        <button class="btn-refresh" id="settings-clear-recent-btn" style="background:var(--danger);color:#fff;flex-shrink:0">Temizle</button>
+      </div>
+    </div>
   </div>
 </div>
 <!-- PLAYER SCREEN -->
@@ -727,6 +746,7 @@ let ALL=[],FAVS=new Set(S.get('favs',[])),RECENT=S.get('recent',[]),GRID_MODE=S.
 let SEL=null,HERO_CH=null,CURRENT_CAT=null,CAT_CHANNELS=[],CAT_GRID=GRID_MODE;
 let SERIES_EXP={},SEASON_COL={},PLAYLISTS=S.get('pl_list',[]);
 let XTREAM_SERIES_META=S.get('xt_series_meta',{});
+let XTREAM_CAT_MAP=S.get('xt_cat_map',{});
 let _curSeriesId=null;
 let hlsInstance=null,PLAY_IDX=-1,PLAY_LIST=[],overlayTimer=null,wakeLock=null;
 let EPG={};
@@ -1063,6 +1083,8 @@ function openSettings(){
 function closeSettings(){document.getElementById('settings-overlay').classList.remove('active');}
 document.getElementById('settings-xt-json-btn').addEventListener('click',()=>{saveXtCreds();openXtJsonOverlay();});
 document.getElementById('browse-settings-btn').addEventListener('click',openSettings);
+document.getElementById('browse-fav-btn').addEventListener('click',()=>{if(FAVS.size===0){showToast('Henüz favori yok','info');return;}openCatScreen('⭐ Favoriler');});
+document.getElementById('settings-clear-recent-btn').addEventListener('click',()=>{RECENT=[];S.set('recent',[]);S.del('watch_progress');if(document.getElementById('browse-screen').classList.contains('active'))renderBrowse();document.getElementById('settings-overlay').classList.remove('active');showToast('Son izlenenler temizlendi','ok');});
 document.getElementById('settings-close-btn').addEventListener('click',closeSettings);
 document.getElementById('settings-refresh-btn').addEventListener('click',()=>{
   const url=document.getElementById('settings-url-input').value.trim();
@@ -1302,7 +1324,7 @@ function updateFSBtn(){const ico=document.getElementById('p-fs-ico');if(!ico)ret
 // Player events
 document.getElementById('player-screen').addEventListener('click',e=>{if(e.target===document.getElementById('player-screen')||e.target===document.getElementById('pv'))toggleOverlay();});
 document.getElementById('player-screen').addEventListener('touchstart',()=>showOverlay(),{passive:true});
-document.getElementById('p-back-btn').addEventListener('click',closePlayer);
+document.getElementById('p-back-btn').addEventListener('click',()=>{closePlayer();RECENT=S.get('recent',[]);renderBrowse();});
 document.getElementById('p-play-btn').addEventListener('click',()=>{const v=document.getElementById('pv');if(v.paused)v.play().catch(()=>{});else v.pause();showOverlay();});
 document.getElementById('p-mute-btn').addEventListener('click',()=>{const v=document.getElementById('pv');v.muted=!v.muted;updateMuteBtn();showOverlay();});
 document.getElementById('p-fs-btn').addEventListener('click',()=>{toggleFS();showOverlay();});
@@ -1589,7 +1611,7 @@ document.getElementById('xt-open-m3u-btn').addEventListener('click',()=>{
   if(!url){showToast('Önce sunucu, kullanıcı adı ve şifre girin','info');return;}
   window.open(url,'_blank');
 });
-Object.entries({live:'get_live_streams',vod:'get_vod_streams',series:'get_series'}).forEach(([k,action])=>{
+Object.entries({live:'get_live_streams',vod:'get_vod_streams',series:'get_series',livecat:'get_live_categories',vodcat:'get_vod_categories'}).forEach(([k,action])=>{
   document.getElementById('xt-open-'+k+'-btn').addEventListener('click',()=>{
     const url=xtApiUrl(action);
     if(!url){showToast('Önce sunucu, kullanıcı adı ve şifre girin','info');return;}
@@ -1669,6 +1691,15 @@ function processXtJson(text){
   if(data&&data.user_info&&data.user_info.status&&/(expired|disable|banned)/i.test(data.user_info.status)){showToast('Hesabın süresi dolmuş veya devre dışı','info',5000);return;}
   const arr=Array.isArray(data)?data:(data&&Array.isArray(data.available_channels)?data.available_channels:null);
   if(!arr){showToast('Kanal dizisi bulunamadı — doğru linki açtığından emin ol','info',4000);return;}
+  // Category list: has category_id + category_name + parent_id → store for grouping
+  if(arr.length&&arr[0].category_id!==undefined&&arr[0].category_name!==undefined&&arr[0].parent_id!==undefined){
+    arr.forEach(cat=>{if(cat.category_id&&cat.category_name)XTREAM_CAT_MAP[String(cat.category_id)]=String(cat.category_name);});
+    S.set('xt_cat_map',XTREAM_CAT_MAP);
+    document.getElementById('xt-json-overlay').classList.remove('active');
+    document.getElementById('xt-json-ta').value='';
+    showToast(arr.length+' kategori kaydedildi','ok');
+    return;
+  }
   // Series listing: has series_id but no stream_id
   if(arr.length&&arr[0].series_id!==undefined&&!arr[0].stream_id){
     const c=getXtCreds(),server=c.server?_xtNorm(c.server):'',usr=c.user,pwd=c.pass;
@@ -1716,7 +1747,7 @@ function processXtJson(text){
       u2=server&&usr&&pwd?server+'/live/'+usr+'/'+pwd+'/'+ch.stream_id+'.m3u8':(ch.stream_url||ch.url||'');
     }
     if(!u2)return;
-    const grp=String(ch.category_name||ch.group_title||(isVod?'Film':'Canlı TV'));
+    const grp=String(ch.category_name||ch.group_title||XTREAM_CAT_MAP[String(ch.category_id||'')]||(isVod?'Film':'Canlı TV'));
     chs.push({id:xi++,n:String(ch.name||'Kanal'),g:grp,l:String(ch.stream_icon||ch.logo||''),u:u2,tid:String(ch.epg_channel_id||'')});
   });
   if(!chs.length){showToast('JSON içinde içerik bulunamadı','info',3500);return;}
