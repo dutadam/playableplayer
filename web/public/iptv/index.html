@@ -391,6 +391,12 @@ body{height:var(--vh);background:var(--bg);color:var(--text);
 .xt-hint-url{flex:1;font-size:10px;font-family:monospace;color:var(--accent);background:var(--elevated);padding:8px 10px;border-radius:8px;word-break:break-all;line-height:1.5;user-select:all;-webkit-user-select:all}
 .xt-copy-url-btn{flex-shrink:0;padding:8px 14px;border-radius:8px;border:none;background:var(--accent-dim);color:var(--accent);font-size:12px;font-weight:600;cursor:pointer;touch-action:manipulation;white-space:nowrap;-webkit-appearance:none;align-self:center}
 .xt-copy-url-btn:active{background:var(--accent);color:white}
+.xt-hint-m3u-label{font-size:11px;font-weight:700;color:var(--success);letter-spacing:.06em;text-transform:uppercase}
+.xt-m3u-btn{background:linear-gradient(135deg,var(--success) 0%,#1aaa6e 100%)!important;font-size:15px!important;padding:13px!important}
+.xt-hint-m3u-note{font-size:11px;color:var(--text-dim);line-height:1.5}
+.xt-hint-divider-row{display:flex;align-items:center;gap:10px;width:100%}
+.xt-hint-divider-row::before,.xt-hint-divider-row::after{content:'';flex:1;height:1px;background:var(--border)}
+.xt-hint-divider-row span{font-size:11px;color:var(--text-dim);white-space:nowrap}
 .xt-hint-actions{display:flex;flex-direction:column;gap:8px;width:100%}
 .xt-json-newtab-btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:11px;border-radius:10px;border:none;background:var(--accent);color:#fff;font-size:14px;font-weight:700;cursor:pointer;touch-action:manipulation;-webkit-appearance:none}
 .xt-json-newtab-btn.secondary{background:var(--surface);color:var(--text);border:1px solid var(--border)}
@@ -483,13 +489,19 @@ body{height:var(--vh);background:var(--bg);color:var(--text);
 <!-- XTREAM JSON PASTE OVERLAY -->
 <div id="xt-json-overlay">
   <div class="xt-json-topbar">
-    <span class="xt-json-topbar-title">Kanal Listesi Yapıştır</span>
+    <span class="xt-json-topbar-title">İçerik Yükle</span>
     <button class="search-cancel" id="xt-json-close-btn">İptal</button>
   </div>
   <div class="xt-json-hint">
-    <div class="xt-hint-steps"><b>1.</b> Aşağıdan tür seç → Safari indirir<br><b>2.</b> Uygulamaya geri dön → dosyayı seç<br><b>Not:</b> Canlı + Film JSON ayrı ayrı yüklenebilir, birleştirilir</div>
+    <div class="xt-hint-m3u-label">Önerilen — tek dosyada canlı + film + dizi</div>
+    <button class="xt-json-newtab-btn xt-m3u-btn" id="xt-open-m3u-btn">
+      <svg viewBox="0 0 24 24"><path d="M19 19H5V5h7V3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7h-2v7zM14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3h-7z"/></svg>
+      Hepsini M3U Olarak İndir
+    </button>
+    <div class="xt-hint-m3u-note">Safari indirir → uygulamaya geri dön → M3U dosyasını seç</div>
+    <div class="xt-hint-divider-row"><span>veya ayrı ayrı JSON</span></div>
     <div class="xt-hint-actions">
-      <button class="xt-json-newtab-btn" id="xt-open-live-btn">
+      <button class="xt-json-newtab-btn secondary" id="xt-open-live-btn">
         <svg viewBox="0 0 24 24"><path d="M19 19H5V5h7V3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7h-2v7zM14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3h-7z"/></svg>
         Canlı Kanallar JSON
       </button>
@@ -1559,6 +1571,7 @@ function getXtCreds(){
 }
 function saveXtCreds(){const c=getXtCreds();if(c.server&&c.user&&c.pass)S.set('xtream_creds',{server:_xtNorm(c.server),user:c.user,pass:c.pass});}
 function xtApiUrl(action){const c=getXtCreds();if(!(c.server&&c.user&&c.pass))return'';return _xtNorm(c.server)+'/player_api.php?username='+encodeURIComponent(c.user)+'&password='+encodeURIComponent(c.pass)+'&action='+(action||'get_live_streams');}
+function xtM3uUrl(){const c=getXtCreds();if(!(c.server&&c.user&&c.pass))return'';return _xtNorm(c.server)+'/get.php?username='+encodeURIComponent(c.user)+'&password='+encodeURIComponent(c.pass)+'&type=m3u_plus&output=mpegts';}
 // Mirror credentials between load-screen and settings forms + persist on every keystroke
 const _xtMirror={'xt-server':'settings-xt-server','xt-user':'settings-xt-user','xt-pass':'settings-xt-pass','settings-xt-server':'xt-server','settings-xt-user':'xt-user','settings-xt-pass':'xt-pass'};
 Object.keys(_xtMirror).forEach(id=>{const el=document.getElementById(id);if(!el)return;el.addEventListener('input',()=>{const other=document.getElementById(_xtMirror[id]);if(other&&other.value!==el.value)other.value=el.value;saveXtCreds();});});
@@ -1571,6 +1584,11 @@ function openXtJsonOverlay(){
 }
 document.getElementById('xt-json-open-btn').addEventListener('click',openXtJsonOverlay);
 document.getElementById('xt-json-close-btn').addEventListener('click',()=>document.getElementById('xt-json-overlay').classList.remove('active'));
+document.getElementById('xt-open-m3u-btn').addEventListener('click',()=>{
+  const url=xtM3uUrl();
+  if(!url){showToast('Önce sunucu, kullanıcı adı ve şifre girin','info');return;}
+  window.open(url,'_blank');
+});
 Object.entries({live:'get_live_streams',vod:'get_vod_streams',series:'get_series'}).forEach(([k,action])=>{
   document.getElementById('xt-open-'+k+'-btn').addEventListener('click',()=>{
     const url=xtApiUrl(action);
