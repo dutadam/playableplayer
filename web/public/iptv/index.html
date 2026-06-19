@@ -113,7 +113,7 @@ body{height:var(--vh);background:var(--bg);color:var(--text);
 .b-card:active{transform:scale(.96)}
 .b-card.playing{border-color:var(--accent)}
 .b-card-logo{aspect-ratio:16/9;background:var(--elevated);display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative}
-.b-card-logo img{width:100%;height:100%;object-fit:contain;padding:10px}
+.b-card-logo img{width:100%;height:100%;object-fit:cover;padding:0}
 .b-card-init{font-size:22px;font-weight:800;color:var(--text-dim)}
 .b-card-play-ov{position:absolute;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .15s}
 .b-card:active .b-card-play-ov{opacity:1}
@@ -276,12 +276,10 @@ body{height:var(--vh);background:var(--bg);color:var(--text);
 /* SERIES CARDS in row */
 .s-card{flex-shrink:0;width:min(44vw,200px);background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;cursor:pointer;touch-action:manipulation;scroll-snap-align:start;transition:border-color .15s,transform .1s}
 .s-card:active{transform:scale(.95);border-color:var(--accent)}
-.s-card-banner{aspect-ratio:2/3;position:relative;overflow:hidden;background:var(--elevated);display:flex;align-items:center;justify-content:center}
-.s-card-bg{position:absolute;inset:-4px;background-size:cover;background-position:center;filter:blur(4px) brightness(.55);transform:scale(1.08)}
-.s-card-grad{position:absolute;inset:0;background:linear-gradient(to bottom,rgba(0,0,0,.15) 0%,transparent 30%,rgba(11,11,16,.7) 75%,rgba(11,11,16,.95) 100%)}
-.s-card-logo{position:relative;z-index:1;max-height:70px;max-width:85%;object-fit:contain;padding:8px;filter:drop-shadow(0 2px 12px rgba(0,0,0,.8))}
+.s-card-banner{aspect-ratio:2/3;position:relative;overflow:hidden;background:var(--elevated) center/cover no-repeat;display:flex;align-items:center;justify-content:center}
+.s-card-grad{position:absolute;inset:0;background:linear-gradient(to bottom,transparent 45%,rgba(11,11,16,.6) 75%,rgba(11,11,16,.95) 100%)}
 .s-card-init{position:relative;z-index:1;font-size:34px;font-weight:800;color:white;text-shadow:0 2px 16px rgba(0,0,0,.8)}
-.s-card-eps-badge{position:absolute;top:7px;right:7px;z-index:2;font-size:9px;font-weight:700;background:var(--accent);color:white;padding:3px 7px;border-radius:5px;backdrop-filter:blur(4px)}
+.s-card-eps-badge{position:absolute;top:7px;right:7px;z-index:2;font-size:9px;font-weight:700;background:rgba(0,0,0,.6);color:white;padding:3px 7px;border-radius:5px;border:1px solid rgba(255,255,255,.15)}
 .s-card-info{padding:8px 10px 10px}
 .s-card-name{font-size:12px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .s-card-meta{font-size:10px;color:var(--text-dim);margin-top:2px}
@@ -705,8 +703,9 @@ function createSeriesRow(title,shows,allChs,catKey){
   return div;
 }
 function renderSCard(sv){
-  const bg=sv.logo?'<div class="s-card-bg" style="background-image:url('+esc(sv.logo)+')"></div><div class="s-card-grad"></div><img class="s-card-logo" src="'+esc(sv.logo)+'" loading="lazy" onerror="this.style.display=\'none\'">':'<div class="s-card-grad"></div><span class="s-card-init">'+esc(sv.name.slice(0,2).toUpperCase())+'</span>';
-  return '<div class="s-card" data-sv-key="'+esc(sv.key)+'"><div class="s-card-banner">'+bg+'<span class="s-card-eps-badge">'+sv.epCount+' bölüm</span></div><div class="s-card-info"><div class="s-card-name">'+esc(sv.name)+'</div><div class="s-card-meta">'+sv.sCount+' sezon</div></div></div>';
+  const bgStyle=sv.logo?'background-image:url('+esc(sv.logo)+')':'';
+  const inner=sv.logo?'':`<span class="s-card-init">${esc(sv.name.slice(0,2).toUpperCase())}</span>`;
+  return '<div class="s-card" data-sv-key="'+esc(sv.key)+'"><div class="s-card-banner" style="'+bgStyle+'">'+inner+'<div class="s-card-grad"></div><span class="s-card-eps-badge">'+sv.epCount+' bölüm</span></div><div class="s-card-info"><div class="s-card-name">'+esc(sv.name)+'</div><div class="s-card-meta">'+sv.sCount+' sezon</div></div></div>';
 }
 document.getElementById('browse-scroll').addEventListener('scroll',()=>{document.getElementById('browse-nav').classList.toggle('scrolled',document.getElementById('browse-scroll').scrollTop>60);},{passive:true});
 document.getElementById('hero-play-btn').addEventListener('click',()=>{if(HERO_CH){PLAY_LIST=ALL;openPlayer(HERO_CH,ALL.indexOf(HERO_CH));}});
@@ -721,12 +720,51 @@ function closeSearch(){document.getElementById('search-overlay').classList.remov
 document.getElementById('search-cancel-btn').addEventListener('click',closeSearch);
 document.getElementById('search-clear-btn').addEventListener('click',()=>{document.getElementById('search-main-input').value='';document.getElementById('search-results').innerHTML='';document.getElementById('search-clear-btn').style.display='none';document.getElementById('search-main-input').focus();});
 document.getElementById('search-main-input').addEventListener('input',e=>{const q=e.target.value.trim();document.getElementById('search-clear-btn').style.display=q?'block':'none';clearTimeout(sdt);sdt=setTimeout(()=>renderSearch(q),150);});
+function buildSeriesMap(){
+  const map={};
+  ALL.forEach(ch=>{
+    const info=detectSeries(ch.n);
+    if(!info)return;
+    const k=info.show.toLowerCase().replace(/\W+/g,'');
+    if(!map[k])map[k]={name:info.show,logo:ch.l||'',key:k,seasons:{},eps:[]};
+    if(!map[k].logo&&ch.l)map[k].logo=ch.l;
+    (map[k].seasons[info.s]=map[k].seasons[info.s]||[]).push({...ch,_s:info.s,_e:info.e,_t:info.t});
+    map[k].eps.push(ch);
+  });
+  Object.values(map).forEach(s=>{Object.values(s.seasons).forEach(eps=>eps.sort((a,b)=>a._e-b._e));s.epCount=s.eps.length;s.sCount=Object.keys(s.seasons).length;});
+  return map;
+}
 function renderSearch(q){
   const el=document.getElementById('search-results');if(!q){el.innerHTML='';return;}
-  const ql=q.toLowerCase(),results=ALL.filter(ch=>ch.n.toLowerCase().includes(ql)||ch.g.toLowerCase().includes(ql)).slice(0,200);
-  if(!results.length){el.innerHTML='<div class="empty-state"><svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg><p>Kanal bulunamadı</p></div>';return;}
-  el.innerHTML=results.map(ch=>{const init=chi(ch.n);const logo=ch.l?'<img src="'+esc(ch.l)+'" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'" loading="lazy"><span class="search-item-init" style="display:none">'+esc(init)+'</span>':'<span class="search-item-init">'+esc(init)+'</span>';return '<div class="search-item" data-id="'+ch.id+'"><div class="search-item-logo">'+logo+'</div><div class="search-item-info"><div class="search-item-name">'+esc(ch.n)+'</div><div class="search-item-group">'+esc(ch.g)+'</div></div></div>';}).join('');
-  el.querySelectorAll('.search-item').forEach(el=>{const ch=ALL[parseInt(el.dataset.id)];if(!ch)return;el.addEventListener('click',()=>{closeSearch();PLAY_LIST=results;openPlayer(ch,results.indexOf(ch));});});
+  const ql=q.toLowerCase();
+  const seriesMap=buildSeriesMap();
+  const matchedSeries=Object.values(seriesMap).filter(s=>s.name.toLowerCase().includes(ql)).slice(0,30);
+  const matchedChs=ALL.filter(ch=>{
+    if(detectSeries(ch.n))return false;
+    return ch.n.toLowerCase().includes(ql)||ch.g.toLowerCase().includes(ql);
+  }).slice(0,100);
+  if(!matchedSeries.length&&!matchedChs.length){el.innerHTML='<div class="empty-state"><svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg><p>Sonuç bulunamadı</p></div>';return;}
+  let html='';
+  matchedSeries.forEach(s=>{
+    const init=chi(s.name);
+    const logo=s.logo?'<img src="'+esc(s.logo)+'" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'" loading="lazy"><span class="search-item-init" style="display:none">'+esc(init)+'</span>':'<span class="search-item-init">'+esc(init)+'</span>';
+    html+='<div class="search-item search-sv-item" data-sv-key="'+esc(s.key)+'"><div class="search-item-logo">'+logo+'</div><div class="search-item-info"><div class="search-item-name">'+esc(s.name)+'</div><div class="search-item-group">'+s.sCount+' sezon · '+s.epCount+' bölüm</div></div><svg style="width:16px;height:16px;fill:var(--text-dim);flex-shrink:0" viewBox="0 0 24 24"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg></div>';
+  });
+  matchedChs.forEach(ch=>{
+    const init=chi(ch.n);
+    const logo=ch.l?'<img src="'+esc(ch.l)+'" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'" loading="lazy"><span class="search-item-init" style="display:none">'+esc(init)+'</span>':'<span class="search-item-init">'+esc(init)+'</span>';
+    html+='<div class="search-item" data-id="'+ch.id+'"><div class="search-item-logo">'+logo+'</div><div class="search-item-info"><div class="search-item-name">'+esc(ch.n)+'</div><div class="search-item-group">'+esc(ch.g)+'</div></div></div>';
+  });
+  el.innerHTML=html;
+  el.querySelectorAll('.search-sv-item').forEach(item=>{
+    const s=matchedSeries.find(x=>x.key===item.dataset.svKey);if(!s)return;
+    const sv={name:s.name,logo:s.logo,key:s.key,seasons:s.seasons,epCount:s.epCount,sCount:s.sCount};
+    item.addEventListener('click',()=>{closeSearch();openSeriesScreen(sv,s.eps,s.name);});
+  });
+  el.querySelectorAll('.search-item:not(.search-sv-item)').forEach(item=>{
+    const ch=ALL[parseInt(item.dataset.id)];if(!ch)return;
+    item.addEventListener('click',()=>{closeSearch();PLAY_LIST=matchedChs;openPlayer(ch,matchedChs.indexOf(ch));});
+  });
 }
 // Cat Screen
 function openCatScreen(catKey){
