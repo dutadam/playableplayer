@@ -82,16 +82,18 @@ body{height:var(--vh);background:var(--bg);color:var(--text);
 .nav-btn svg{width:20px;height:20px;fill:currentColor}
 .nav-btn:active{background:rgba(255,255,255,.18)}
 #browse-scroll{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
-#browse-hero{position:relative;height:min(75vw,380px);overflow:hidden;flex-shrink:0}
-.hero-bg{position:absolute;inset:0;background-size:cover;background-position:center top;filter:brightness(0.45) saturate(1.3);transform:scale(1.04)}
+#browse-hero{position:relative;height:min(90vw,480px);overflow:hidden;flex-shrink:0}
+.hero-bg{position:absolute;inset:0;background-size:cover;background-position:center;filter:brightness(0.6) saturate(1.15)}
+.hero-bg.channel{background-size:contain;background-repeat:no-repeat;background-position:center;filter:blur(28px) brightness(0.4) saturate(1.2);transform:scale(1.12)}
 .hero-overlay{position:absolute;inset:0;background:var(--hero-grad)}
-.hero-content{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 20px;padding-top:calc(50px + var(--safe-t))}
-.hero-logo-wrap{width:160px;height:110px;display:flex;align-items:center;justify-content:center;margin-bottom:10px}
-.hero-logo-wrap img{max-width:160px;max-height:110px;object-fit:contain;filter:drop-shadow(0 4px 24px rgba(0,0,0,.8))}
+.hero-content{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 20px;padding-top:calc(60px + var(--safe-t))}
+.hero-logo-ch{width:100px;height:100px;background:rgba(255,255,255,.07);border-radius:18px;display:flex;align-items:center;justify-content:center;overflow:hidden;backdrop-filter:blur(4px);border:1px solid rgba(255,255,255,.12)}
+.hero-logo-ch img{width:80px;height:80px;object-fit:contain}
+.hero-logo-ch-init{font-size:36px;font-weight:800;color:white}
 .hero-init{font-size:36px;font-weight:800;color:white;text-shadow:0 2px 16px rgba(0,0,0,.8)}
 .hero-bottom{position:absolute;bottom:0;left:0;right:0;padding:12px calc(14px + var(--safe-l)) 14px;display:flex;align-items:flex-end;justify-content:space-between;gap:12px}
 .hero-info{flex:1;min-width:0}
-.hero-name{font-size:17px;font-weight:700;color:white;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-shadow:0 1px 6px rgba(0,0,0,.8)}
+.hero-name{font-size:20px;font-weight:800;color:white;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-shadow:0 2px 12px rgba(0,0,0,.9)}
 .hero-cat{font-size:12px;color:rgba(255,255,255,.6);margin-top:2px}
 .hero-btns{display:flex;gap:8px;flex-shrink:0}
 .hero-play-btn{display:flex;align-items:center;gap:6px;padding:9px 16px;background:white;color:#0B0B10;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;touch-action:manipulation;white-space:nowrap}
@@ -277,7 +279,7 @@ body{height:var(--vh);background:var(--bg);color:var(--text);
 .s-card{flex-shrink:0;width:min(44vw,200px);background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;cursor:pointer;touch-action:manipulation;scroll-snap-align:start;transition:border-color .15s,transform .1s}
 .s-card:active{transform:scale(.95);border-color:var(--accent)}
 .s-card-banner{aspect-ratio:2/3;position:relative;overflow:hidden;background:var(--elevated) center/cover no-repeat;display:flex;align-items:center;justify-content:center}
-.s-card-grad{position:absolute;inset:0;background:linear-gradient(to bottom,transparent 45%,rgba(11,11,16,.6) 75%,rgba(11,11,16,.95) 100%)}
+.s-card-grad{position:absolute;inset:0;background:linear-gradient(to bottom,transparent 55%,rgba(11,11,16,.55) 80%,rgba(11,11,16,.92) 100%)}
 .s-card-init{position:relative;z-index:1;font-size:34px;font-weight:800;color:white;text-shadow:0 2px 16px rgba(0,0,0,.8)}
 .s-card-eps-badge{position:absolute;top:7px;right:7px;z-index:2;font-size:9px;font-weight:700;background:rgba(0,0,0,.6);color:white;padding:3px 7px;border-radius:5px;border:1px solid rgba(255,255,255,.15)}
 .s-card-info{padding:8px 10px 10px}
@@ -663,8 +665,18 @@ function updatePlayerEPG(){
 function renderHero(ch){
   if(!ch)return;HERO_CH=ch;
   const init=chi(ch.n),bg=document.getElementById('hero-bg'),content=document.getElementById('hero-content');
-  if(ch.l){bg.style.backgroundImage='url('+esc(ch.l)+')';content.innerHTML='<div class="hero-logo-wrap"><img src="'+esc(ch.l)+'" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'block\'" alt=""><span class="hero-init" style="display:none">'+esc(init)+'</span></div>';}
-  else{bg.style.backgroundImage='none';content.innerHTML='<div class="hero-logo-wrap"><span class="hero-init">'+esc(init)+'</span></div>';}
+  const isSeries=!!detectSeries(ch.n);
+  bg.className='hero-bg'+(isSeries||!ch.l?'':' channel');
+  bg.style.backgroundImage=ch.l?'url('+esc(ch.l)+')':'none';
+  if(isSeries){
+    // Series: big full-bleed poster, no center logo
+    content.innerHTML=ch.l?'':`<span style="font-size:90px;font-weight:800;color:white;opacity:.25;text-shadow:none">${esc(init)}</span>`;
+  } else {
+    // Channel: blurred bg, show logo in styled box
+    content.innerHTML=ch.l
+      ?`<div class="hero-logo-ch"><img src="${esc(ch.l)}" onerror="this.parentNode.innerHTML='<span class=hero-logo-ch-init>${esc(init)}</span>'"></div>`
+      :`<div class="hero-logo-ch"><span class="hero-logo-ch-init">${esc(init)}</span></div>`;
+  }
   document.getElementById('hero-name').textContent=ch.n;
   document.getElementById('hero-cat').textContent=ch.g;
   document.getElementById('hero-fav-btn').classList.toggle('faved',FAVS.has(ch.u));
