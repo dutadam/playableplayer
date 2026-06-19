@@ -403,7 +403,11 @@ body{height:var(--vh);background:var(--bg);color:var(--text);
 .xt-copy-url-btn:active{background:var(--accent);color:white}
 #xt-json-ta{flex:1;background:var(--elevated);color:var(--text);font-size:11px;font-family:monospace;border:none;padding:14px;resize:none;outline:none;-webkit-overflow-scrolling:touch;line-height:1.5}
 #xt-json-ta::placeholder{color:var(--text-dim);font-family:-apple-system,system-ui,sans-serif;font-size:13px;line-height:1.6}
-.xt-json-bottom{padding:12px calc(14px + var(--safe-r)) calc(14px + var(--safe-b)) calc(14px + var(--safe-l));background:var(--surface);border-top:1px solid var(--border);flex-shrink:0}
+.xt-json-bottom{padding:12px calc(14px + var(--safe-r)) calc(14px + var(--safe-b)) calc(14px + var(--safe-l));background:var(--surface);border-top:1px solid var(--border);flex-shrink:0;display:flex;flex-direction:column;gap:8px}
+.xt-json-file-btn{position:relative;display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:12px;border-radius:10px;border:1px solid var(--accent);background:var(--accent-dim);color:var(--accent);font-size:14px;font-weight:600;cursor:pointer;touch-action:manipulation;text-align:center}
+.xt-json-file-btn svg{width:16px;height:16px;fill:currentColor;flex-shrink:0}
+.xt-json-file-btn input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;font-size:16px}
+.xt-json-file-btn:active{background:rgba(79,127,255,.25)}
 /* TOAST */
 #toast{position:fixed;bottom:calc(20px + var(--safe-b));left:50%;transform:translateX(-50%) translateY(80px);background:var(--elevated);border:1px solid var(--border);border-radius:10px;padding:10px 18px;font-size:13px;font-weight:500;transition:transform .25s cubic-bezier(.34,1.56,.64,1);z-index:1000;white-space:nowrap;pointer-events:none;box-shadow:0 8px 30px rgba(0,0,0,.5)}
 #toast.show{transform:translateX(-50%) translateY(0)}
@@ -493,7 +497,12 @@ body{height:var(--vh);background:var(--bg);color:var(--text);
   </div>
   <textarea id="xt-json-ta" placeholder="JSON içeriğini buraya yapıştırın…&#10;&#10;Nasıl yapılır:&#10;1. Yukarıdaki linki kopyala → Safari'de aç&#10;2. Uzun bas → Tümünü Seç → Kopyala&#10;3. Buraya yapıştır → Yükle'ye bas"></textarea>
   <div class="xt-json-bottom">
-    <button class="btn btn-primary" id="xt-json-load-btn" style="width:100%;font-size:15px;padding:13px">Yükle</button>
+    <label class="xt-json-file-btn" for="xt-json-file">
+      <svg viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm4 18H6V4h7v5h5v11z"/></svg>
+      İndirdiğin player_api.json dosyasını seç
+      <input type="file" id="xt-json-file" accept=".json,application/json,text/plain">
+    </label>
+    <button class="btn btn-primary" id="xt-json-load-btn" style="width:100%;font-size:15px;padding:13px">Yapıştırılanı Yükle</button>
   </div>
 </div>
 <!-- BROWSE SCREEN -->
@@ -1506,10 +1515,10 @@ document.getElementById('xt-copy-api-btn').addEventListener('click',()=>{
   if(!url||url.includes('girin'))return;
   if(navigator.clipboard?.writeText)navigator.clipboard.writeText(url).then(()=>showToast('Link kopyalandı','ok')).catch(()=>fbCopy(url));else fbCopy(url);
 });
-document.getElementById('xt-json-load-btn').addEventListener('click',()=>{
-  const text=document.getElementById('xt-json-ta').value.trim();
-  if(!text){showToast('JSON içeriğini yapıştırın','info');return;}
-  let data;try{data=JSON.parse(text);}catch{showToast('Geçersiz JSON — tam olarak kopyalandığından emin olun','info',3500);return;}
+function processXtJson(text){
+  text=(text||'').trim();
+  if(!text){showToast('JSON içeriği boş','info');return;}
+  let data;try{data=JSON.parse(text);}catch{showToast('Geçersiz JSON — dosya/metin tam değil','info',3500);return;}
   // Auth-error response: {"user_info":{"auth":0}} → wrong credentials
   if(data&&data.user_info&&(data.user_info.auth===0||data.user_info.auth==='0')){showToast('auth:0 — kullanıcı adı veya şifre hatalı. Sağlayıcıdan birebir kontrol edin (büyük/küçük harf!)','info',5000);return;}
   if(data&&data.user_info&&data.user_info.status&&/(expired|disable|banned)/i.test(data.user_info.status)){showToast('Hesabın süresi dolmuş veya devre dışı','info',5000);return;}
@@ -1531,6 +1540,15 @@ document.getElementById('xt-json-load-btn').addEventListener('click',()=>{
   showToast(numFmt(chs.length)+' kanal yüklendi','ok');
   let hn=server;try{hn=new URL(server).hostname;}catch{}
   initApp(chs,{type:'xtream',url:null,name:'Xtream: '+hn,ts:Date.now(),xtream:server&&usr&&pwd?{server,user:usr,pass:pwd}:null});
+}
+document.getElementById('xt-json-load-btn').addEventListener('click',()=>processXtJson(document.getElementById('xt-json-ta').value));
+document.getElementById('xt-json-file').addEventListener('change',e=>{
+  const f=e.target.files[0];if(!f)return;
+  const r=new FileReader();
+  r.onload=ev=>processXtJson(ev.target.result);
+  r.onerror=()=>showToast('Dosya okunamadı','info');
+  r.readAsText(f,'utf-8');
+  e.target.value='';
 });
 // Pre-fill Xtream form from saved credentials
 const _savedXt=S.get('xtream_creds',null);
