@@ -2,7 +2,7 @@ const DB_NAME = "playable-player-db";
 const DB_VERSION = 1;
 const PLAYABLE_STORE = "playables";
 const FILE_STORE = "files";
-const APP_CACHE = "playable-player-shell-v10";
+const APP_CACHE = "playable-player-shell-v11";
 
 const STORE_HOSTS = [
   "apps.apple.com",
@@ -99,8 +99,9 @@ async function servePlayableFile(relativePath) {
   }
 
   if (isHtmlPath(filePath)) {
-    const html = await file.blob.text();
-    return new Response(injectBridge(html), {
+    const html = deferRemoteLunaIframe(await file.blob.text());
+    const playable = await getPlayable(playableId);
+    return new Response(injectBridge(html, playable), {
       headers: {
         "Content-Type": "text/html; charset=utf-8",
         "Cache-Control": "no-store"
@@ -123,7 +124,10 @@ function getScopeRelativePath(pathname) {
   return pathname.replace(/^\/+/, "");
 }
 
-function injectBridge(html) {
+function injectBridge(html, playable = {}) {
+  const safeName = escapeHtml(playable?.name || playable?.sourceName || "Playable");
+  const safeGame = escapeHtml(playable?.game || "Playable");
+  const logoPath = getGameLogoPath(playable?.game);
   const fitStyles = `<style id="playable-player-fit">
 html, body {
   margin: 0 !important;
@@ -146,9 +150,49 @@ canvas, video {
   max-width: 100vw !important;
   max-height: 100dvh !important;
 }
+#playable-player-audio-start {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 2147483647 !important;
+  display: grid !important;
+  place-items: center !important;
+  align-content: center !important;
+  gap: 16px !important;
+  border: 0 !important;
+  padding: 32px !important;
+  color: #101623 !important;
+  background: linear-gradient(180deg, rgba(255,255,255,.98), rgba(246,248,255,.98)) !important;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
+  text-align: center !important;
+  touch-action: manipulation !important;
+}
+#playable-player-audio-start img {
+  display: block !important;
+  max-width: min(168px, 54vw) !important;
+  max-height: 112px !important;
+  object-fit: contain !important;
+}
+#playable-player-audio-start strong {
+  display: block !important;
+  color: #101623 !important;
+  font-size: 32px !important;
+  font-weight: 900 !important;
+  line-height: 1.1 !important;
+}
+#playable-player-audio-start span {
+  display: block !important;
+  max-width: 300px !important;
+  color: #637084 !important;
+  font-size: 16px !important;
+  font-weight: 700 !important;
+  line-height: 1.35 !important;
+}
 </style>`;
   const bridge = `<script>
 (() => {
+  const playableName = ${JSON.stringify(safeName)};
+  const playableGame = ${JSON.stringify(safeGame)};
+  const playableLogo = ${JSON.stringify(logoPath)};
   const storeHosts = ${JSON.stringify(STORE_HOSTS)};
   const storeSchemes = ["itms-apps:", "itmss:", "market:"];
   const isStoreUrl = (raw) => {
@@ -199,6 +243,47 @@ canvas, video {
       } catch {}
     });
   };
+  const primeAudio = () => {
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContextClass) return;
+    try {
+      const context = new AudioContextClass();
+      const oscillator = context.createOscillator();
+      const gain = context.createGain();
+      gain.gain.value = 0.0001;
+      oscillator.connect(gain);
+      gain.connect(context.destination);
+      oscillator.start(0);
+      oscillator.stop(context.currentTime + 0.04);
+      context.resume?.();
+      setTimeout(() => context.close?.(), 250);
+    } catch {}
+  };
+  const removeAudioStart = () => {
+    document.getElementById("playable-player-audio-start")?.remove();
+    window.dispatchEvent(new CustomEvent("playable-player-start"));
+  };
+  const startPlayable = () => {
+    primeAudio();
+    unlockAudio();
+    removeAudioStart();
+  };
+  const createAudioStart = () => {
+    if (document.body?.dataset.playablePlayerNoStart === "1") return;
+    if (!document.body || document.getElementById("playable-player-audio-start")) return;
+    const button = document.createElement("button");
+    button.id = "playable-player-audio-start";
+    button.type = "button";
+    button.setAttribute("aria-label", "Start " + playableName + " with sound");
+    button.innerHTML =
+      (playableLogo ? '<img src="' + playableLogo + '" alt="' + playableGame + '">' : '<span>' + playableGame + '</span>') +
+      '<strong>Tap to start</strong>' +
+      '<span>' + playableName + '</span>';
+    button.addEventListener("pointerdown", startPlayable, { once: true });
+    button.addEventListener("touchend", startPlayable, { once: true });
+    button.addEventListener("click", startPlayable, { once: true });
+    document.body.appendChild(button);
+  };
   window.__playablePlayerUnlockAudio = unlockAudio;
   ["pointerdown", "touchend", "keydown", "click"].forEach((eventName) => {
     document.addEventListener(eventName, unlockAudio, { capture: true, passive: true });
@@ -244,7 +329,7 @@ canvas, video {
     const body = document.body;
     if (!body) return;
     [...body.childNodes].forEach((node) => {
-      if (node !== stage) stage.appendChild(node);
+      if (node !== stage && node.id !== "playable-player-audio-start") stage.appendChild(node);
     });
   };
   const observeStage = () => {
@@ -287,17 +372,17 @@ canvas, video {
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", () => {
       observeStage();
-      unlockAudio();
+      createAudioStart();
       fitPlayable();
     }, { once: true });
   } else {
     observeStage();
-    unlockAudio();
+    createAudioStart();
     fitPlayable();
   }
   window.addEventListener("load", () => {
     observeStage();
-    unlockAudio();
+    createAudioStart();
     fitPlayable();
   });
   window.addEventListener("resize", fitPlayable);
@@ -331,6 +416,47 @@ function normalizePath(path) {
     .join("/");
 }
 
+function deferRemoteLunaIframe(html) {
+  if (!/assets\.lunalabs\.io\/uploads\/apps\/app\//i.test(html)) return html;
+  let nextHtml = html;
+  if (!nextHtml.includes("playable-player-start")) {
+    nextHtml = nextHtml.replace(
+      "window.addEventListener( 'message', onMessage, false );",
+      "window.addEventListener( 'message', onMessage, false );\n        window.addEventListener( 'playable-player-start', loadLunaIframe, false );"
+    );
+  }
+  if (!nextHtml.includes("function loadLunaIframe()")) {
+    nextHtml = nextHtml.replace(
+      "function iframeLoaded() {",
+      `function loadLunaIframe() {
+            var iframe = document.getElementById("iframe");
+            if (iframe && !iframe.src) iframe.src = iframe.dataset.src;
+        }
+
+        function iframeLoaded() {`
+    );
+  }
+  return nextHtml.replace(
+    /(<iframe id="iframe" onload="iframeLoaded\(\)" allow="[^"]+") src="([^"]+)"/g,
+    `$1 data-src="$2"`
+  );
+}
+
+function getGameLogoPath(game) {
+  if (game === "Royal Match") return new URL("game-logos/royal-match.png", self.registration.scope).toString();
+  if (game === "Royal Kingdom") return new URL("game-logos/royal-kingdom.png", self.registration.scope).toString();
+  return "";
+}
+
+function escapeHtml(value) {
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
 function openDb() {
   return new Promise((resolve, reject) => {
     const request = indexedDB.open(DB_NAME, DB_VERSION);
@@ -354,6 +480,17 @@ async function getFile(key) {
     const tx = db.transaction(FILE_STORE, "readonly");
     const request = tx.objectStore(FILE_STORE).get(key);
     request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+    tx.oncomplete = () => db.close();
+  });
+}
+
+async function getPlayable(id) {
+  const db = await openDb();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(PLAYABLE_STORE, "readonly");
+    const request = tx.objectStore(PLAYABLE_STORE).get(id);
+    request.onsuccess = () => resolve(request.result || {});
     request.onerror = () => reject(request.error);
     tx.oncomplete = () => db.close();
   });

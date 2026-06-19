@@ -604,63 +604,6 @@ h2 {
   border: 0;
 }
 
-.audio-start-screen {
-  position: fixed;
-  inset: 0;
-  z-index: 6;
-  display: grid;
-  place-items: center;
-  align-content: center;
-  gap: 16px;
-  border: 0;
-  padding: 32px;
-  color: #101623;
-  background:
-    radial-gradient(circle at 50% 34%, color-mix(in srgb, var(--game-color) 14%, transparent), transparent 35%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.98), color-mix(in srgb, var(--game-soft) 78%, #ffffff));
-  touch-action: manipulation;
-}
-
-.audio-start-logo {
-  display: grid;
-  width: min(168px, 54vw);
-  min-height: 78px;
-  place-items: center;
-}
-
-.game-start-logo {
-  display: block;
-  max-width: 100%;
-  max-height: 112px;
-  object-fit: contain;
-}
-
-.game-start-fallback {
-  border: 2px solid color-mix(in srgb, var(--game-color) 28%, #ffffff);
-  border-radius: 8px;
-  padding: 14px 18px;
-  color: var(--game-ink);
-  background: #ffffff;
-  font-size: 24px;
-  font-weight: 900;
-}
-
-.audio-start-title {
-  display: block;
-  color: var(--game-ink);
-  font-size: 32px;
-  font-weight: 900;
-}
-
-.audio-start-copy {
-  display: block;
-  max-width: 300px;
-  color: #637084;
-  font-size: 16px;
-  font-weight: 700;
-  line-height: 1.35;
-}
-
 .secret-zone {
   position: fixed;
   z-index: 5;

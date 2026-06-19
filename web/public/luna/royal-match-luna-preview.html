@@ -55,6 +55,7 @@
 
         // Listen all the messages across the window to catch important events such Luna CTA Button clicked, etc.
         window.addEventListener( 'message', onMessage, false );
+        window.addEventListener( 'playable-player-start', loadLunaIframe, false );
 
         // message structure is next: { target: "editor", title: "CTA Button Clicked", type: "success" }
         function onMessage( event ) {
@@ -77,6 +78,11 @@
             bannerTimeout = setTimeout( function() {
                 bannerElement.classList.add( 'hidden' );
             }, 2000);
+        }
+
+        function loadLunaIframe() {
+            var iframe = document.getElementById("iframe");
+            if (iframe && !iframe.src) iframe.src = iframe.dataset.src;
         }
 
         function iframeLoaded() {
@@ -116,6 +122,6 @@
 <body data-playable-player-fit="manual">
     <div id="luna-loading">Loading Luna preview...</div>
     <div id="banner" class="hidden"></div>
-    <iframe id="iframe" onload="iframeLoaded()" allow="autoplay; fullscreen; gamepad; accelerometer; gyroscope; encrypted-media" src="https://assets.lunalabs.io/uploads/apps/app/414475/dd9d317f4253906d74ad9de93568fadb/data/index.html"></iframe>
+    <iframe id="iframe" onload="iframeLoaded()" allow="autoplay; fullscreen; gamepad; accelerometer; gyroscope; encrypted-media" data-src="https://assets.lunalabs.io/uploads/apps/app/414475/dd9d317f4253906d74ad9de93568fadb/data/index.html"></iframe>
 </body>
 </html>
