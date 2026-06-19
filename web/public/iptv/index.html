@@ -654,6 +654,8 @@ body{height:var(--vh);background:var(--bg);color:var(--text);
       <div class="settings-hint">
         Xtream Codes formatı:<br>
         <code>http://sunucu:8080/get.php?username=KULLANICI&amp;password=ŞİFRE&amp;type=m3u_plus</code><br><br>
+        <strong style="color:var(--accent)">💡 GitHub ile otomatik güncelleme:</strong> Playlist dosyasını GitHub'a yükle, raw URL'yi buraya yapıştır. Uygulama her açılışta arka planda günceller.<br>
+        Örnek: <code>https://raw.githubusercontent.com/kullanıcı/repo/main/playlist.m3u</code><br><br>
         URL çalışmıyorsa: linki tarayıcıda aç, .m3u dosyasını indir, ana ekrandaki yükleme alanına sürükle-bırak.
       </div>
       <div class="settings-status" id="settings-url-status"></div>
@@ -1465,6 +1467,27 @@ async function loadURL(url,statusEl,onSuccess){
   if(statusEl)statusEl.textContent='Başarısız — alternatif yöntemi deneyin';
   showToast('URL yüklenemedi — M3U metnini yapıştır yöntemini deneyin','info',4500);
 }
+async function bgRefreshURL(url,plId){
+  // Silent background refresh — direct fetch first (GitHub raw is CORS-friendly), then proxies
+  const proxies=[url,'https://corsproxy.io/?'+encodeURIComponent(url),'https://api.allorigins.win/raw?url='+encodeURIComponent(url)];
+  for(const u of proxies){
+    try{
+      const res=await fetch(u,{signal:makeSignal(20000)});
+      if(!res.ok)continue;
+      const text=await res.text();
+      if(!text.includes('#EXTM3U')&&!text.includes('#EXTINF'))continue;
+      const chs=parseM3U(text);
+      if(!chs.length)continue;
+      const pl=plId?PLAYLISTS.find(p=>p.id===plId):PLAYLISTS.find(p=>p.type==='url'&&p.url===url);
+      if(pl){trySavePL(pl.id,chs);pl.ts=Date.now();pl.count=chs.length;S.set('pl_list',PLAYLISTS);}
+      if(document.getElementById('browse-screen').classList.contains('active')){
+        ALL=chs.map((c,i)=>({id:i,...c}));PLAY_LIST=ALL;RECENT=S.get('recent',[]);renderBrowse();
+      }
+      showToast('Playlist güncellendi — '+chs.length+' kanal','ok',3500);
+      return;
+    }catch{}
+  }
+}
 // File/Drop
 const dropZone=document.getElementById('drop-zone');
 dropZone.addEventListener('dragover',e=>{e.preventDefault();dropZone.classList.add('drag-over');});
@@ -1803,7 +1826,12 @@ if(savedEpgUrl){document.getElementById('epg-url-input').value=savedEpgUrl;loadE
     const pl=PLAYLISTS[0];
     if(pl.type==='xtream'&&pl.xtream){setTimeout(()=>loadPL(pl.id),200);return;}
     const chs=S.get('pl_'+pl.id,null);
-    if(chs&&chs.length){setTimeout(()=>loadPL(pl.id),200);return;}
+    if(chs&&chs.length){
+      setTimeout(()=>loadPL(pl.id),200);
+      // Background refresh for URL playlists (e.g. GitHub-hosted M3U)
+      if(pl.type==='url'&&pl.url)setTimeout(()=>bgRefreshURL(pl.url,pl.id),4000);
+      return;
+    }
     if(pl.type==='url'&&pl.url){setTimeout(()=>loadURL(pl.url),200);return;}
   }
   // No playlists yet but URL saved in settings → auto-fetch
