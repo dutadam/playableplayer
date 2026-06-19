@@ -358,6 +358,28 @@ body{height:var(--vh);background:var(--bg);color:var(--text);
 .btn-refresh.primary{background:var(--accent);color:white}
 .btn-refresh.epg{background:rgba(61,235,160,.15);color:var(--success)}
 .settings-status{font-size:12px;color:var(--text-dim);min-height:16px;margin-top:6px}
+/* URL LOADING PROGRESS OVERLAY */
+#url-progress{display:none;position:fixed;inset:0;background:var(--bg);z-index:60;flex-direction:column;align-items:center;justify-content:center;gap:18px;padding:40px 28px;text-align:center}
+#url-progress.active{display:flex}
+.url-prog-title{font-size:16px;font-weight:700;color:var(--text)}
+.url-prog-sub{font-size:13px;color:var(--text-dim);line-height:1.5}
+.url-prog-dots{display:flex;gap:10px;margin:4px 0}
+.url-prog-dot{width:9px;height:9px;border-radius:50%;background:var(--border);transition:background .3s,transform .2s}
+.url-prog-dot.done{background:var(--success)}
+.url-prog-dot.curr{background:var(--accent);transform:scale(1.3)}
+.url-prog-cancel{margin-top:4px;padding:10px 28px;border-radius:10px;border:1px solid var(--border);background:none;color:var(--text-dim);font-size:14px;cursor:pointer;touch-action:manipulation;-webkit-appearance:none}
+.url-prog-cancel:active{background:var(--elevated)}
+/* PASTE OVERLAY */
+#paste-overlay{display:none;position:fixed;inset:0;background:var(--bg);z-index:60;flex-direction:column}
+#paste-overlay.active{display:flex}
+#paste-topbar{display:flex;align-items:center;gap:10px;padding:calc(14px + var(--safe-t)) calc(14px + var(--safe-r)) 12px calc(14px + var(--safe-l));background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0}
+#paste-title{font-size:17px;font-weight:700;flex:1}
+#paste-textarea{flex:1;background:var(--elevated);color:var(--text);font-size:11px;font-family:monospace;border:none;padding:14px;resize:none;outline:none;-webkit-overflow-scrolling:touch;line-height:1.5}
+#paste-textarea::placeholder{color:var(--text-dim);font-family:-apple-system,system-ui,sans-serif;font-size:13px;line-height:1.6}
+#paste-bottom{padding:12px calc(14px + var(--safe-r)) calc(14px + var(--safe-b)) calc(14px + var(--safe-l));background:var(--surface);border-top:1px solid var(--border);flex-shrink:0}
+.btn-paste-open{width:100%;max-width:440px;background:var(--surface);border:1px solid var(--border);border-radius:10px;color:var(--text);font-size:15px;font-weight:600;padding:12px 18px;display:flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;touch-action:manipulation;-webkit-appearance:none}
+.btn-paste-open svg{width:18px;height:18px;fill:currentColor;opacity:.55;flex-shrink:0}
+.btn-paste-open:active{background:var(--elevated)}
 /* TOAST */
 #toast{position:fixed;bottom:calc(20px + var(--safe-b));left:50%;transform:translateX(-50%) translateY(80px);background:var(--elevated);border:1px solid var(--border);border-radius:10px;padding:10px 18px;font-size:13px;font-weight:500;transition:transform .25s cubic-bezier(.34,1.56,.64,1);z-index:1000;white-space:nowrap;pointer-events:none;box-shadow:0 8px 30px rgba(0,0,0,.5)}
 #toast.show{transform:translateX(-50%) translateY(0)}
@@ -392,8 +414,32 @@ body{height:var(--vh);background:var(--bg);color:var(--text);
   </div>
   <div class="divider"><div class="divider-line"></div><div class="divider-text">veya URL yapıştır</div><div class="divider-line"></div></div>
   <div class="url-row">
-    <input class="url-input" id="url-input" type="url" inputmode="url" autocomplete="url" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="https://…/playlist.m3u">
+    <input class="url-input" id="url-input" type="url" inputmode="url" autocomplete="url" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="http://sunucu:8080/get.php?username=…">
     <button class="btn btn-primary" id="url-load-btn">Yükle</button>
+  </div>
+  <div class="divider"><div class="divider-line"></div><div class="divider-text">veya</div><div class="divider-line"></div></div>
+  <button class="btn-paste-open" id="paste-open-btn">
+    <svg viewBox="0 0 24 24"><path d="M19 2h-4.18C14.4.84 13.3 0 12 0c-1.3 0-2.4.84-2.82 2H5c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-7 0c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1zm7 18H5V4h2v3h10V4h2v16z"/></svg>
+    M3U Metnini Yapıştır
+  </button>
+</div>
+<!-- URL LOADING PROGRESS -->
+<div id="url-progress">
+  <div class="p-spinner"></div>
+  <div class="url-prog-title" id="url-prog-title">Bağlanılıyor…</div>
+  <div class="url-prog-dots" id="url-prog-dots"></div>
+  <div class="url-prog-sub" id="url-prog-sub"></div>
+  <button class="url-prog-cancel" id="url-prog-cancel">İptal</button>
+</div>
+<!-- PASTE OVERLAY -->
+<div id="paste-overlay">
+  <div id="paste-topbar">
+    <span id="paste-title">M3U Yapıştır</span>
+    <button class="search-cancel" id="paste-close-btn">İptal</button>
+  </div>
+  <textarea id="paste-textarea" placeholder="M3U içeriğini buraya yapıştırın…&#10;&#10;Nasıl yapılır:&#10;1. Sağlayıcından aldığın M3U linkini tarayıcıda aç&#10;2. Tüm içeriği seç ve kopyala (uzun basıp Tümünü Seç)&#10;3. Buraya yapıştır ve Yükle'ye bas"></textarea>
+  <div id="paste-bottom">
+    <button class="btn btn-primary" id="paste-load-btn" style="width:100%;font-size:15px;padding:13px">Yükle</button>
   </div>
 </div>
 <!-- BROWSE SCREEN -->
@@ -1163,8 +1209,23 @@ function initApp(channels,source){
 }
 function loadText(text,source){setP(35);setTimeout(()=>{const chs=parseM3U(text);setP(80);if(!chs.length){showToast('M3U içinde kanal bulunamadı','info');setP(0);return;}setTimeout(()=>initApp(chs,source),60);},40);}
 function makeSignal(ms){try{return AbortSignal.timeout(ms);}catch{const c=new AbortController();setTimeout(()=>c.abort(),ms);return c.signal;}}
+let _urlAbortCtrl=null;
+function _urlProgShow(n){
+  const el=document.getElementById('url-progress');el.classList.add('active');
+  document.getElementById('url-prog-dots').innerHTML=Array.from({length:n},()=>'<div class="url-prog-dot"></div>').join('');
+  document.getElementById('url-prog-title').textContent='Bağlanılıyor…';
+  document.getElementById('url-prog-sub').textContent='';
+}
+function _urlProgUpdate(i,n,lbl){
+  document.getElementById('url-prog-title').textContent=lbl+' deneniyor…';
+  document.getElementById('url-prog-sub').textContent=(i+1)+' / '+n;
+  document.getElementById('url-prog-dots').querySelectorAll('.url-prog-dot').forEach((d,j)=>{d.className='url-prog-dot'+(j<i?' done':j===i?' curr':'');});
+}
+function _urlProgHide(){document.getElementById('url-progress').classList.remove('active');}
+document.getElementById('url-prog-cancel').addEventListener('click',()=>{if(_urlAbortCtrl)_urlAbortCtrl.abort();_urlProgHide();setP(0);showToast('İptal edildi','info');});
 async function loadURL(url,statusEl,onSuccess){
-  url=url.trim();if(!url.startsWith('http')){showToast('Geçerli bir URL girin','info');return;}setP(15);
+  url=url.trim();if(!url.startsWith('http')){showToast('Geçerli bir URL girin','info');return;}
+  const useOv=!statusEl;
   const proxies=[
     {lbl:'Doğrudan',  u:url},
     {lbl:'Proxy 1',   u:'https://corsproxy.io/?'+encodeURIComponent(url)},
@@ -1172,27 +1233,41 @@ async function loadURL(url,statusEl,onSuccess){
     {lbl:'Proxy 3',   u:'https://thingproxy.freeboard.io/fetch/'+url},
     {lbl:'Proxy 4',   u:'https://api.codetabs.com/v1/proxy?quest='+encodeURIComponent(url)},
   ];
+  if(_urlAbortCtrl)_urlAbortCtrl.abort();
+  _urlAbortCtrl=new AbortController();
+  const cancelSig=_urlAbortCtrl.signal;
+  setP(15);
+  if(useOv)_urlProgShow(proxies.length);
   for(let i=0;i<proxies.length;i++){
+    if(cancelSig.aborted)break;
     const {lbl,u}=proxies[i];
+    if(useOv)_urlProgUpdate(i,proxies.length,lbl);
     if(statusEl)statusEl.textContent=lbl+' deneniyor… ('+(i+1)+'/'+proxies.length+')';
     try{
-      const res=await fetch(u,{signal:makeSignal(25000)});
+      const reqCtrl=new AbortController();
+      const reqTimer=setTimeout(()=>reqCtrl.abort(),25000);
+      cancelSig.addEventListener('abort',()=>reqCtrl.abort(),{once:true});
+      const res=await fetch(u,{signal:reqCtrl.signal});
+      clearTimeout(reqTimer);
+      if(cancelSig.aborted)break;
       if(res.ok){
         const text=await res.text();
         if(text.includes('#EXTM3U')||text.includes('#EXTINF')){
-          setP(65);
-          S.set('settings_url',url);
+          setP(65);S.set('settings_url',url);
+          if(useOv)_urlProgHide();
           if(statusEl)statusEl.textContent='✓ Yüklendi';
           if(onSuccess)onSuccess();
           loadText(text,{type:'url',url,name:url.split('/').pop()||url,ts:Date.now()});
           return;
         }
       }
-    }catch{}
+    }catch(e){if(cancelSig.aborted)break;}
   }
+  if(cancelSig.aborted)return;
   setP(0);
-  if(statusEl)statusEl.textContent='Başarısız — dosyayı indirip sürükleyin';
-  showToast('URL yüklenemedi — M3U dosyasını indirip sürükle-bırak deneyin','info',4500);
+  if(useOv)_urlProgHide();
+  if(statusEl)statusEl.textContent='Başarısız — alternatif yöntemi deneyin';
+  showToast('URL yüklenemedi — M3U metnini yapıştır yöntemini deneyin','info',4500);
 }
 // File/Drop
 const dropZone=document.getElementById('drop-zone');
@@ -1201,6 +1276,17 @@ dropZone.addEventListener('dragleave',()=>dropZone.classList.remove('drag-over')
 dropZone.addEventListener('drop',e=>{e.preventDefault();dropZone.classList.remove('drag-over');const f=e.dataTransfer.files[0];if(f)readFile(f);});
 document.getElementById('file-input').addEventListener('change',e=>{const f=e.target.files[0];if(f)readFile(f);e.target.value='';});
 function readFile(f){setP(20);const r=new FileReader();r.onload=e=>loadText(e.target.result,{type:'file',name:f.name,ts:Date.now()});r.onerror=()=>showToast('Dosya okunamadı','info');r.readAsText(f,'utf-8');}
+// Paste overlay
+document.getElementById('paste-open-btn').addEventListener('click',()=>{document.getElementById('paste-overlay').classList.add('active');setTimeout(()=>document.getElementById('paste-textarea').focus(),100);});
+document.getElementById('paste-close-btn').addEventListener('click',()=>{document.getElementById('paste-overlay').classList.remove('active');});
+document.getElementById('paste-load-btn').addEventListener('click',()=>{
+  const text=document.getElementById('paste-textarea').value.trim();
+  if(!text){showToast('Önce içerik yapıştırın','info');return;}
+  if(!text.includes('#EXTM3U')&&!text.includes('#EXTINF')){showToast('Geçerli M3U içeriği değil (#EXTINF bulunamadı)','info',3500);return;}
+  document.getElementById('paste-overlay').classList.remove('active');
+  document.getElementById('paste-textarea').value='';
+  loadText(text,{type:'paste',name:'Yapıştırılan Playlist',ts:Date.now()});
+});
 const urlInput=document.getElementById('url-input');
 document.getElementById('url-load-btn').addEventListener('click',()=>loadURL(urlInput.value));
 urlInput.addEventListener('keydown',e=>{if(e.key==='Enter'){urlInput.blur();loadURL(urlInput.value);}});
