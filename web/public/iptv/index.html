@@ -131,6 +131,28 @@ body{height:var(--vh);background:var(--bg);color:var(--text);
 .q-fhd{background:rgba(79,127,255,.25);color:#6B9FFF}
 .q-4k{background:rgba(245,166,35,.2);color:var(--warn)}
 .q-sd{background:rgba(85,85,122,.2);color:var(--text-dim)}
+/* Watch progress bar (bottom of card image) */
+.watch-bar{position:absolute;bottom:0;left:0;right:0;height:3px;background:rgba(255,255,255,.12);z-index:3}
+.watch-bar-fill{height:100%;background:var(--accent);border-radius:0 1px 0 0;transition:width .3s}
+.watch-bar-fill.done{background:var(--success)}
+/* Episode watched dots */
+.ep-done-dot,.ep-prog-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;display:inline-block}
+.ep-done-dot{background:var(--success)}
+.ep-prog-dot{background:var(--accent);opacity:.5}
+/* RECENT cards */
+.r-card{flex-shrink:0;width:min(40vw,170px);background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden;cursor:pointer;touch-action:manipulation;scroll-snap-align:start;transition:border-color .15s,transform .1s;position:relative}
+.r-card:active{transform:scale(.96)}
+.r-card-poster{aspect-ratio:9/16;background:var(--elevated) center/cover no-repeat;display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative}
+.r-card-poster-init{position:relative;z-index:1;font-size:34px;font-weight:800;color:white;text-shadow:0 2px 16px rgba(0,0,0,.8)}
+.r-card-grad{position:absolute;inset:0;background:linear-gradient(to bottom,transparent 45%,rgba(11,11,16,.65) 75%,rgba(11,11,16,.96) 100%);z-index:2}
+.r-card-continue{position:absolute;bottom:38px;left:50%;transform:translateX(-50%);z-index:3;white-space:nowrap;background:rgba(255,255,255,.92);color:#0B0B10;font-size:10px;font-weight:700;padding:4px 11px;border-radius:20px;display:flex;align-items:center;gap:3px}
+.r-card-continue svg{width:9px;height:9px;fill:currentColor}
+.r-card-play-ov{position:absolute;inset:0;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .15s;z-index:4}
+.r-card:active .r-card-play-ov{opacity:1}
+.r-card-play-ov svg{width:28px;height:28px;fill:white;filter:drop-shadow(0 2px 8px rgba(0,0,0,.5))}
+.r-card-info{padding:7px 9px 9px}
+.r-card-name{font-size:12px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.r-card-meta{font-size:10px;color:var(--text-dim);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 /* SEARCH */
 #search-overlay{display:none;position:fixed;inset:0;z-index:50;background:var(--bg);flex-direction:column}
 #search-overlay.active{display:flex}
@@ -534,6 +556,10 @@ let SEL=null,HERO_CH=null,CURRENT_CAT=null,CAT_CHANNELS=[],CAT_GRID=GRID_MODE;
 let SERIES_EXP={},SEASON_COL={},PLAYLISTS=S.get('pl_list',[]);
 let hlsInstance=null,PLAY_IDX=-1,PLAY_LIST=[],overlayTimer=null,wakeLock=null;
 let EPG={};
+let PROGRESS=S.get('prog_v1',{});let _progTimer=null,_lastPos=0;
+function saveProgress(url,pos,dur){if(!url||!dur||isNaN(pos)||isNaN(dur)||dur<30)return;PROGRESS[url]={pos:Math.floor(pos),dur:Math.floor(dur),ts:Date.now()};clearTimeout(_progTimer);_progTimer=setTimeout(()=>{try{S.set('prog_v1',PROGRESS);}catch{}},2000);}
+function getPct(url){const p=PROGRESS[url];if(!p||!p.dur)return 0;return Math.min(100,Math.floor(p.pos/p.dur*100));}
+function getResume(url){const p=PROGRESS[url];if(!p||!p.pos||!p.dur)return 0;return p.pos/p.dur>0.95?0:p.pos;}
 // Helpers
 function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
 function ago(ts){const s=Math.floor((Date.now()-ts)/1000);if(s<60)return 'az önce';if(s<3600)return Math.floor(s/60)+' dk önce';if(s<86400)return Math.floor(s/3600)+' saat önce';return Math.floor(s/86400)+' gün önce';}
@@ -735,7 +761,9 @@ function renderBCard(ch){
   const logo=ch.l?'<img src="'+esc(ch.l)+'" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'" loading="lazy"><span class="b-card-init" style="display:none">'+esc(init)+'</span>':'<span class="b-card-init">'+esc(init)+'</span>';
   const epg=getEPGNow(ch);
   const progHtml=epg?'<div class="b-card-prog">▶ '+esc(epg.t)+'</div>':'';
-  return '<div class="b-card'+(isPlaying?' playing':'')+'" data-id="'+ch.id+'"><div class="b-card-logo">'+logo+(FAVS.has(ch.u)?'<span class="b-card-fav"></span>':'')+qb(q)+'<div class="b-card-play-ov"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></div>'+(isPlaying?'<div class="b-card-playing-bar"></div>':'')+'</div><div class="b-card-info"><div class="b-card-name">'+esc(ch.n)+'</div><div class="b-card-group">'+esc(ch.g)+'</div>'+progHtml+'</div></div>';
+  const pct=getPct(ch.u);
+  const wBar=pct>4?'<div class="watch-bar"><div class="watch-bar-fill'+(pct>=95?' done':'')+'" style="width:'+pct+'%"></div></div>':'';
+  return '<div class="b-card'+(isPlaying?' playing':'')+'" data-id="'+ch.id+'"><div class="b-card-logo">'+logo+(FAVS.has(ch.u)?'<span class="b-card-fav"></span>':'')+qb(q)+'<div class="b-card-play-ov"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></div>'+(isPlaying?'<div class="b-card-playing-bar"></div>':'')+wBar+'</div><div class="b-card-info"><div class="b-card-name">'+esc(ch.n)+'</div><div class="b-card-group">'+esc(ch.g)+'</div>'+progHtml+'</div></div>';
 }
 function createRow(title,channels,catKey){
   const div=document.createElement('div');div.className='browse-row';
@@ -745,12 +773,50 @@ function createRow(title,channels,catKey){
   div.querySelector('.row-more')?.addEventListener('click',e=>openCatScreen(e.target.dataset.cat));
   return div;
 }
+function buildRecentItems(){
+  const seenShows=new Set(),items=[];
+  RECENT.forEach(r=>{
+    const info=detectSeries(r.n);
+    if(info){
+      const k=info.show.toLowerCase().replace(/\W+/g,'');
+      if(seenShows.has(k))return;seenShows.add(k);
+      items.push({type:'series',show:info.show,s:info.s,e:info.e,ch:r});
+    } else items.push({type:'channel',ch:r});
+  });
+  return items.slice(0,15);
+}
+function renderRecentCard(item){
+  const ch=item.ch,pct=getPct(ch.u);
+  const wBar=pct>4?'<div class="watch-bar"><div class="watch-bar-fill'+(pct>=95?' done':'')+'" style="width:'+pct+'%"></div></div>':'';
+  const cBtn=pct>4&&pct<95?'<div class="r-card-continue"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>Devam Et</div>':'';
+  if(item.type==='series'){
+    const init=chi(item.show);
+    const bg=ch.l?'background-image:url('+esc(ch.l)+')':'';
+    const inner=ch.l?'':`<span class="r-card-poster-init">${esc(init)}</span>`;
+    return '<div class="r-card" data-url="'+esc(ch.u)+'"><div class="r-card-poster" style="'+bg+'">'+inner+'<div class="r-card-grad"></div>'+cBtn+wBar+'<div class="r-card-play-ov"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></div></div><div class="r-card-info"><div class="r-card-name">'+esc(item.show)+'</div><div class="r-card-meta">S'+item.s+' B'+item.e+'</div></div></div>';
+  } else {
+    const init=chi(ch.n);
+    const bg=ch.l?'background-image:url('+esc(ch.l)+')':'';
+    const inner=ch.l?'':`<span class="r-card-poster-init">${esc(init)}</span>`;
+    return '<div class="r-card" data-url="'+esc(ch.u)+'"><div class="r-card-poster" style="'+bg+'">'+inner+cBtn+wBar+'<div class="r-card-play-ov"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></div></div><div class="r-card-info"><div class="r-card-name">'+esc(ch.n)+'</div><div class="r-card-meta">'+esc(ch.g)+'</div></div></div>';
+  }
+}
+function epDot(url){const p=getPct(url);return p>=95?'<span class="ep-done-dot"></span>':p>4?'<span class="ep-prog-dot"></span>':'';}
+function createRecentRow(items){
+  const div=document.createElement('div');div.className='browse-row';
+  div.innerHTML='<div class="row-header"><span class="row-title">Son İzlenenler</span></div><div class="row-scroll">'+items.map(item=>renderRecentCard(item)).join('')+'</div>';
+  div.querySelectorAll('.r-card').forEach(el=>{
+    const url=el.dataset.url;
+    el.addEventListener('click',()=>{const ch=ALL.find(c=>c.u===url);if(!ch)return;PLAY_LIST=ALL;openPlayer(ch,ALL.indexOf(ch));});
+  });
+  return div;
+}
 function renderBrowse(){
   const heroCh=RECENT.length>0?(ALL.find(c=>c.u===RECENT[0].u)||ALL[0]):ALL[0];
   if(heroCh)renderHero(heroCh);
   const rows=document.getElementById('browse-rows');rows.innerHTML='';
   if(FAVS.size>0){const fc=ALL.filter(c=>FAVS.has(c.u)).slice(0,20);if(fc.length)rows.appendChild(createRow('Favorilerim',fc,'⭐ Favoriler'));}
-  if(RECENT.length>0){const rc=RECENT.slice(0,15).map(r=>ALL.find(c=>c.u===r.u)).filter(Boolean);if(rc.length)rows.appendChild(createRow('Son İzlenenler',rc,null));}
+  if(RECENT.length>0){const ri=buildRecentItems();if(ri.length)rows.appendChild(createRecentRow(ri));}
   const catMap={};ALL.forEach(ch=>{(catMap[ch.g]=catMap[ch.g]||[]).push(ch);});
   Object.entries(catMap).sort(([,a],[,b])=>b.length-a.length).forEach(([cat,chs])=>{
     // Try series grouping for this category
@@ -906,7 +972,7 @@ function renderCatSeries(sg,container){
     const banner=sv.logo?'<img class="cat-series-bg" src="'+esc(sv.logo)+'" loading="lazy"><img class="cat-series-logo" src="'+esc(sv.logo)+'" onerror="this.style.display=\'none\'" loading="lazy">':'<span class="cat-series-init">'+esc(sv.name.slice(0,2).toUpperCase())+'</span>';
     const seasHtml=seasons.map(([sNum,eps])=>{
       const sk=sv.key+'__'+sNum,isOpen=SEASON_COL[sk]!==false;
-      return '<div class="season-row" data-sk="'+esc(sk)+'"><span class="season-row-label">Sezon '+sNum+'</span><span class="season-row-cnt">'+eps.length+' bölüm</span><span class="season-row-arr'+(isOpen?' open':'')+'"><svg viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg></span></div><div class="ep-list'+(isOpen?' open':'')+'" data-sk-eps="'+esc(sk)+'">'+eps.map(ch=>'<div class="ep-row'+(SEL&&SEL.u===ch.u?' playing':'')+'" data-ep-id="'+ch.id+'"><span class="ep-num">B'+ch._e+'</span><span class="ep-title">'+esc(ch._t||ch.n)+'</span><button class="ep-play-btn" data-ep-id="'+ch.id+'"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></button></div>').join('')+'</div>';
+      return '<div class="season-row" data-sk="'+esc(sk)+'"><span class="season-row-label">Sezon '+sNum+'</span><span class="season-row-cnt">'+eps.length+' bölüm</span><span class="season-row-arr'+(isOpen?' open':'')+'"><svg viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg></span></div><div class="ep-list'+(isOpen?' open':'')+'" data-sk-eps="'+esc(sk)+'">'+eps.map(ch=>'<div class="ep-row'+(SEL&&SEL.u===ch.u?' playing':'')+'" data-ep-id="'+ch.id+'"><span class="ep-num">B'+ch._e+'</span>'+epDot(ch.u)+'<span class="ep-title">'+esc(ch._t||ch.n)+'</span><button class="ep-play-btn" data-ep-id="'+ch.id+'"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></button></div>').join('')+'</div>';
     }).join('');
     html+='<div class="cat-series-card'+(isExp?' expanded':'')+'" data-sv-key="'+esc(sv.key)+'"><div class="cat-series-banner">'+banner+'</div><div class="cat-series-head"><div style="flex:1;min-width:0"><div class="cat-series-name">'+esc(sv.name)+'</div><div class="cat-series-badges"><span class="s-badge">'+sv.sCount+' Sezon</span><span class="s-badge ep">'+sv.epCount+' Bölüm</span></div></div><span class="cat-series-arr'+(isExp?' open':'')+'"><svg viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg></span></div><div class="cat-series-body'+(isExp?' open':'')+'">'+seasHtml+'</div></div>';
   });
@@ -935,7 +1001,7 @@ function openSeriesScreen(sv,catChs,catKey){
   seasons.forEach(([sNum,eps])=>{
     const sk='ss__'+sv.key+'__'+sNum,isOpen=SEASON_COL[sk]!==false;
     html+='<div class="season-row" data-sk="'+esc(sk)+'"><span class="season-row-label">Sezon '+sNum+'</span><span class="season-row-cnt">'+eps.length+' bölüm</span><span class="season-row-arr'+(isOpen?' open':'')+'"><svg viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg></span></div>'
-      +'<div class="ep-list'+(isOpen?' open':'')+'" data-sk-eps="'+esc(sk)+'">'+eps.map(ch=>'<div class="ep-row'+(SEL&&SEL.u===ch.u?' playing':'')+'" data-ep-id="'+ch.id+'"><span class="ep-num">B'+ch._e+'</span><span class="ep-title">'+esc(ch._t||ch.n)+'</span><button class="ep-play-btn" data-ep-id="'+ch.id+'"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></button></div>').join('')+'</div>';
+      +'<div class="ep-list'+(isOpen?' open':'')+'" data-sk-eps="'+esc(sk)+'">'+eps.map(ch=>'<div class="ep-row'+(SEL&&SEL.u===ch.u?' playing':'')+'" data-ep-id="'+ch.id+'"><span class="ep-num">B'+ch._e+'</span>'+epDot(ch.u)+'<span class="ep-title">'+esc(ch._t||ch.n)+'</span><button class="ep-play-btn" data-ep-id="'+ch.id+'"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></button></div>').join('')+'</div>';
   });
   content.innerHTML=html;
   content.querySelectorAll('.season-row').forEach(row=>{
@@ -962,7 +1028,7 @@ function playChannel(ch){
     if(typeof Hls!=='undefined'&&Hls.isSupported()){
       hlsInstance=new Hls({enableWorker:true,lowLatencyMode:true,maxBufferLength:30,maxMaxBufferLength:60,fragLoadingTimeOut:12000,manifestLoadingTimeOut:12000,xhrSetup:(xhr)=>{xhr.timeout=15000;}});
       hlsInstance.loadSource(src);hlsInstance.attachMedia(video);
-      hlsInstance.on(Hls.Events.MANIFEST_PARSED,()=>{showPlayerLoading(false);video.play().catch(e=>showPlayerError('Oynatma başlatılamadı: '+e.message));});
+      hlsInstance.on(Hls.Events.MANIFEST_PARSED,()=>{showPlayerLoading(false);const rp=getResume(origUrl);if(rp>0){if(video.readyState>=1)video.currentTime=rp;else video.addEventListener('loadedmetadata',()=>{video.currentTime=rp;},{once:true});}video.play().catch(e=>showPlayerError('Oynatma başlatılamadı: '+e.message));});
       hlsInstance.on(Hls.Events.ERROR,(evt,data)=>{
         if(!data.fatal)return;
         if(data.type===Hls.ErrorTypes.NETWORK_ERROR){
@@ -977,6 +1043,8 @@ function playChannel(ch){
   function tryNative(src,tried){
     if(hlsInstance){hlsInstance.destroy();hlsInstance=null;}
     video.src=src;video.load();
+    const rp=getResume(origUrl);
+    if(rp>0)video.addEventListener('loadedmetadata',()=>{video.currentTime=rp;},{once:true});
     video.play().then(()=>showPlayerLoading(false)).catch(e=>{
       // On iOS Safari, Xtream Codes URLs need .m3u8 suffix for native HLS
       const hasMediaExt=/\.(m3u8|mp4|ts|mkv|avi|flv)(\?|$)/i.test(src);
@@ -1020,6 +1088,7 @@ pvEl.addEventListener('pause',updatePlayBtn);
 pvEl.addEventListener('waiting',()=>showPlayerLoading(true));
 pvEl.addEventListener('canplay',()=>showPlayerLoading(false));
 pvEl.addEventListener('error',()=>{if(pvEl.error&&!hlsInstance){const isHTTP=SEL&&SEL.u.startsWith('http://');if(isHTTP&&location.protocol==='https:')showPlayerError('HTTP yayın HTTPS sayfasında oynatılamaz.\nVLC veya başka uygulama kullanın.');else showPlayerError('Video hatası (kod '+pvEl.error.code+')');}});
+pvEl.addEventListener('timeupdate',()=>{if(!SEL||!pvEl.duration||isNaN(pvEl.duration))return;if(Math.abs(pvEl.currentTime-_lastPos)>=5){_lastPos=pvEl.currentTime;saveProgress(SEL.u,pvEl.currentTime,pvEl.duration);}});
 document.getElementById('p-retry-btn').addEventListener('click',()=>{if(SEL){hidePlayerError();playChannel(SEL);}});
 document.getElementById('p-err-vlc').addEventListener('click',()=>{if(SEL)openVLC(SEL);});
 document.getElementById('p-err-copy').addEventListener('click',()=>{if(SEL)copyLink(SEL);});
