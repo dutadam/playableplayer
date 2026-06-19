@@ -327,10 +327,11 @@ function renderPlayer() {
   document.body.classList.add("player-active");
   const item = state.activePlayable;
   const source = `${basePath}playables/${encodeURIComponent(item.id)}/${encodePath(item.entryPath)}?r=${state.reloadNonce}`;
+  const theme = gameTheme(item.game);
 
   app.className = "app player-shell";
   app.innerHTML = `
-    <main class="player-page">
+    <main class="player-page" style="--game-color: ${theme.primary}; --game-accent: ${theme.accent}; --game-soft: ${theme.soft}; --game-ink: ${theme.ink}">
       <iframe
         id="player-frame"
         class="player-frame"
@@ -339,7 +340,6 @@ function renderPlayer() {
         allow="autoplay; fullscreen; gamepad; accelerometer; gyroscope; encrypted-media"
         sandbox="allow-scripts allow-same-origin allow-forms allow-pointer-lock allow-orientation-lock allow-popups allow-popups-to-escape-sandbox"
       ></iframe>
-      ${state.audioUnlocked ? "" : `<button class="audio-unlock-layer" data-action="unlock-audio" aria-label="Enable playable audio"></button>`}
       <button class="secret-zone secret-top-left" data-action="secret-tap" aria-label="Open controls"></button>
       <button class="secret-zone secret-top-right" data-action="secret-tap" aria-label="Open controls"></button>
       <button class="secret-zone secret-bottom-left" data-action="secret-tap" aria-label="Open controls"></button>
@@ -526,18 +526,17 @@ function wirePlayerEvents() {
     element.addEventListener("click", handlePlayerAction);
   });
   const frame = app.querySelector("#player-frame");
-  frame.addEventListener("load", () => detectExternalFrameNavigation(frame));
+  if (!frame) return;
+  frame.addEventListener("load", () => {
+    detectExternalFrameNavigation(frame);
+    if (state.audioUnlocked) unlockPlayerAudio();
+  });
 }
 
 function handlePlayerAction(event) {
   const action = event.currentTarget.dataset.action;
   if (action === "secret-tap") {
     registerSecretTap();
-  }
-  if (action === "unlock-audio") {
-    unlockPlayerAudio();
-    state.audioUnlocked = true;
-    event.currentTarget.remove();
   }
   if (action === "reload-player" || action === "store-retry") {
     state.storeIntent = null;
