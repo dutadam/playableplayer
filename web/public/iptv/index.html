@@ -1434,7 +1434,7 @@ async function loadURL(url,statusEl,onSuccess){
         if(text.includes('#EXTM3U')||text.includes('#EXTINF')){
           setP(65);S.set('settings_url',url);
           if(useOv)_urlProgHide();
-          if(statusEl)statusEl.textContent='✓ Yüklendi';
+          if(statusEl){statusEl.textContent='✓ Yüklendi';statusEl.style.color='var(--success)';}
           if(onSuccess)onSuccess();
           loadText(text,{type:'url',url,name:url.split('/').pop()||url,ts:Date.now()});
           return;
@@ -1445,8 +1445,8 @@ async function loadURL(url,statusEl,onSuccess){
   if(cancelSig.aborted)return;
   setP(0);
   if(useOv)_urlProgHide();
-  if(statusEl)statusEl.textContent='Başarısız — alternatif yöntemi deneyin';
-  showToast('URL yüklenemedi — M3U metnini yapıştır yöntemini deneyin','info',4500);
+  if(statusEl){statusEl.textContent='❌ Bağlanamadı — sunucu/kullanıcı/şifre bilgilerini kontrol edin';statusEl.style.color='var(--danger)';}
+  showToast('URL yüklenemedi — sunucu adresini ve bilgileri kontrol edin','info',5000);
 }
 async function bgRefreshURL(url,plId,opts){
   // Silent background refresh — direct fetch first (GitHub raw is CORS-friendly), then proxies
@@ -1503,7 +1503,12 @@ function loadXtream(server,user,pass){
   server=_xtNorm(server);
   if(!server||!user||!pass){showToast('Sunucu, kullanıcı adı ve şifre girin','info');return;}
   S.set('xtream_creds',{server,user,pass});
-  loadURL(server+'/get.php?username='+encodeURIComponent(user)+'&password='+encodeURIComponent(pass)+'&type=m3u_plus');
+  const statusEl=document.getElementById('xt-status');
+  const btn=document.getElementById('xt-login-btn');
+  if(statusEl){statusEl.textContent='Bağlanıyor…';statusEl.style.color='var(--text-dim)';}
+  if(btn){btn.disabled=true;btn.textContent='Yükleniyor…';}
+  loadURL(server+'/get.php?username='+encodeURIComponent(user)+'&password='+encodeURIComponent(pass)+'&type=m3u_plus',statusEl)
+    .finally(()=>{if(btn){btn.disabled=false;btn.textContent='Kanalları Yükle';}});
 }
 function getXtCreds(){
   const g=id=>{const el=document.getElementById(id);return el?el.value.trim():'';};
