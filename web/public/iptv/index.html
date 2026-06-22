@@ -33,24 +33,25 @@ body{height:var(--vh);background:var(--bg);color:var(--text);
   padding:calc(20px + var(--safe-t)) calc(20px + var(--safe-r)) calc(20px + var(--safe-b)) calc(20px + var(--safe-l));
   gap:16px;background:var(--bg);height:var(--vh);width:100%;max-width:100%}
 #load-screen>*{max-width:100%}
-.xtream-form .url-input{width:100%}
 .logo{display:flex;align-items:center;gap:10px;margin-bottom:4px}
 .logo-icon{width:42px;height:42px;background:var(--accent);border-radius:12px;display:flex;align-items:center;justify-content:center;box-shadow:0 0 24px var(--accent-glow)}
 .logo-icon svg{width:22px;height:22px;fill:white}
 .logo-name{font-size:22px;font-weight:700;letter-spacing:-.5px}
-.logo-sub{font-size:10px;color:var(--text-dim);letter-spacing:2px;text-transform:uppercase;margin-top:2px}
 .section-label{font-size:11px;color:var(--text-dim);font-weight:600;letter-spacing:1px;text-transform:uppercase;width:100%;max-width:440px}
-.drop-zone{width:100%;max-width:440px;border:2px dashed var(--border);border-radius:14px;padding:28px 20px;text-align:center;cursor:pointer;transition:all .2s;background:var(--surface);position:relative;overflow:hidden}
-.drop-zone.drag-over{border-color:var(--accent);background:var(--accent-dim)}
-.drop-zone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;font-size:16px}
-.drop-icon{width:40px;height:40px;margin:0 auto 10px;opacity:.35}
-.drop-icon svg{width:40px;height:40px;fill:var(--text)}
-.drop-title{font-size:15px;font-weight:600;margin-bottom:4px}
-.drop-sub{font-size:12px;color:var(--text-dim)}
-@media(hover:none){.drop-sub{display:none}}
-.divider{display:flex;align-items:center;gap:12px;width:100%;max-width:440px}
-.divider-line{flex:1;height:1px;background:var(--border)}
-.divider-text{font-size:11px;color:var(--text-dim)}
+.add-card{width:100%;max-width:440px;background:var(--surface);border:1px solid var(--border);border-radius:16px;overflow:hidden;transition:border-color .2s}
+.add-card.drag-over{border-color:var(--accent)}
+.add-tabs{display:flex;border-bottom:1px solid var(--border)}
+.add-tab{flex:1;padding:12px 8px;border:none;background:none;color:var(--text-dim);font-size:13px;font-weight:600;cursor:pointer;touch-action:manipulation;transition:color .15s,background .15s;-webkit-appearance:none}
+.add-tab.active{color:var(--accent);background:var(--accent-dim)}
+.add-tab:active{opacity:.75}
+.add-pane{padding:14px;display:flex;flex-direction:column;gap:10px}
+.file-pick-btn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;width:100%;padding:32px 16px;border:2px dashed var(--border);border-radius:10px;cursor:pointer;text-align:center;color:var(--text);transition:all .2s;position:relative}
+.file-pick-btn svg{width:28px;height:28px;fill:var(--text);opacity:.4}
+.file-pick-btn>span{font-size:15px;font-weight:600}
+.file-pick-hint{font-size:12px;color:var(--text-dim)}
+@media(hover:none){.file-pick-hint{display:none}}
+.file-pick-btn input{position:absolute;inset:0;opacity:0;cursor:pointer;font-size:16px}
+.add-card.drag-over .file-pick-btn,.file-pick-btn:active{border-color:var(--accent);background:var(--accent-dim);color:var(--accent)}
 .url-input{flex:1;background:var(--surface);border:1px solid var(--border);border-radius:10px;color:var(--text);font-size:16px;padding:11px 14px;outline:none;transition:border .2s;-webkit-appearance:none}
 .url-input::placeholder{color:var(--text-dim)}
 .url-input:focus{border-color:var(--accent)}
@@ -379,7 +380,6 @@ body{height:var(--vh);background:var(--bg);color:var(--text);
 .url-prog-cancel{margin-top:4px;padding:10px 28px;border-radius:10px;border:1px solid var(--border);background:none;color:var(--text-dim);font-size:14px;cursor:pointer;touch-action:manipulation;-webkit-appearance:none}
 .url-prog-cancel:active{background:var(--elevated)}
 /* XTREAM form */
-.xtream-form{width:100%;max-width:440px;display:flex;flex-direction:column;gap:8px}
 .xt-btn{width:100%;padding:12px 18px;border-radius:10px;border:none;cursor:pointer;font-size:15px;font-weight:600;background:linear-gradient(135deg,var(--accent) 0%,#7B5BFF 100%);color:white;touch-action:manipulation;-webkit-appearance:none;transition:opacity .15s,transform .1s}
 .xt-btn:active{opacity:.82;transform:scale(.97)}
 .xt-btn:disabled{opacity:.5;pointer-events:none}
@@ -437,26 +437,32 @@ body{height:var(--vh);background:var(--bg);color:var(--text);
     <div class="section-label" style="margin-bottom:10px">PLAYLİST'LERİM</div>
     <div class="pl-list" id="pl-list"></div>
   </div>
-  <div class="section-label">YENİ PLAYLIST EKLE</div>
-  <div class="drop-zone" id="drop-zone">
-    <input type="file" id="file-input" accept=".m3u,.m3u8,.txt,text/plain">
-    <div class="drop-icon"><svg viewBox="0 0 24 24"><path d="M9 16h6v-6h4l-7-7-7 7h4zm-4 2h14v2H5z"/></svg></div>
-    <div class="drop-title">M3U dosyası seç</div>
-    <div class="drop-sub">veya buraya sürükle bırak</div>
+  <div class="add-card" id="drop-zone">
+    <div class="add-tabs" id="add-tabs">
+      <button class="add-tab active" data-tab="url">URL</button>
+      <button class="add-tab" data-tab="file">Dosya</button>
+      <button class="add-tab" data-tab="xt">Xtream</button>
+    </div>
+    <div class="add-pane" id="add-pane-url">
+      <input class="url-input" id="m3u-url-input" type="url" inputmode="url" autocomplete="url" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="https://… M3U linki veya Xtream get.php">
+      <button class="btn btn-primary" id="m3u-url-btn" style="width:100%">Yükle</button>
+    </div>
+    <div class="add-pane" id="add-pane-file" style="display:none">
+      <label class="file-pick-btn" for="file-input">
+        <svg viewBox="0 0 24 24"><path d="M9 16h6v-6h4l-7-7-7 7h4zm-4 2h14v2H5z"/></svg>
+        <span>M3U dosyası seç</span>
+        <span class="file-pick-hint">veya buraya sürükle bırak</span>
+        <input type="file" id="file-input" accept=".m3u,.m3u8,.txt,text/plain">
+      </label>
+    </div>
+    <div class="add-pane" id="add-pane-xt" style="display:none">
+      <input class="url-input" id="xt-server" type="url" inputmode="url" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="http://sunucu:8080">
+      <input class="url-input" id="xt-user" type="text" inputmode="text" autocomplete="username" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Kullanıcı adı">
+      <input class="url-input" id="xt-pass" type="password" autocomplete="current-password" placeholder="Şifre">
+      <button class="xt-btn" id="xt-login-btn">Kanalları Yükle</button>
+      <div class="xt-status" id="xt-status"></div>
+    </div>
   </div>
-  <div class="divider"><div class="divider-line"></div><div class="divider-text">veya URL</div><div class="divider-line"></div></div>
-  <div style="width:100%;max-width:440px;display:flex;gap:8px">
-    <input class="url-input" id="m3u-url-input" type="url" inputmode="url" autocomplete="url" autocorrect="off" autocapitalize="off" spellcheck="false" style="flex:1" placeholder="https://… M3U linki veya Xtream get.php">
-    <button class="btn btn-primary" id="m3u-url-btn">Yükle</button>
-  </div>
-  <div class="divider"><div class="divider-line"></div><div class="divider-text">veya Xtream Codes</div><div class="divider-line"></div></div>
-  <div class="xtream-form">
-    <input class="url-input" id="xt-server" type="url" inputmode="url" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="http://sunucu:8080">
-    <input class="url-input" id="xt-user" type="text" inputmode="text" autocomplete="username" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Kullanıcı adı">
-    <input class="url-input" id="xt-pass" type="password" autocomplete="current-password" placeholder="Şifre">
-    <button class="xt-btn" id="xt-login-btn">Kanalları Yükle</button>
-  </div>
-  <div class="xt-status" id="xt-status"></div>
 </div>
 <!-- URL LOADING PROGRESS -->
 <div id="url-progress">
@@ -1456,9 +1462,14 @@ async function bgRefreshURL(url,plId){
 }
 // File/Drop
 const dropZone=document.getElementById('drop-zone');
+function switchAddTab(name){
+  document.querySelectorAll('.add-tab').forEach(t=>t.classList.toggle('active',t.dataset.tab===name));
+  document.querySelectorAll('.add-pane').forEach(p=>p.style.display=p.id==='add-pane-'+name?'flex':'none');
+}
+document.getElementById('add-tabs').addEventListener('click',e=>{const t=e.target.closest('.add-tab');if(t)switchAddTab(t.dataset.tab);});
 dropZone.addEventListener('dragover',e=>{e.preventDefault();dropZone.classList.add('drag-over');});
-dropZone.addEventListener('dragleave',()=>dropZone.classList.remove('drag-over'));
-dropZone.addEventListener('drop',e=>{e.preventDefault();dropZone.classList.remove('drag-over');const f=e.dataTransfer.files[0];if(f)readFile(f);});
+dropZone.addEventListener('dragleave',e=>{if(!dropZone.contains(e.relatedTarget))dropZone.classList.remove('drag-over');});
+dropZone.addEventListener('drop',e=>{e.preventDefault();dropZone.classList.remove('drag-over');const f=e.dataTransfer.files[0];if(f){switchAddTab('file');readFile(f);}});
 document.getElementById('file-input').addEventListener('change',e=>{const f=e.target.files[0];if(f)readFile(f);e.target.value='';});
 function readFile(f){setP(20);const r=new FileReader();r.onload=e=>loadText(e.target.result,{type:'file',name:f.name,ts:Date.now()});r.onerror=()=>showToast('Dosya okunamadı','info');r.readAsText(f,'utf-8');}
 // Xtream Codes
