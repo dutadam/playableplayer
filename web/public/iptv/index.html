@@ -758,12 +758,20 @@ else window.addEventListener('resize',setVH);
 const isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent)&&!window.MSStream;
 // Storage
 const S={_p:'m3u_',get(k,d){try{const v=localStorage.getItem(this._p+k);if(v==null)return d;if(v.charCodeAt(0)===1)return JSON.parse(LZString.decompressFromUTF16(v.slice(1)));return JSON.parse(v);}catch{return d}},set(k,v){try{localStorage.setItem(this._p+k,JSON.stringify(v))}catch(e){if(e.name==='QuotaExceededError')try{localStorage.removeItem(this._p+'chs')}catch{}}},del(k){try{localStorage.removeItem(this._p+k)}catch{}}};
+const IDB={
+  _db:null,
+  _open(){if(this._db)return Promise.resolve(this._db);return new Promise((res,rej)=>{const r=indexedDB.open('m3uPlayer',1);r.onupgradeneeded=e=>{const db=e.target.result;['channels','meta'].forEach(s=>{if(!db.objectStoreNames.contains(s))db.createObjectStore(s);});};r.onsuccess=e=>{this._db=e.target.result;res(this._db);};r.onerror=e=>rej(e.target.error);});},
+  async get(store,key,def){try{const db=await this._open();return await new Promise(res=>{const r=db.transaction(store,'readonly').objectStore(store).get(key);r.onsuccess=()=>res(r.result??def);r.onerror=()=>res(def);});}catch{return def;}},
+  async put(store,key,val){try{const db=await this._open();await new Promise((res,rej)=>{const tx=db.transaction(store,'readwrite');tx.objectStore(store).put(val,key);tx.oncomplete=res;tx.onerror=rej;});}catch{}},
+  async del(store,key){try{const db=await this._open();await new Promise(res=>{const tx=db.transaction(store,'readwrite');tx.objectStore(store).delete(key);tx.oncomplete=res;tx.onerror=res;});}catch{}},
+  async migrate(){try{if(localStorage.getItem('m3u_idb_migrated'))return;const plKeys=Object.keys(localStorage).filter(k=>k.startsWith('m3u_pl_'));for(const k of plKeys){const id=k.slice(7);const raw=localStorage.getItem(k);if(!raw)continue;try{let v;if(raw.charCodeAt(0)===1)v=JSON.parse(LZString.decompressFromUTF16(raw.slice(1)));else v=JSON.parse(raw);if(v&&v.length)await this.put('channels',id,v);localStorage.removeItem(k);}catch{}}for(const k of['xt_series_meta','xt_cat_map']){const raw=localStorage.getItem('m3u_'+k);if(!raw)continue;try{let v;if(raw.charCodeAt(0)===1)v=JSON.parse(LZString.decompressFromUTF16(raw.slice(1)));else v=JSON.parse(raw);if(v)await this.put('meta',k,v);localStorage.removeItem('m3u_'+k);}catch{}}localStorage.setItem('m3u_idb_migrated','1');}catch{}}
+};
 // State
 let ALL=[],FAVS=new Set(S.get('favs',[])),RECENT=S.get('recent',[]),GRID_MODE=S.get('grid',false),BROWSE_TAB='all';
 let SEL=null,HERO_CH=null,CURRENT_CAT=null,CAT_CHANNELS=[],CAT_GRID=GRID_MODE;
 let SERIES_EXP={},SEASON_COL={},PLAYLISTS=S.get('pl_list',[]);
-let XTREAM_SERIES_META=S.get('xt_series_meta',{});
-let XTREAM_CAT_MAP=S.get('xt_cat_map',{});
+let XTREAM_SERIES_META={};
+let XTREAM_CAT_MAP={};
 let _curSeriesId=null;
 let hlsInstance=null,PLAY_IDX=-1,PLAY_LIST=[],overlayTimer=null,wakeLock=null;
 let EPG={};
@@ -853,17 +861,8 @@ function groupBySeries(channels){
   return{shows,rest};
 }
 // Playlist Manager
-function trySavePL(id,channels){
-  // Compressed (with logos) → compressed (no logos) → plain fallback
-  const key='m3u_pl_'+id;
-  const lz=(data)=>'\x01'+LZString.compressToUTF16(JSON.stringify(data));
-  const attempts=[
-    ()=>lz(channels.map(c=>({n:c.n,g:c.g,l:c.l,u:c.u}))),
-    ()=>lz(channels.map(c=>({n:c.n,g:c.g,u:c.u}))),
-    ()=>JSON.stringify(channels.slice(0,20000).map(c=>({n:c.n,g:c.g,u:c.u}))),
-  ];
-  for(const fn of attempts){try{localStorage.setItem(key,fn());return true;}catch{}}
-  return false;
+async function savePL(id,channels){
+  await IDB.put('channels',id,channels.map(c=>({n:c.n,g:c.g,l:c.l,u:c.u})));
 }
 function autoSavePL(source,channels){
   if(!source)return;
@@ -874,35 +873,34 @@ function autoSavePL(source,channels){
   if(existing){
     existing.ts=Date.now();existing.count=channels.length;
     if(source.xtream)existing.xtream=source.xtream;
-    trySavePL(existing.id,channels);
+    savePL(existing.id,channels);
   } else {
     const id=Date.now().toString(36)+Math.random().toString(36).slice(2,5);
     let name=source.name||'Playlist';if(source.type==='url')try{name=new URL(source.url).hostname;}catch{}
     PLAYLISTS.unshift({id,name,type:source.type,url:source.url||null,xtream:source.xtream||null,ts:Date.now(),count:channels.length});
-    if(PLAYLISTS.length>10){const old=PLAYLISTS.pop();S.del('pl_'+old.id);}
-    trySavePL(id,channels);
+    if(PLAYLISTS.length>10){const old=PLAYLISTS.pop();IDB.del('channels',old.id);}
+    savePL(id,channels);
   }
   S.set('pl_list',PLAYLISTS);renderPLList();
 }
-function loadPL(id){
+async function loadPL(id){
   const pl=PLAYLISTS.find(p=>p.id===id);if(!pl)return;
   if(pl.type==='xtream'&&pl.xtream){
-    // Cache-first: paste/login once, then open instantly & offline forever (Yenile re-fetches)
-    const cached=S.get('pl_'+id,null);
+    const cached=await IDB.get('channels',id,null);
     if(cached&&cached.length){setP(50);setTimeout(()=>initApp(cached.map((c,i)=>({id:i,...c})),{type:'xtream',name:pl.name,url:null,xtream:pl.xtream,ts:pl.ts}),60);return;}
     const x=pl.xtream;
     const si=document.getElementById('xt-server'),ui=document.getElementById('xt-user'),pi=document.getElementById('xt-pass');
     if(si)si.value=x.server;if(ui)ui.value=x.user;if(pi)pi.value=x.pass;
     loadXtream(x.server,x.user,x.pass);return;
   }
-  const chs=S.get('pl_'+id,null);
+  const chs=await IDB.get('channels',id,null);
   if(!chs||!chs.length){
     if(pl.type==='url'&&pl.url){showToast('Playlist yeniden yükleniyor…','info');loadURL(pl.url);return;}
-    showToast('Dosyayı tekrar yükleyin (depolama doldu)','info');return;
+    showToast('Dosyayı tekrar yükleyin','info');return;
   }
   setP(50);setTimeout(()=>initApp(chs.map((c,i)=>({id:i,...c})),{type:pl.type,name:pl.name,url:pl.url,ts:pl.ts}),60);
 }
-function deletePL(id,e){e.stopPropagation();PLAYLISTS=PLAYLISTS.filter(p=>p.id!==id);S.set('pl_list',PLAYLISTS);S.del('pl_'+id);renderPLList();showToast('Playlist silindi','info');}
+function deletePL(id,e){e.stopPropagation();PLAYLISTS=PLAYLISTS.filter(p=>p.id!==id);S.set('pl_list',PLAYLISTS);IDB.del('channels',id);renderPLList();showToast('Playlist silindi','info');}
 function renamePL(id,e){e.stopPropagation();const pl=PLAYLISTS.find(p=>p.id===id);if(!pl)return;const name=prompt('Playlist adı:',pl.name);if(name&&name.trim()){pl.name=name.trim();S.set('pl_list',PLAYLISTS);renderPLList();}}
 function renderPLList(){
   const wrap=document.getElementById('pl-list-wrap'),list=document.getElementById('pl-list');if(!wrap||!list)return;
@@ -1432,7 +1430,6 @@ document.getElementById('epg-url-input').addEventListener('keydown',e=>{if(e.key
 function initApp(channels,source){
   ALL=channels;PLAY_LIST=ALL;
   if(source){S.set('src',source);autoSavePL(source,ALL);}
-  try{S.set('chs',ALL.map(c=>({n:c.n,g:c.g,l:c.l,u:c.u})));}catch{}
   document.getElementById('load-screen').style.display='none';
   document.getElementById('browse-screen').classList.add('active');
   RECENT=S.get('recent',[]);
@@ -1512,7 +1509,7 @@ async function bgRefreshURL(url,plId){
       const chs=parseM3U(text);
       if(!chs.length)continue;
       const pl=plId?PLAYLISTS.find(p=>p.id===plId):PLAYLISTS.find(p=>p.type==='url'&&p.url===url);
-      if(pl){trySavePL(pl.id,chs);pl.ts=Date.now();pl.count=chs.length;S.set('pl_list',PLAYLISTS);}
+      if(pl){savePL(pl.id,chs);pl.ts=Date.now();pl.count=chs.length;S.set('pl_list',PLAYLISTS);}
       if(document.getElementById('browse-screen').classList.contains('active')){
         ALL=chs.map((c,i)=>({id:i,...c}));PLAY_LIST=ALL;RECENT=S.get('recent',[]);renderBrowse();
       }
@@ -1740,7 +1737,7 @@ document.getElementById('series-info-file').addEventListener('change',e=>{
   e.target.value='';
 });
 // ── /Series Detail Overlay ────────────────────────────────────────────────
-function processXtJson(text){
+async function processXtJson(text){
   text=(text||'').trim();
   if(!text){showToast('JSON içeriği boş','info');return;}
   let data;try{data=JSON.parse(text);}catch{showToast('Geçersiz JSON — dosya/metin tam değil','info',3500);return;}
@@ -1751,7 +1748,7 @@ function processXtJson(text){
   // Category list: has category_id + category_name + parent_id → store for grouping
   if(arr.length&&arr[0].category_id!==undefined&&arr[0].category_name!==undefined&&arr[0].parent_id!==undefined){
     arr.forEach(cat=>{if(cat.category_id&&cat.category_name)XTREAM_CAT_MAP[String(cat.category_id)]=String(cat.category_name);});
-    S.set('xt_cat_map',XTREAM_CAT_MAP);
+    IDB.put('meta','xt_cat_map',XTREAM_CAT_MAP);
     document.getElementById('xt-json-overlay').classList.remove('active');
     document.getElementById('xt-json-ta').value='';
     showToast(arr.length+' kategori kaydedildi','ok');
@@ -1770,7 +1767,7 @@ function processXtJson(text){
     });
     if(!chs.length){showToast('Dizi listesi boş','info');return;}
     XTREAM_SERIES_META=Object.assign(XTREAM_SERIES_META,newMeta);
-    S.set('xt_series_meta',XTREAM_SERIES_META);
+    IDB.put('meta','xt_series_meta',XTREAM_SERIES_META);
     if(server&&usr&&pwd)S.set('xtream_creds',{server,user:usr,pass:pwd});
     document.getElementById('xt-json-overlay').classList.remove('active');
     document.getElementById('xt-json-ta').value='';
@@ -1778,7 +1775,7 @@ function processXtJson(text){
     const existingPl=server&&usr?PLAYLISTS.find(p=>p.type==='xtream'&&p.xtream&&p.xtream.server===server&&p.xtream.user===usr):null;
     let finalChs=chs;
     if(existingPl){
-      const existing=S.get('pl_'+existingPl.id,[])||[];
+      const existing=(await IDB.get('channels',existingPl.id,[]))||[];
       const existingUrls=new Set(existing.map(ch=>ch.u));
       const newOnly=chs.filter(ch=>!existingUrls.has(ch.u));
       if(newOnly.length){
@@ -1815,7 +1812,7 @@ function processXtJson(text){
   let finalChs=chs;
   const existingPl=server&&usr?PLAYLISTS.find(p=>p.type==='xtream'&&p.xtream&&p.xtream.server===server&&p.xtream.user===usr):null;
   if(existingPl){
-    const existing=S.get('pl_'+existingPl.id,[])||[];
+    const existing=(await IDB.get('channels',existingPl.id,[]))||[];
     const existingUrls=new Set(existing.map(ch=>ch.u));
     const newOnly=chs.filter(ch=>!existingUrls.has(ch.u));
     if(newOnly.length){
@@ -1855,11 +1852,14 @@ renderPLList();
 const savedEpgUrl=S.get('epg_url','');
 if(savedEpgUrl){document.getElementById('epg-url-input').value=savedEpgUrl;loadEPG(savedEpgUrl);}
 // Auto-open single playlist
-(function(){
+(async function(){
+  await IDB.migrate();
+  IDB.get('meta','xt_series_meta',{}).then(v=>{XTREAM_SERIES_META=v;});
+  IDB.get('meta','xt_cat_map',{}).then(v=>{XTREAM_CAT_MAP=v;});
   if(PLAYLISTS.length===1){
     const pl=PLAYLISTS[0];
     if(pl.type==='xtream'&&pl.xtream){setTimeout(()=>loadPL(pl.id),200);return;}
-    const chs=S.get('pl_'+pl.id,null);
+    const chs=await IDB.get('channels',pl.id,null);
     if(chs&&chs.length){
       setTimeout(()=>loadPL(pl.id),200);
       // Background refresh for URL playlists (e.g. GitHub-hosted M3U)
