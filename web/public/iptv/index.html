@@ -476,7 +476,6 @@ body{height:var(--vh);background:var(--bg);color:var(--text);
         </button>
         <div class="gh-body" id="gh-body" style="display:none">
           <input class="url-input" id="gh-pat" type="password" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="GitHub Personal Access Token">
-          <input class="url-input" id="gh-repo" type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="kullanıcı/repo (örn: dutadam/m3u-player)">
           <button class="xt-btn" id="gh-save-btn">Kaydet &amp; Başlat</button>
           <div class="gh-status" id="gh-status"></div>
         </div>
@@ -1521,8 +1520,9 @@ document.getElementById('gh-toggle').addEventListener('click',()=>{
   body.style.display=open?'none':'';
   arr.textContent=open?'▸':'▾';
 });
+const GH_REPO='dutadam/m3u-player';
 document.getElementById('gh-save-btn').addEventListener('click',setGitHubAutoUpdate);
-['gh-pat','gh-repo'].forEach(id=>{document.getElementById(id).addEventListener('input',()=>{S.set('gh_pat',document.getElementById('gh-pat').value);S.set('gh_repo',document.getElementById('gh-repo').value.trim());});});
+document.getElementById('gh-pat').addEventListener('input',()=>S.set('gh_pat',document.getElementById('gh-pat').value));
 async function _loadSodium(){
   if(typeof sodium!=='undefined'){await sodium.ready;return sodium;}
   await new Promise((res,rej)=>{const s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/libsodium-wrappers@0.7.13/dist/modules/libsodium-wrappers.min.js';s.onload=res;s.onerror=()=>rej(new Error('libsodium yüklenemedi'));document.head.appendChild(s);});
@@ -1530,16 +1530,14 @@ async function _loadSodium(){
 }
 async function setGitHubAutoUpdate(){
   const pat=(document.getElementById('gh-pat').value||'').trim();
-  const repoFull=(document.getElementById('gh-repo').value||'').trim();
   const statusEl=document.getElementById('gh-status');
   const btn=document.getElementById('gh-save-btn');
   if(!pat){statusEl.textContent='⚠ GitHub Token girin';statusEl.style.color='var(--danger)';return;}
-  if(!repoFull||!repoFull.includes('/')){statusEl.textContent='⚠ Geçerli repo girin (kullanıcı/repo)';statusEl.style.color='var(--danger)';return;}
   const c=getXtCreds();
   if(!c.server||!c.user||!c.pass){statusEl.textContent='⚠ Önce Xtream bilgilerini girin';statusEl.style.color='var(--danger)';return;}
   const m3uUrl=_xtNorm(c.server)+'/get.php?username='+encodeURIComponent(c.user)+'&password='+encodeURIComponent(c.pass)+'&type=m3u_plus';
-  const slash=repoFull.indexOf('/');
-  const owner=repoFull.slice(0,slash);const repo=repoFull.slice(slash+1);
+  const slash=GH_REPO.indexOf('/');
+  const owner=GH_REPO.slice(0,slash);const repo=GH_REPO.slice(slash+1);
   btn.disabled=true;
   statusEl.textContent='GitHub\'a bağlanılıyor…';statusEl.style.color='var(--text-dim)';
   try{
@@ -1556,7 +1554,7 @@ async function setGitHubAutoUpdate(){
     if(!putRes.ok&&putRes.status!==204)throw new Error('Secret kaydedilemedi ('+putRes.status+')');
     statusEl.textContent='Workflow başlatılıyor…';
     await fetch('https://api.github.com/repos/'+owner+'/'+repo+'/actions/workflows/update-playlist.yml/dispatches',{method:'POST',headers:{'Authorization':'token '+pat,'Accept':'application/vnd.github.v3+json','Content-Type':'application/json'},body:JSON.stringify({ref:'main'})}).catch(()=>{});
-    S.set('gh_pat',pat);S.set('gh_repo',repoFull);
+    S.set('gh_pat',pat);
     statusEl.textContent='✓ Ayarlandı — GitHub Actions her 6 saatte günceller';
     statusEl.style.color='var(--success)';
   }catch(err){
@@ -1642,11 +1640,8 @@ if(_savedXt){
 }
 {
   const _ghPat=S.get('gh_pat','');
-  const _ghRepo=S.get('gh_repo','dutadam/m3u-player');
   const _ghPatEl=document.getElementById('gh-pat');
-  const _ghRepoEl=document.getElementById('gh-repo');
-  if(_ghPatEl)_ghPatEl.value=_ghPat;
-  if(_ghRepoEl)_ghRepoEl.value=_ghRepo;
+  if(_ghPatEl&&_ghPat)_ghPatEl.value=_ghPat;
   if(_ghPat){document.getElementById('gh-body').style.display='';document.getElementById('gh-toggle-arr').textContent='▾';}
 }
 // PWA
