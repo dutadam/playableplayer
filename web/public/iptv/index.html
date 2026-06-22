@@ -1405,12 +1405,14 @@ document.getElementById('url-prog-cancel').addEventListener('click',()=>{if(_url
 async function loadURL(url,statusEl,onSuccess){
   url=url.trim();if(!url.startsWith('http')){showToast('Geçerli bir URL girin','info');return;}
   const useOv=!statusEl;
+  const enc=encodeURIComponent(url);
   const proxies=[
     {lbl:'Doğrudan',  u:url},
-    {lbl:'Proxy 1',   u:'https://corsproxy.io/?'+encodeURIComponent(url)},
-    {lbl:'Proxy 2',   u:'https://api.allorigins.win/raw?url='+encodeURIComponent(url)},
-    {lbl:'Proxy 3',   u:'https://thingproxy.freeboard.io/fetch/'+url},
-    {lbl:'Proxy 4',   u:'https://api.codetabs.com/v1/proxy?quest='+encodeURIComponent(url)},
+    {lbl:'Proxy 1',   u:'https://corsproxy.io/?'+enc},
+    {lbl:'Proxy 2',   u:'https://api.allorigins.win/raw?url='+enc},
+    {lbl:'Proxy 3',   u:'https://proxy.cors.sh/'+url},
+    {lbl:'Proxy 4',   u:'https://api.codetabs.com/v1/proxy?quest='+enc},
+    {lbl:'Proxy 5',   u:'https://cors.eu.org/'+url},
   ];
   if(_urlAbortCtrl)_urlAbortCtrl.abort();
   _urlAbortCtrl=new AbortController();
@@ -1451,7 +1453,8 @@ async function loadURL(url,statusEl,onSuccess){
 async function bgRefreshURL(url,plId,opts){
   // Silent background refresh — direct fetch first (GitHub raw is CORS-friendly), then proxies
   opts=opts||{};
-  const proxies=[url,'https://corsproxy.io/?'+encodeURIComponent(url),'https://api.allorigins.win/raw?url='+encodeURIComponent(url),'https://thingproxy.freeboard.io/fetch/'+url,'https://api.codetabs.com/v1/proxy?quest='+encodeURIComponent(url)];
+  const _e=encodeURIComponent(url);
+  const proxies=[url,'https://corsproxy.io/?'+_e,'https://api.allorigins.win/raw?url='+_e,'https://proxy.cors.sh/'+url,'https://api.codetabs.com/v1/proxy?quest='+_e,'https://cors.eu.org/'+url];
   for(const u of proxies){
     try{
       const res=await fetch(u,{signal:makeSignal(25000)});
@@ -1503,12 +1506,22 @@ function loadXtream(server,user,pass){
   server=_xtNorm(server);
   if(!server||!user||!pass){showToast('Sunucu, kullanıcı adı ve şifre girin','info');return;}
   S.set('xtream_creds',{server,user,pass});
+  const m3uUrl=server+'/get.php?username='+encodeURIComponent(user)+'&password='+encodeURIComponent(pass)+'&type=m3u_plus';
   const statusEl=document.getElementById('xt-status');
   const btn=document.getElementById('xt-login-btn');
-  if(statusEl){statusEl.textContent='Bağlanıyor…';statusEl.style.color='var(--text-dim)';}
+  if(statusEl){statusEl.innerHTML='Bağlanıyor…';statusEl.style.color='var(--text-dim)';}
   if(btn){btn.disabled=true;btn.textContent='Yükleniyor…';}
-  loadURL(server+'/get.php?username='+encodeURIComponent(user)+'&password='+encodeURIComponent(pass)+'&type=m3u_plus',statusEl)
-    .finally(()=>{if(btn){btn.disabled=false;btn.textContent='Kanalları Yükle';}});
+  loadURL(m3uUrl,statusEl).then(()=>{
+    // on success loadText already ran — nothing extra needed
+  }).catch(()=>{}).finally(()=>{
+    if(btn){btn.disabled=false;btn.textContent='Kanalları Yükle';}
+    // If status still shows error (loadURL sets textContent), append copy link
+    if(statusEl&&statusEl.textContent.startsWith('❌')){
+      statusEl.innerHTML=statusEl.textContent+
+        '<br><span style="font-size:11px;color:var(--text-dim)">M3U linki: </span>'+
+        '<a style="font-size:11px;color:var(--accent);word-break:break-all" href="'+m3uUrl+'" target="_blank">'+m3uUrl+'</a>';
+    }
+  });
 }
 function getXtCreds(){
   const g=id=>{const el=document.getElementById(id);return el?el.value.trim():'';};
