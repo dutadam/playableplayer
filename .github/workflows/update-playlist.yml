@@ -1,0 +1,58 @@
+name: Update M3U Playlist
+
+on:
+  schedule:
+    - cron: '0 */6 * * *'   # Her 6 saatte bir
+  workflow_dispatch:
+    inputs:
+      force:
+        description: 'Değişiklik olmasa bile kaydet'
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Fetch playlist
+        run: |
+          curl -fsSL \
+            --max-time 30 \
+            --retry 3 \
+            --retry-delay 5 \
+            -o iptv/playlist.m3u.new \
+            "${{ secrets.M3U_SOURCE_URL }}"
+
+      - name: Validate (must start with #EXTM3U)
+        run: |
+          head -1 iptv/playlist.m3u.new | grep -q '#EXTM3U' \
+            || (echo "Geçersiz M3U dosyası" && exit 1)
+
+      - name: Replace if changed
+        id: changed
+        run: |
+          if ! diff -q iptv/playlist.m3u iptv/playlist.m3u.new > /dev/null 2>&1 \
+             || ${{ github.event.inputs.force == 'true' }}; then
+            mv iptv/playlist.m3u.new iptv/playlist.m3u
+            echo "updated=true" >> $GITHUB_OUTPUT
+          else
+            rm iptv/playlist.m3u.new
+            echo "updated=false" >> $GITHUB_OUTPUT
+            echo "Playlist değişmemiş, commit atlanıyor."
+          fi
+
+      - name: Commit and push
+        if: steps.changed.outputs.updated == 'true'
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          CHANNEL_COUNT=$(grep -c '^#EXTINF' iptv/playlist.m3u || echo 0)
+          git add iptv/playlist.m3u
+          git commit -m "chore: playlist güncellendi — ${CHANNEL_COUNT} kanal [skip ci]"
+          git push

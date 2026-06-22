@@ -11,6 +11,7 @@
 <link rel="apple-touch-icon" href="../apple-touch-icon.png">
 <title>M3U Player</title>
 <script src="https://cdn.jsdelivr.net/npm/hls.js@1/dist/hls.min.js"></script>
+<script>var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=",n="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+-$",e={};function t(r,o){if(!e[r]){e[r]={};for(var n=0;n<r.length;n++)e[r][r.charAt(n)]=n}return e[r][o]}var i={compressToBase64:function(r){if(null==r)return"";var n=i._compress(r,6,function(r){return o.charAt(r)});switch(n.length%4){default:case 0:return n;case 1:return n+"===";case 2:return n+"==";case 3:return n+"="}},decompressFromBase64:function(r){return null==r?"":""==r?null:i._decompress(r.length,32,function(n){return t(o,r.charAt(n))})},compressToUTF16:function(o){return null==o?"":i._compress(o,15,function(o){return r(o+32)})+" "},decompressFromUTF16:function(r){return null==r?"":""==r?null:i._decompress(r.length,16384,function(o){return r.charCodeAt(o)-32})},compressToUint8Array:function(r){for(var o=i.compress(r),n=new Uint8Array(2*o.length),e=0,t=o.length;e<t;e++){var s=o.charCodeAt(e);n[2*e]=s>>>8,n[2*e+1]=s%256}return n},decompressFromUint8Array:function(o){if(null==o)return i.decompress(o);for(var n=new Array(o.length/2),e=0,t=n.length;e<t;e++)n[e]=256*o[2*e]+o[2*e+1];var s=[];return n.forEach(function(o){s.push(r(o))}),i.decompress(s.join(""))},compressToEncodedURIComponent:function(r){return null==r?"":i._compress(r,6,function(r){return n.charAt(r)})},decompressFromEncodedURIComponent:function(r){return null==r?"":""==r?null:(r=r.replace(/ /g,"+"),i._decompress(r.length,32,function(o){return t(n,r.charAt(o))}))},compress:function(o){return i._compress(o,16,function(o){return r(o)})},_compress:function(r,o,n){if(null==r)return"";var e,t,i,s={},u={},a="",p="",c="",l=2,f=3,h=2,d=[],m=0,v=0;for(i=0;i<r.length;i+=1)if(a=r.charAt(i),Object.prototype.hasOwnProperty.call(s,a)||(s[a]=f++,u[a]=!0),p=c+a,Object.prototype.hasOwnProperty.call(s,p))c=p;else{if(Object.prototype.hasOwnProperty.call(u,c)){if(c.charCodeAt(0)<256){for(e=0;e<h;e++)m<<=1,v==o-1?(v=0,d.push(n(m)),m=0):v++;for(t=c.charCodeAt(0),e=0;e<8;e++)m=m<<1|1&t,v==o-1?(v=0,d.push(n(m)),m=0):v++,t>>=1}else{for(t=1,e=0;e<h;e++)m=m<<1|t,v==o-1?(v=0,d.push(n(m)),m=0):v++,t=0;for(t=c.charCodeAt(0),e=0;e<16;e++)m=m<<1|1&t,v==o-1?(v=0,d.push(n(m)),m=0):v++,t>>=1}0==--l&&(l=Math.pow(2,h),h++),delete u[c]}else for(t=s[c],e=0;e<h;e++)m=m<<1|1&t,v==o-1?(v=0,d.push(n(m)),m=0):v++,t>>=1;0==--l&&(l=Math.pow(2,h),h++),s[p]=f++,c=String(a)}if(""!==c){if(Object.prototype.hasOwnProperty.call(u,c)){if(c.charCodeAt(0)<256){for(e=0;e<h;e++)m<<=1,v==o-1?(v=0,d.push(n(m)),m=0):v++;for(t=c.charCodeAt(0),e=0;e<8;e++)m=m<<1|1&t,v==o-1?(v=0,d.push(n(m)),m=0):v++,t>>=1}else{for(t=1,e=0;e<h;e++)m=m<<1|t,v==o-1?(v=0,d.push(n(m)),m=0):v++,t=0;for(t=c.charCodeAt(0),e=0;e<16;e++)m=m<<1|1&t,v==o-1?(v=0,d.push(n(m)),m=0):v++,t>>=1}0==--l&&(l=Math.pow(2,h),h++),delete u[c]}else for(t=s[c],e=0;e<h;e++)m=m<<1|1&t,v==o-1?(v=0,d.push(n(m)),m=0):v++,t>>=1;0==--l&&(l=Math.pow(2,h),h++)}for(t=2,e=0;e<h;e++)m=m<<1|1&t,v==o-1?(v=0,d.push(n(m)),m=0):v++,t>>=1;for(;;){if(m<<=1,v==o-1){d.push(n(m));break}v++}return d.join("")},decompress:function(r){return null==r?"":""==r?null:i._decompress(r.length,32768,function(o){return r.charCodeAt(o)})},_decompress:function(o,n,e){var t,i,s,u,a,p,c,l=[],f=4,h=4,d=3,m="",v=[],g={val:e(0),position:n,index:1};for(t=0;t<3;t+=1)l[t]=t;for(s=0,a=Math.pow(2,2),p=1;p!=a;)u=g.val&g.position,g.position>>=1,0==g.position&&(g.position=n,g.val=e(g.index++)),s|=(u>0?1:0)*p,p<<=1;switch(s){case 0:for(s=0,a=Math.pow(2,8),p=1;p!=a;)u=g.val&g.position,g.position>>=1,0==g.position&&(g.position=n,g.val=e(g.index++)),s|=(u>0?1:0)*p,p<<=1;c=r(s);break;case 1:for(s=0,a=Math.pow(2,16),p=1;p!=a;)u=g.val&g.position,g.position>>=1,0==g.position&&(g.position=n,g.val=e(g.index++)),s|=(u>0?1:0)*p,p<<=1;c=r(s);break;case 2:return""}for(l[3]=c,i=c,v.push(c);;){if(g.index>o)return"";for(s=0,a=Math.pow(2,d),p=1;p!=a;)u=g.val&g.position,g.position>>=1,0==g.position&&(g.position=n,g.val=e(g.index++)),s|=(u>0?1:0)*p,p<<=1;switch(c=s){case 0:for(s=0,a=Math.pow(2,8),p=1;p!=a;)u=g.val&g.position,g.position>>=1,0==g.position&&(g.position=n,g.val=e(g.index++)),s|=(u>0?1:0)*p,p<<=1;l[h++]=r(s),c=h-1,f--;break;case 1:for(s=0,a=Math.pow(2,16),p=1;p!=a;)u=g.val&g.position,g.position>>=1,0==g.position&&(g.position=n,g.val=e(g.index++)),s|=(u>0?1:0)*p,p<<=1;l[h++]=r(s),c=h-1,f--;break;case 2:return v.join("")}if(0==f&&(f=Math.pow(2,d),d++),l[c])m=l[c];else{if(c!==h)return null;m=i+i.charAt(0)}v.push(m),l[h++]=i+m.charAt(0),i=m,0==--f&&(f=Math.pow(2,d),d++)}}};return i}();</script>
 <style>
 :root {
   --bg:#0B0B10; --surface:#111118; --elevated:#1A1A24; --border:#22222E;
@@ -32,24 +33,25 @@ body{height:var(--vh);background:var(--bg);color:var(--text);
   padding:calc(20px + var(--safe-t)) calc(20px + var(--safe-r)) calc(20px + var(--safe-b)) calc(20px + var(--safe-l));
   gap:16px;background:var(--bg);height:var(--vh);width:100%;max-width:100%}
 #load-screen>*{max-width:100%}
-.xtream-form .url-input{width:100%}
 .logo{display:flex;align-items:center;gap:10px;margin-bottom:4px}
 .logo-icon{width:42px;height:42px;background:var(--accent);border-radius:12px;display:flex;align-items:center;justify-content:center;box-shadow:0 0 24px var(--accent-glow)}
 .logo-icon svg{width:22px;height:22px;fill:white}
 .logo-name{font-size:22px;font-weight:700;letter-spacing:-.5px}
-.logo-sub{font-size:10px;color:var(--text-dim);letter-spacing:2px;text-transform:uppercase;margin-top:2px}
 .section-label{font-size:11px;color:var(--text-dim);font-weight:600;letter-spacing:1px;text-transform:uppercase;width:100%;max-width:440px}
-.drop-zone{width:100%;max-width:440px;border:2px dashed var(--border);border-radius:14px;padding:28px 20px;text-align:center;cursor:pointer;transition:all .2s;background:var(--surface);position:relative;overflow:hidden}
-.drop-zone.drag-over{border-color:var(--accent);background:var(--accent-dim)}
-.drop-zone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;font-size:16px}
-.drop-icon{width:40px;height:40px;margin:0 auto 10px;opacity:.35}
-.drop-icon svg{width:40px;height:40px;fill:var(--text)}
-.drop-title{font-size:15px;font-weight:600;margin-bottom:4px}
-.drop-sub{font-size:12px;color:var(--text-dim)}
-@media(hover:none){.drop-sub{display:none}}
-.divider{display:flex;align-items:center;gap:12px;width:100%;max-width:440px}
-.divider-line{flex:1;height:1px;background:var(--border)}
-.divider-text{font-size:11px;color:var(--text-dim)}
+.add-card{width:100%;max-width:440px;background:var(--surface);border:1px solid var(--border);border-radius:16px;overflow:hidden;transition:border-color .2s}
+.add-card.drag-over{border-color:var(--accent)}
+.add-tabs{display:flex;border-bottom:1px solid var(--border)}
+.add-tab{flex:1;padding:12px 8px;border:none;background:none;color:var(--text-dim);font-size:13px;font-weight:600;cursor:pointer;touch-action:manipulation;transition:color .15s,background .15s;-webkit-appearance:none}
+.add-tab.active{color:var(--accent);background:var(--accent-dim)}
+.add-tab:active{opacity:.75}
+.add-pane{padding:14px;display:flex;flex-direction:column;gap:10px}
+.file-pick-btn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;width:100%;padding:32px 16px;border:2px dashed var(--border);border-radius:10px;cursor:pointer;text-align:center;color:var(--text);transition:all .2s;position:relative}
+.file-pick-btn svg{width:28px;height:28px;fill:var(--text);opacity:.4}
+.file-pick-btn>span{font-size:15px;font-weight:600}
+.file-pick-hint{font-size:12px;color:var(--text-dim)}
+@media(hover:none){.file-pick-hint{display:none}}
+.file-pick-btn input{position:absolute;inset:0;opacity:0;cursor:pointer;font-size:16px}
+.add-card.drag-over .file-pick-btn,.file-pick-btn:active{border-color:var(--accent);background:var(--accent-dim);color:var(--accent)}
 .url-input{flex:1;background:var(--surface);border:1px solid var(--border);border-radius:10px;color:var(--text);font-size:16px;padding:11px 14px;outline:none;transition:border .2s;-webkit-appearance:none}
 .url-input::placeholder{color:var(--text-dim)}
 .url-input:focus{border-color:var(--accent)}
@@ -201,6 +203,7 @@ body{height:var(--vh);background:var(--bg);color:var(--text);
 .cat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:12px}
 @media(min-width:480px){.cat-grid{grid-template-columns:repeat(4,1fr)}}
 @media(min-width:700px){.cat-grid{grid-template-columns:repeat(5,1fr)}}
+.cat-grid .b-card-logo img{object-fit:cover;padding:0}
 .cat-list-item{display:flex;align-items:center;gap:12px;padding:10px 14px;border-bottom:1px solid rgba(34,34,46,.5);cursor:pointer;min-height:60px;touch-action:manipulation;transition:background .1s}
 .cat-list-item:active{background:var(--elevated)}
 .cat-list-item.playing{background:rgba(79,127,255,.08)}
@@ -377,40 +380,16 @@ body{height:var(--vh);background:var(--bg);color:var(--text);
 .url-prog-cancel{margin-top:4px;padding:10px 28px;border-radius:10px;border:1px solid var(--border);background:none;color:var(--text-dim);font-size:14px;cursor:pointer;touch-action:manipulation;-webkit-appearance:none}
 .url-prog-cancel:active{background:var(--elevated)}
 /* XTREAM form */
-.xtream-form{width:100%;max-width:440px;display:flex;flex-direction:column;gap:8px}
 .xt-btn{width:100%;padding:12px 18px;border-radius:10px;border:none;cursor:pointer;font-size:15px;font-weight:600;background:linear-gradient(135deg,var(--accent) 0%,#7B5BFF 100%);color:white;touch-action:manipulation;-webkit-appearance:none;transition:opacity .15s,transform .1s}
 .xt-btn:active{opacity:.82;transform:scale(.97)}
 .xt-btn:disabled{opacity:.5;pointer-events:none}
 .xt-status{font-size:11px;color:var(--text-dim);min-height:16px;width:100%;max-width:440px}
-.xt-secondary-btn{width:100%;max-width:440px;padding:10px 14px;border-radius:10px;border:1px solid var(--border);background:var(--surface);color:var(--text-dim);font-size:13px;font-weight:500;cursor:pointer;touch-action:manipulation;-webkit-appearance:none;display:flex;align-items:center;justify-content:center;gap:7px}
-.xt-secondary-btn svg{width:14px;height:14px;fill:currentColor;opacity:.55;flex-shrink:0}
-.xt-secondary-btn:active{background:var(--elevated);color:var(--text)}
-/* XTREAM JSON overlay */
-#xt-json-overlay{display:none;position:fixed;inset:0;background:var(--bg);z-index:60;flex-direction:column}
-#xt-json-overlay.active{display:flex}
-.xt-json-topbar{display:flex;align-items:center;gap:10px;padding:calc(14px + var(--safe-t)) calc(14px + var(--safe-r)) 12px calc(14px + var(--safe-l));background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0}
-.xt-json-topbar-title{font-size:17px;font-weight:700;flex:1}
-.xt-json-hint{padding:14px calc(14px + var(--safe-l));background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0;display:flex;flex-direction:column;gap:10px}
-.xt-hint-steps{font-size:12px;color:var(--text-dim);line-height:2}
-.xt-hint-steps b{color:var(--accent)}
-.xt-hint-url-row{display:flex;gap:8px;align-items:stretch}
-.xt-hint-url{flex:1;font-size:10px;font-family:monospace;color:var(--accent);background:var(--elevated);padding:8px 10px;border-radius:8px;word-break:break-all;line-height:1.5;user-select:all;-webkit-user-select:all}
 .xt-copy-url-btn{flex-shrink:0;padding:8px 14px;border-radius:8px;border:none;background:var(--accent-dim);color:var(--accent);font-size:12px;font-weight:600;cursor:pointer;touch-action:manipulation;white-space:nowrap;-webkit-appearance:none;align-self:center}
 .xt-copy-url-btn:active{background:var(--accent);color:white}
-.xt-hint-m3u-label{font-size:11px;font-weight:700;color:var(--success);letter-spacing:.06em;text-transform:uppercase}
-.xt-m3u-btn{background:linear-gradient(135deg,var(--success) 0%,#1aaa6e 100%)!important;font-size:15px!important;padding:13px!important}
-.xt-hint-m3u-note{font-size:11px;color:var(--text-dim);line-height:1.5}
-.xt-hint-divider-row{display:flex;align-items:center;gap:10px;width:100%}
-.xt-hint-divider-row::before,.xt-hint-divider-row::after{content:'';flex:1;height:1px;background:var(--border)}
-.xt-hint-divider-row span{font-size:11px;color:var(--text-dim);white-space:nowrap}
-.xt-hint-actions{display:flex;flex-direction:column;gap:8px;width:100%}
 .xt-json-newtab-btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:11px;border-radius:10px;border:none;background:var(--accent);color:#fff;font-size:14px;font-weight:700;cursor:pointer;touch-action:manipulation;-webkit-appearance:none}
 .xt-json-newtab-btn.secondary{background:var(--surface);color:var(--text);border:1px solid var(--border)}
 .xt-json-newtab-btn svg{width:16px;height:16px;fill:currentColor;flex-shrink:0}
 .xt-json-newtab-btn:active{opacity:.82}
-#xt-json-ta{flex:1;background:var(--elevated);color:var(--text);font-size:11px;font-family:monospace;border:none;padding:14px;resize:none;outline:none;-webkit-overflow-scrolling:touch;line-height:1.5}
-#xt-json-ta::placeholder{color:var(--text-dim);font-family:-apple-system,system-ui,sans-serif;font-size:13px;line-height:1.6}
-.xt-json-bottom{padding:12px calc(14px + var(--safe-r)) calc(14px + var(--safe-b)) calc(14px + var(--safe-l));background:var(--surface);border-top:1px solid var(--border);flex-shrink:0;display:flex;flex-direction:column;gap:8px}
 .xt-json-file-btn{position:relative;display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:12px;border-radius:10px;border:1px solid var(--accent);background:var(--accent-dim);color:var(--accent);font-size:14px;font-weight:600;cursor:pointer;touch-action:manipulation;text-align:center}
 .xt-json-file-btn svg{width:16px;height:16px;fill:currentColor;flex-shrink:0}
 .xt-json-file-btn input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;font-size:16px}
@@ -454,35 +433,36 @@ body{height:var(--vh);background:var(--bg);color:var(--text);
     <div class="logo-icon"><svg viewBox="0 0 24 24"><path d="M4 6h16v2H4zm0 5h16v2H4zm0 5h16v2H4z"/></svg></div>
     <div><div class="logo-name">M3U Player</div></div>
   </div>
-  <div class="section-label" style="color:var(--success)">EPG (Program Rehberi)</div>
-  <div class="epg-row">
-    <input class="epg-input" id="epg-url-input" type="url" inputmode="url" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="https://…/epg.xml veya epg.xml.gz">
-    <button class="btn-epg" id="epg-load-btn">Yükle</button>
-  </div>
-  <div class="epg-status" id="epg-status"></div>
   <div id="pl-list-wrap" style="display:none;width:100%;max-width:440px">
     <div class="section-label" style="margin-bottom:10px">PLAYLİST'LERİM</div>
     <div class="pl-list" id="pl-list"></div>
   </div>
-  <div class="section-label">YENİ PLAYLIST EKLE</div>
-  <div class="drop-zone" id="drop-zone">
-    <input type="file" id="file-input" accept=".m3u,.m3u8,.txt,text/plain">
-    <div class="drop-icon"><svg viewBox="0 0 24 24"><path d="M9 16h6v-6h4l-7-7-7 7h4zm-4 2h14v2H5z"/></svg></div>
-    <div class="drop-title">M3U dosyası seç</div>
-    <div class="drop-sub">veya buraya sürükle bırak</div>
+  <div class="add-card" id="drop-zone">
+    <div class="add-tabs" id="add-tabs">
+      <button class="add-tab active" data-tab="url">URL</button>
+      <button class="add-tab" data-tab="file">Dosya</button>
+      <button class="add-tab" data-tab="xt">Xtream</button>
+    </div>
+    <div class="add-pane" id="add-pane-url">
+      <input class="url-input" id="m3u-url-input" type="url" inputmode="url" autocomplete="url" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="https://… M3U linki veya Xtream get.php">
+      <button class="btn btn-primary" id="m3u-url-btn" style="width:100%">Yükle</button>
+    </div>
+    <div class="add-pane" id="add-pane-file" style="display:none">
+      <label class="file-pick-btn" for="file-input">
+        <svg viewBox="0 0 24 24"><path d="M9 16h6v-6h4l-7-7-7 7h4zm-4 2h14v2H5z"/></svg>
+        <span>M3U dosyası seç</span>
+        <span class="file-pick-hint">veya buraya sürükle bırak</span>
+        <input type="file" id="file-input" accept=".m3u,.m3u8,.txt,text/plain">
+      </label>
+    </div>
+    <div class="add-pane" id="add-pane-xt" style="display:none">
+      <input class="url-input" id="xt-server" type="url" inputmode="url" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="http://sunucu:8080">
+      <input class="url-input" id="xt-user" type="text" inputmode="text" autocomplete="username" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Kullanıcı adı">
+      <input class="url-input" id="xt-pass" type="password" autocomplete="current-password" placeholder="Şifre">
+      <button class="xt-btn" id="xt-login-btn">Kanalları Yükle</button>
+      <div class="xt-status" id="xt-status"></div>
+    </div>
   </div>
-  <div class="divider"><div class="divider-line"></div><div class="divider-text">veya Xtream Codes</div><div class="divider-line"></div></div>
-  <div class="xtream-form">
-    <input class="url-input" id="xt-server" type="url" inputmode="url" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="http://sunucu:8080">
-    <input class="url-input" id="xt-user" type="text" inputmode="text" autocomplete="username" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Kullanıcı adı">
-    <input class="url-input" id="xt-pass" type="password" autocomplete="current-password" placeholder="Şifre">
-    <button class="xt-btn" id="xt-login-btn">Kanalları Yükle</button>
-  </div>
-  <div class="xt-status" id="xt-status"></div>
-  <button class="xt-secondary-btn" id="xt-json-open-btn">
-    <svg viewBox="0 0 24 24"><path d="M19 2h-4.18C14.4.84 13.3 0 12 0c-1.3 0-2.4.84-2.82 2H5c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-7 0c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1zm7 18H5V4h2v3h10V4h2v16z"/></svg>
-    JSON ile yükle / güncelle
-  </button>
 </div>
 <!-- URL LOADING PROGRESS -->
 <div id="url-progress">
@@ -491,56 +471,6 @@ body{height:var(--vh);background:var(--bg);color:var(--text);
   <div class="url-prog-dots" id="url-prog-dots"></div>
   <div class="url-prog-sub" id="url-prog-sub"></div>
   <button class="url-prog-cancel" id="url-prog-cancel">İptal</button>
-</div>
-<!-- XTREAM JSON PASTE OVERLAY -->
-<div id="xt-json-overlay">
-  <div class="xt-json-topbar">
-    <span class="xt-json-topbar-title">İçerik Yükle</span>
-    <button class="search-cancel" id="xt-json-close-btn">İptal</button>
-  </div>
-  <div class="xt-json-hint">
-    <div class="xt-hint-m3u-label">Önerilen — tek dosyada canlı + film + dizi</div>
-    <button class="xt-json-newtab-btn xt-m3u-btn" id="xt-open-m3u-btn">
-      <svg viewBox="0 0 24 24"><path d="M19 19H5V5h7V3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7h-2v7zM14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3h-7z"/></svg>
-      Hepsini M3U Olarak İndir
-    </button>
-    <div class="xt-hint-m3u-note">Safari indirir → uygulamaya geri dön → M3U dosyasını seç</div>
-    <div class="xt-hint-divider-row"><span>veya ayrı ayrı JSON</span></div>
-    <div class="xt-hint-actions">
-      <button class="xt-json-newtab-btn secondary" id="xt-open-live-btn">
-        <svg viewBox="0 0 24 24"><path d="M19 19H5V5h7V3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7h-2v7zM14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3h-7z"/></svg>
-        Canlı Kanallar JSON
-      </button>
-      <button class="xt-json-newtab-btn secondary" id="xt-open-vod-btn">
-        <svg viewBox="0 0 24 24"><path d="M19 19H5V5h7V3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7h-2v7zM14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3h-7z"/></svg>
-        Filmler JSON
-      </button>
-      <button class="xt-json-newtab-btn secondary" id="xt-open-series-btn">
-        <svg viewBox="0 0 24 24"><path d="M19 19H5V5h7V3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7h-2v7zM14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3h-7z"/></svg>
-        Diziler JSON
-      </button>
-    </div>
-    <div class="xt-hint-divider-row"><span>kategori adları (opsiyonel — gruplaması için)</span></div>
-    <div class="xt-hint-actions">
-      <button class="xt-json-newtab-btn secondary" id="xt-open-livecat-btn">
-        <svg viewBox="0 0 24 24"><path d="M19 19H5V5h7V3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7h-2v7zM14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3h-7z"/></svg>
-        Canlı Kategoriler JSON
-      </button>
-      <button class="xt-json-newtab-btn secondary" id="xt-open-vodcat-btn">
-        <svg viewBox="0 0 24 24"><path d="M19 19H5V5h7V3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7h-2v7zM14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3h-7z"/></svg>
-        Film Kategoriler JSON
-      </button>
-    </div>
-  </div>
-  <textarea id="xt-json-ta" placeholder="JSON içeriğini buraya yapıştırın…&#10;&#10;Nasıl yapılır:&#10;1. Yukarıdaki linki kopyala → Safari'de aç&#10;2. Uzun bas → Tümünü Seç → Kopyala&#10;3. Buraya yapıştır → Yükle'ye bas"></textarea>
-  <div class="xt-json-bottom">
-    <label class="xt-json-file-btn" for="xt-json-file">
-      <svg viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm4 18H6V4h7v5h5v11z"/></svg>
-      İndirdiğin player_api.json dosyasını seç
-      <input type="file" id="xt-json-file" accept=".json,application/json,text/plain">
-    </label>
-    <button class="btn btn-primary" id="xt-json-load-btn" style="width:100%;font-size:15px;padding:13px">Yapıştırılanı Yükle</button>
-</div>
 </div>
 <!-- SERIES DETAIL OVERLAY -->
 <div id="series-overlay">
@@ -646,19 +576,6 @@ body{height:var(--vh);background:var(--bg);color:var(--text);
     <button class="search-cancel" id="settings-close-btn">Kapat</button>
   </div>
   <div id="settings-body">
-    <div id="settings-xt-sec" style="display:none">
-      <div class="settings-sec-label">Xtream Codes — JSON Güncelle</div>
-      <div class="settings-row" style="flex-direction:column;gap:8px">
-        <input class="settings-input" id="settings-xt-server" type="url" inputmode="url" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="http://sunucu:8080">
-        <input class="settings-input" id="settings-xt-user" type="text" autocomplete="username" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Kullanıcı adı">
-        <input class="settings-input" id="settings-xt-pass" type="password" autocomplete="current-password" placeholder="Şifre">
-        <button class="btn-refresh primary" id="settings-xt-json-btn" style="width:100%">JSON ile Güncelle</button>
-      </div>
-      <div class="settings-hint">
-        Bilgiler otomatik kaydedilir. "JSON ile Güncelle" → linki yeni sekmede açar (player_api.json iner), sonra indirdiğin dosyayı seçersin. Kanal listesi güncellendiğinde tekrar kullan.
-      </div>
-      <div class="settings-status" id="settings-xt-status"></div>
-    </div>
     <div>
       <div class="settings-sec-label">M3U Playlist URL</div>
       <div class="settings-row">
@@ -756,17 +673,28 @@ if(window.visualViewport)window.visualViewport.addEventListener('resize',setVH);
 else window.addEventListener('resize',setVH);
 const isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent)&&!window.MSStream;
 // Storage
-const S={_p:'m3u_',get(k,d){try{const v=localStorage.getItem(this._p+k);return v!=null?JSON.parse(v):d}catch{return d}},set(k,v){try{localStorage.setItem(this._p+k,JSON.stringify(v))}catch(e){if(e.name==='QuotaExceededError')try{localStorage.removeItem(this._p+'chs')}catch{}}},del(k){try{localStorage.removeItem(this._p+k)}catch{}}};
+const S={_p:'m3u_',get(k,d){try{const v=localStorage.getItem(this._p+k);if(v==null)return d;if(v.charCodeAt(0)===1)return JSON.parse(LZString.decompressFromUTF16(v.slice(1)));return JSON.parse(v);}catch{return d}},set(k,v){try{localStorage.setItem(this._p+k,JSON.stringify(v))}catch(e){if(e.name==='QuotaExceededError')try{localStorage.removeItem(this._p+'chs')}catch{}}},del(k){try{localStorage.removeItem(this._p+k)}catch{}}};
+const IDB={
+  _db:null,
+  _open(){if(this._db)return Promise.resolve(this._db);return new Promise((res,rej)=>{const r=indexedDB.open('m3uPlayer',1);r.onupgradeneeded=e=>{const db=e.target.result;['channels','meta'].forEach(s=>{if(!db.objectStoreNames.contains(s))db.createObjectStore(s);});};r.onsuccess=e=>{this._db=e.target.result;res(this._db);};r.onerror=e=>rej(e.target.error);});},
+  async get(store,key,def){try{const db=await this._open();return await new Promise(res=>{const r=db.transaction(store,'readonly').objectStore(store).get(key);r.onsuccess=()=>res(r.result??def);r.onerror=()=>res(def);});}catch{return def;}},
+  async put(store,key,val){try{const db=await this._open();await new Promise((res,rej)=>{const tx=db.transaction(store,'readwrite');tx.objectStore(store).put(val,key);tx.oncomplete=res;tx.onerror=rej;});}catch{}},
+  async del(store,key){try{const db=await this._open();await new Promise(res=>{const tx=db.transaction(store,'readwrite');tx.objectStore(store).delete(key);tx.oncomplete=res;tx.onerror=res;});}catch{}},
+  async migrate(){try{if(localStorage.getItem('m3u_idb_migrated'))return;const plKeys=Object.keys(localStorage).filter(k=>k.startsWith('m3u_pl_'));for(const k of plKeys){const id=k.slice(7);const raw=localStorage.getItem(k);if(!raw)continue;try{let v;if(raw.charCodeAt(0)===1)v=JSON.parse(LZString.decompressFromUTF16(raw.slice(1)));else v=JSON.parse(raw);if(v&&v.length)await this.put('channels',id,v);localStorage.removeItem(k);}catch{}}for(const k of['xt_series_meta','xt_cat_map']){const raw=localStorage.getItem('m3u_'+k);if(!raw)continue;try{let v;if(raw.charCodeAt(0)===1)v=JSON.parse(LZString.decompressFromUTF16(raw.slice(1)));else v=JSON.parse(raw);if(v)await this.put('meta',k,v);localStorage.removeItem('m3u_'+k);}catch{}}localStorage.setItem('m3u_idb_migrated','1');}catch{}}
+};
 // State
 let ALL=[],FAVS=new Set(S.get('favs',[])),RECENT=S.get('recent',[]),GRID_MODE=S.get('grid',false),BROWSE_TAB='all';
 let SEL=null,HERO_CH=null,CURRENT_CAT=null,CAT_CHANNELS=[],CAT_GRID=GRID_MODE;
 let SERIES_EXP={},SEASON_COL={},PLAYLISTS=S.get('pl_list',[]);
-let XTREAM_SERIES_META=S.get('xt_series_meta',{});
-let XTREAM_CAT_MAP=S.get('xt_cat_map',{});
+let XTREAM_SERIES_META={};
+let XTREAM_CAT_MAP={};
 let _curSeriesId=null;
 let hlsInstance=null,PLAY_IDX=-1,PLAY_LIST=[],overlayTimer=null,wakeLock=null;
 let EPG={};
 let PROGRESS=S.get('prog_v1',{});let _progTimer=null,_lastPos=0;
+let _browseRef=null,_browseCache={};
+let _seriesMapRef=null,_seriesMapCache=null;
+let _catScrollOff=null;
 function saveProgress(url,pos,dur){if(!url||!dur||isNaN(pos)||isNaN(dur)||dur<30)return;PROGRESS[url]={pos:Math.floor(pos),dur:Math.floor(dur),ts:Date.now()};clearTimeout(_progTimer);_progTimer=setTimeout(()=>{try{S.set('prog_v1',PROGRESS);}catch{}},2000);}
 function getPct(url){const p=PROGRESS[url];if(!p||!p.dur)return 0;return Math.min(100,Math.floor(p.pos/p.dur*100));}
 function getResume(url){const p=PROGRESS[url];if(!p||!p.pos||!p.dur)return 0;return p.pos/p.dur>0.95?0:p.pos;}
@@ -852,15 +780,8 @@ function groupBySeries(channels){
   return{shows,rest};
 }
 // Playlist Manager
-function trySavePL(id,channels){
-  // Try full → no logos → first 20k no logos
-  const attempts=[
-    ()=>channels.map(c=>({n:c.n,g:c.g,l:c.l,u:c.u})),
-    ()=>channels.map(c=>({n:c.n,g:c.g,u:c.u})),
-    ()=>channels.slice(0,20000).map(c=>({n:c.n,g:c.g,u:c.u})),
-  ];
-  for(const fn of attempts){try{localStorage.setItem('m3u_pl_'+id,JSON.stringify(fn()));return true;}catch{}}
-  return false;
+async function savePL(id,channels){
+  await IDB.put('channels',id,channels.map(c=>({n:c.n,g:c.g,l:c.l,u:c.u})));
 }
 function autoSavePL(source,channels){
   if(!source)return;
@@ -871,35 +792,33 @@ function autoSavePL(source,channels){
   if(existing){
     existing.ts=Date.now();existing.count=channels.length;
     if(source.xtream)existing.xtream=source.xtream;
-    trySavePL(existing.id,channels);
+    savePL(existing.id,channels);
   } else {
     const id=Date.now().toString(36)+Math.random().toString(36).slice(2,5);
     let name=source.name||'Playlist';if(source.type==='url')try{name=new URL(source.url).hostname;}catch{}
     PLAYLISTS.unshift({id,name,type:source.type,url:source.url||null,xtream:source.xtream||null,ts:Date.now(),count:channels.length});
-    if(PLAYLISTS.length>10){const old=PLAYLISTS.pop();S.del('pl_'+old.id);}
-    trySavePL(id,channels);
+    if(PLAYLISTS.length>10){const old=PLAYLISTS.pop();IDB.del('channels',old.id);}
+    savePL(id,channels);
   }
   S.set('pl_list',PLAYLISTS);renderPLList();
 }
-function loadPL(id){
+async function loadPL(id){
   const pl=PLAYLISTS.find(p=>p.id===id);if(!pl)return;
   if(pl.type==='xtream'&&pl.xtream){
-    // Cache-first: paste/login once, then open instantly & offline forever (Yenile re-fetches)
-    const cached=S.get('pl_'+id,null);
-    if(cached&&cached.length){setP(50);setTimeout(()=>initApp(cached.map((c,i)=>({id:i,...c})),{type:'xtream',name:pl.name,url:null,xtream:pl.xtream,ts:pl.ts}),60);return;}
+    const cached=await IDB.get('channels',id,null);
+    if(cached&&cached.length){setP(50);setTimeout(()=>initApp(cached.map((c,i)=>({id:i,...c})),{type:pl.type,name:pl.name,url:pl.url,ts:pl.ts}),60);return;}
     const x=pl.xtream;
-    const si=document.getElementById('xt-server'),ui=document.getElementById('xt-user'),pi=document.getElementById('xt-pass');
-    if(si)si.value=x.server;if(ui)ui.value=x.user;if(pi)pi.value=x.pass;
-    loadXtream(x.server,x.user,x.pass);return;
+    loadURL(_xtNorm(x.server)+'/get.php?username='+encodeURIComponent(x.user)+'&password='+encodeURIComponent(x.pass)+'&type=m3u_plus');
+    return;
   }
-  const chs=S.get('pl_'+id,null);
+  const chs=await IDB.get('channels',id,null);
   if(!chs||!chs.length){
     if(pl.type==='url'&&pl.url){showToast('Playlist yeniden yükleniyor…','info');loadURL(pl.url);return;}
-    showToast('Dosyayı tekrar yükleyin (depolama doldu)','info');return;
+    showToast('Dosyayı tekrar yükleyin','info');return;
   }
   setP(50);setTimeout(()=>initApp(chs.map((c,i)=>({id:i,...c})),{type:pl.type,name:pl.name,url:pl.url,ts:pl.ts}),60);
 }
-function deletePL(id,e){e.stopPropagation();PLAYLISTS=PLAYLISTS.filter(p=>p.id!==id);S.set('pl_list',PLAYLISTS);S.del('pl_'+id);renderPLList();showToast('Playlist silindi','info');}
+function deletePL(id,e){e.stopPropagation();PLAYLISTS=PLAYLISTS.filter(p=>p.id!==id);S.set('pl_list',PLAYLISTS);IDB.del('channels',id);renderPLList();showToast('Playlist silindi','info');}
 function renamePL(id,e){e.stopPropagation();const pl=PLAYLISTS.find(p=>p.id===id);if(!pl)return;const name=prompt('Playlist adı:',pl.name);if(name&&name.trim()){pl.name=name.trim();S.set('pl_list',PLAYLISTS);renderPLList();}}
 function renderPLList(){
   const wrap=document.getElementById('pl-list-wrap'),list=document.getElementById('pl-list');if(!wrap||!list)return;
@@ -1045,8 +964,8 @@ function createRecentRow(items){
   return div;
 }
 function renderBrowse(){
+  if(_browseRef!==ALL){_browseCache={};_browseRef=ALL;}
   const pool=BROWSE_TAB==='all'?ALL:ALL.filter(ch=>chType(ch)===BROWSE_TAB);
-  // update tab active state
   document.querySelectorAll('.browse-tab').forEach(btn=>btn.classList.toggle('active',btn.dataset.tab===BROWSE_TAB));
   const heroCh=RECENT.length>0?(pool.find(c=>c.u===RECENT[0].u)||pool[0]):pool[0];
   if(heroCh)renderHero(heroCh);
@@ -1055,9 +974,11 @@ function renderBrowse(){
     if(FAVS.size>0){const fc=ALL.filter(c=>FAVS.has(c.u)).slice(0,20);if(fc.length)rows.appendChild(createRow('Favorilerim',fc,'⭐ Favoriler'));}
     if(RECENT.length>0){const ri=buildRecentItems();if(ri.length)rows.appendChild(createRecentRow(ri));}
   }
-  const catMap={};pool.forEach(ch=>{(catMap[ch.g]=catMap[ch.g]||[]).push(ch);});
-  Object.entries(catMap).sort(([,a],[,b])=>b.length-a.length).forEach(([cat,chs])=>{
-    const sg=groupBySeries(chs);
+  if(!_browseCache[BROWSE_TAB]){
+    const catMap={};pool.forEach(ch=>{(catMap[ch.g]=catMap[ch.g]||[]).push(ch);});
+    _browseCache[BROWSE_TAB]=Object.entries(catMap).sort(([,a],[,b])=>b.length-a.length).map(([cat,chs])=>({cat,chs,sg:groupBySeries(chs)}));
+  }
+  _browseCache[BROWSE_TAB].forEach(({cat,chs,sg})=>{
     if(sg&&sg.shows.length>=1){
       rows.appendChild(createSeriesRow(cat,sg.shows,chs,cat));
       if(sg.rest.length>0)rows.appendChild(createRow(cat+' · Kanallar',sg.rest.slice(0,20),cat));
@@ -1100,20 +1021,9 @@ function openSettings(){
   document.getElementById('settings-epg-input').value=S.get('epg_url','')||'';
   document.getElementById('settings-url-status').textContent='';
   document.getElementById('settings-epg-status').textContent=document.getElementById('epg-status').textContent||'';
-  // Xtream section: show when we have saved creds or an active xtream playlist
-  const xc=S.get('xtream_creds',null);
-  const hasXt=!!(xc&&xc.server)||PLAYLISTS.some(p=>p.type==='xtream');
-  document.getElementById('settings-xt-sec').style.display=hasXt?'':'none';
-  if(xc){
-    if(document.getElementById('settings-xt-server'))document.getElementById('settings-xt-server').value=xc.server||'';
-    if(document.getElementById('settings-xt-user'))document.getElementById('settings-xt-user').value=xc.user||'';
-    if(document.getElementById('settings-xt-pass'))document.getElementById('settings-xt-pass').value=xc.pass||'';
-  }
-  document.getElementById('settings-xt-status').textContent='';
   document.getElementById('settings-overlay').classList.add('active');
 }
 function closeSettings(){document.getElementById('settings-overlay').classList.remove('active');}
-document.getElementById('settings-xt-json-btn').addEventListener('click',()=>{saveXtCreds();openXtJsonOverlay();});
 document.getElementById('browse-settings-btn').addEventListener('click',openSettings);
 document.getElementById('browse-fav-btn').addEventListener('click',()=>{if(FAVS.size===0){showToast('Henüz favori yok','info');return;}openCatScreen('⭐ Favoriler');});
 document.getElementById('settings-clear-recent-btn').addEventListener('click',()=>{RECENT=[];S.set('recent',[]);S.del('watch_progress');if(document.getElementById('browse-screen').classList.contains('active'))renderBrowse();document.getElementById('settings-overlay').classList.remove('active');showToast('Son izlenenler temizlendi','ok');});
@@ -1147,6 +1057,8 @@ document.getElementById('search-cancel-btn').addEventListener('click',closeSearc
 document.getElementById('search-clear-btn').addEventListener('click',()=>{document.getElementById('search-main-input').value='';document.getElementById('search-results').innerHTML='';document.getElementById('search-clear-btn').style.display='none';document.getElementById('search-main-input').focus();});
 document.getElementById('search-main-input').addEventListener('input',e=>{const q=e.target.value.trim();document.getElementById('search-clear-btn').style.display=q?'block':'none';clearTimeout(sdt);sdt=setTimeout(()=>renderSearch(q),150);});
 function buildSeriesMap(){
+  if(_seriesMapRef===ALL&&_seriesMapCache)return _seriesMapCache;
+  _seriesMapRef=ALL;
   const map={};
   ALL.forEach(ch=>{
     const info=detectSeries(ch.n);
@@ -1158,6 +1070,7 @@ function buildSeriesMap(){
     map[k].eps.push(ch);
   });
   Object.values(map).forEach(s=>{Object.values(s.seasons).forEach(eps=>eps.sort((a,b)=>a._e-b._e));s.epCount=s.eps.length;s.sCount=Object.keys(s.seasons).length;});
+  _seriesMapCache=map;
   return map;
 }
 function renderSearch(q){
@@ -1214,14 +1127,44 @@ function renderCatContent(){
   if(!CAT_GRID&&channels.length>=4){const sg=groupBySeries(channels);if(sg&&sg.shows.length>=1){renderCatSeries(sg,container);return;}}
   CAT_GRID?renderCatGrid(channels,container):renderCatList(channels,container);
 }
+function _cardHtml(ch){const init=chi(ch.n),q=dq(ch.n);const isP=SEL&&SEL.u===ch.u&&document.getElementById('player-screen').classList.contains('active');const logo=ch.l?'<img src="'+esc(ch.l)+'" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'" loading="lazy"><span class="b-card-init" style="display:none">'+esc(init)+'</span>':'<span class="b-card-init">'+esc(init)+'</span>';return '<div class="b-card'+(isP?' playing':'')+'" data-id="'+ch.id+'" style="width:auto;scroll-snap-align:none"><div class="b-card-logo">'+logo+(FAVS.has(ch.u)?'<span class="b-card-fav"></span>':'')+qb(q)+'<div class="b-card-play-ov"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></div>'+(isP?'<div class="b-card-playing-bar"></div>':'')+'</div><div class="b-card-info"><div class="b-card-name">'+esc(ch.n)+'</div></div></div>';}
+function _listHtml(ch){const init=chi(ch.n),q=dq(ch.n);const isP=SEL&&SEL.u===ch.u&&document.getElementById('player-screen').classList.contains('active');const logo=ch.l?'<img src="'+esc(ch.l)+'" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'" loading="lazy"><span class="cat-list-init" style="display:none">'+esc(init)+'</span>':'<span class="cat-list-init">'+esc(init)+'</span>';return '<div class="cat-list-item'+(isP?' playing':'')+'" data-id="'+ch.id+'"><div class="cat-list-logo">'+logo+'</div><div class="cat-list-info"><div class="cat-list-name">'+esc(ch.n)+qb(q,'b-card-q')+'</div><div class="cat-list-meta">'+esc(ch.g)+'</div></div></div>';}
+function _bindCatScroll(scroller,channels,renderMore){
+  if(_catScrollOff){_catScrollOff();_catScrollOff=null;}
+  const handler=()=>{if(scroller.scrollTop+scroller.clientHeight>scroller.scrollHeight-500)renderMore();};
+  scroller.addEventListener('scroll',handler,{passive:true});
+  _catScrollOff=()=>scroller.removeEventListener('scroll',handler);
+}
 function renderCatGrid(channels,container){
-  const cards=channels.map(ch=>{const init=chi(ch.n),q=dq(ch.n);const isP=SEL&&SEL.u===ch.u&&document.getElementById('player-screen').classList.contains('active');const logo=ch.l?'<img src="'+esc(ch.l)+'" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'" loading="lazy"><span class="b-card-init" style="display:none">'+esc(init)+'</span>':'<span class="b-card-init">'+esc(init)+'</span>';return '<div class="b-card'+(isP?' playing':'')+'" data-id="'+ch.id+'" style="width:auto;scroll-snap-align:none"><div class="b-card-logo">'+logo+(FAVS.has(ch.u)?'<span class="b-card-fav"></span>':'')+qb(q)+'<div class="b-card-play-ov"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></div>'+(isP?'<div class="b-card-playing-bar"></div>':'')+'</div><div class="b-card-info"><div class="b-card-name">'+esc(ch.n)+'</div></div></div>';}).join('');
-  container.innerHTML='<div class="cat-grid">'+cards+'</div>';
-  container.querySelectorAll('.b-card').forEach(el=>{const ch=ALL[parseInt(el.dataset.id)];if(!ch)return;el.addEventListener('click',()=>{PLAY_LIST=channels;openPlayer(ch,channels.indexOf(ch));});});
+  const PAGE=100,scroller=document.getElementById('cat-content');
+  const grid=document.createElement('div');grid.className='cat-grid';
+  container.innerHTML='';container.appendChild(grid);
+  let offset=0;
+  function renderPage(){
+    const slice=channels.slice(offset,offset+PAGE);if(!slice.length)return;
+    const tmp=document.createElement('div');tmp.innerHTML=slice.map(_cardHtml).join('');
+    tmp.querySelectorAll('.b-card').forEach(el=>{const ch=ALL[parseInt(el.dataset.id)];if(!ch)return;el.addEventListener('click',()=>{PLAY_LIST=channels;openPlayer(ch,channels.indexOf(ch));});});
+    while(tmp.firstChild)grid.appendChild(tmp.firstChild);
+    offset+=slice.length;
+    if(offset>=channels.length&&_catScrollOff){_catScrollOff();_catScrollOff=null;}
+  }
+  renderPage();
+  if(channels.length>PAGE)_bindCatScroll(scroller,channels,renderPage);
 }
 function renderCatList(channels,container){
-  container.innerHTML=channels.map(ch=>{const init=chi(ch.n),q=dq(ch.n);const isP=SEL&&SEL.u===ch.u&&document.getElementById('player-screen').classList.contains('active');const logo=ch.l?'<img src="'+esc(ch.l)+'" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'" loading="lazy"><span class="cat-list-init" style="display:none">'+esc(init)+'</span>':'<span class="cat-list-init">'+esc(init)+'</span>';return '<div class="cat-list-item'+(isP?' playing':'')+'" data-id="'+ch.id+'"><div class="cat-list-logo">'+logo+'</div><div class="cat-list-info"><div class="cat-list-name">'+esc(ch.n)+qb(q,'b-card-q')+'</div><div class="cat-list-meta">'+esc(ch.g)+'</div></div></div>';}).join('');
-  container.querySelectorAll('.cat-list-item').forEach(el=>{const ch=ALL[parseInt(el.dataset.id)];if(!ch)return;el.addEventListener('click',()=>{PLAY_LIST=channels;openPlayer(ch,channels.indexOf(ch));});});
+  const PAGE=100,scroller=document.getElementById('cat-content');
+  container.innerHTML='';
+  let offset=0;
+  function renderPage(){
+    const slice=channels.slice(offset,offset+PAGE);if(!slice.length)return;
+    const tmp=document.createElement('div');tmp.innerHTML=slice.map(_listHtml).join('');
+    tmp.querySelectorAll('.cat-list-item').forEach(el=>{const ch=ALL[parseInt(el.dataset.id)];if(!ch)return;el.addEventListener('click',()=>{PLAY_LIST=channels;openPlayer(ch,channels.indexOf(ch));});});
+    while(tmp.firstChild)container.appendChild(tmp.firstChild);
+    offset+=slice.length;
+    if(offset>=channels.length&&_catScrollOff){_catScrollOff();_catScrollOff=null;}
+  }
+  renderPage();
+  if(channels.length>PAGE)_bindCatScroll(scroller,channels,renderPage);
 }
 function renderCatSeries(sg,container){
   let html='';
@@ -1429,7 +1372,6 @@ document.getElementById('epg-url-input').addEventListener('keydown',e=>{if(e.key
 function initApp(channels,source){
   ALL=channels;PLAY_LIST=ALL;
   if(source){S.set('src',source);autoSavePL(source,ALL);}
-  try{S.set('chs',ALL.map(c=>({n:c.n,g:c.g,l:c.l,u:c.u})));}catch{}
   document.getElementById('load-screen').style.display='none';
   document.getElementById('browse-screen').classList.add('active');
   RECENT=S.get('recent',[]);
@@ -1509,7 +1451,7 @@ async function bgRefreshURL(url,plId){
       const chs=parseM3U(text);
       if(!chs.length)continue;
       const pl=plId?PLAYLISTS.find(p=>p.id===plId):PLAYLISTS.find(p=>p.type==='url'&&p.url===url);
-      if(pl){trySavePL(pl.id,chs);pl.ts=Date.now();pl.count=chs.length;S.set('pl_list',PLAYLISTS);}
+      if(pl){savePL(pl.id,chs);pl.ts=Date.now();pl.count=chs.length;S.set('pl_list',PLAYLISTS);}
       if(document.getElementById('browse-screen').classList.contains('active')){
         ALL=chs.map((c,i)=>({id:i,...c}));PLAY_LIST=ALL;RECENT=S.get('recent',[]);renderBrowse();
       }
@@ -1520,157 +1462,36 @@ async function bgRefreshURL(url,plId){
 }
 // File/Drop
 const dropZone=document.getElementById('drop-zone');
+function switchAddTab(name){
+  document.querySelectorAll('.add-tab').forEach(t=>t.classList.toggle('active',t.dataset.tab===name));
+  document.querySelectorAll('.add-pane').forEach(p=>p.style.display=p.id==='add-pane-'+name?'flex':'none');
+}
+document.getElementById('add-tabs').addEventListener('click',e=>{const t=e.target.closest('.add-tab');if(t)switchAddTab(t.dataset.tab);});
 dropZone.addEventListener('dragover',e=>{e.preventDefault();dropZone.classList.add('drag-over');});
-dropZone.addEventListener('dragleave',()=>dropZone.classList.remove('drag-over'));
-dropZone.addEventListener('drop',e=>{e.preventDefault();dropZone.classList.remove('drag-over');const f=e.dataTransfer.files[0];if(f)readFile(f);});
+dropZone.addEventListener('dragleave',e=>{if(!dropZone.contains(e.relatedTarget))dropZone.classList.remove('drag-over');});
+dropZone.addEventListener('drop',e=>{e.preventDefault();dropZone.classList.remove('drag-over');const f=e.dataTransfer.files[0];if(f){switchAddTab('file');readFile(f);}});
 document.getElementById('file-input').addEventListener('change',e=>{const f=e.target.files[0];if(f)readFile(f);e.target.value='';});
 function readFile(f){setP(20);const r=new FileReader();r.onload=e=>loadText(e.target.result,{type:'file',name:f.name,ts:Date.now()});r.onerror=()=>showToast('Dosya okunamadı','info');r.readAsText(f,'utf-8');}
 // Xtream Codes
 function _xtNorm(s){s=s.trim();while(s.endsWith('/'))s=s.slice(0,-1);if(!s.startsWith('http'))s='http://'+s;return s;}
-// Direct HTTPS base variants for an http panel (panel may answer on 443 / same-port https → no proxy, and streams play natively on iOS)
-function _xtDirectBases(server){
-  let u;try{u=new URL(server);}catch{return[{lbl:'Doğrudan',base:server.replace(/\/+$/,'')}];}
-  if(u.protocol==='https:')return[{lbl:'Doğrudan',base:server.replace(/\/+$/,'')}];
-  const bases=[{lbl:'HTTPS 443',base:'https://'+u.hostname}];
-  if(u.port)bases.push({lbl:'HTTPS '+u.port,base:'https://'+u.hostname+':'+u.port});
-  return bases;
-}
-function _proxyCands(fullUrl,base){
-  return[
-    {lbl:'Proxy 1',url:'https://corsproxy.io/?url='+encodeURIComponent(fullUrl),base,wrap:null},
-    {lbl:'Proxy 2',url:'https://api.allorigins.win/raw?url='+encodeURIComponent(fullUrl),base,wrap:null},
-    {lbl:'Proxy 3',url:'https://api.allorigins.win/get?url='+encodeURIComponent(fullUrl),base,wrap:'allorigins'},
-    {lbl:'Proxy 4',url:'https://thingproxy.freeboard.io/fetch/'+fullUrl,base,wrap:null},
-    {lbl:'Proxy 5',url:'https://api.codetabs.com/v1/proxy?quest='+encodeURIComponent(fullUrl),base,wrap:null},
-  ];
-}
-// Race all candidates in parallel; resolve with first whose body passes validate(body)→parsedValue (else null/false)
-async function raceFetch(cands,validate,cancelSig,timeoutMs){
-  const ctrls=[];
-  const tasks=cands.map(c=>new Promise((resolve,reject)=>{
-    const rc=new AbortController();ctrls.push(rc);
-    const rt=setTimeout(()=>{rc.abort();reject();},timeoutMs||18000);
-    if(cancelSig)cancelSig.addEventListener('abort',()=>{rc.abort();reject();},{once:true});
-    fetch(c.url,{signal:rc.signal}).then(res=>{if(!res.ok)throw 0;return res.text();}).then(t=>{
-      clearTimeout(rt);
-      let body=t;
-      if(c.wrap==='allorigins'){try{body=JSON.parse(t).contents;}catch{throw 0;}}
-      const v=validate(body);
-      if(v==null||v===false)throw 0;
-      resolve({data:v,base:c.base,body,lbl:c.lbl});
-    }).catch(()=>{clearTimeout(rt);reject();});
-  }));
-  try{const w=await Promise.any(tasks);ctrls.forEach(rc=>{try{rc.abort();}catch{}});return w;}
-  catch{return null;}
-}
-async function _xtFetch(server,user,pass,action,cancelSig){
-  const path='/player_api.php?username='+encodeURIComponent(user)+'&password='+encodeURIComponent(pass)+'&action='+action;
-  const cands=[];
-  _xtDirectBases(server).forEach(b=>cands.push({lbl:b.lbl,url:b.base+path,base:b.base,wrap:null}));
-  const full=server.replace(/\/+$/,'')+path;
-  _proxyCands(full,server.replace(/\/+$/,'')).forEach(c=>cands.push(c));
-  const validate=(body)=>{try{const j=JSON.parse(body);if(Array.isArray(j))return j;if(j&&typeof j==='object'&&j.user_info)return j;return null;}catch{return null;}};
-  return await raceFetch(cands,validate,cancelSig,18000);
-}
-async function loadXtream(server,user,pass){
+function loadXtream(server,user,pass){
   server=_xtNorm(server);
-  const btn=document.getElementById('xt-login-btn'),statusEl=document.getElementById('xt-status');
   if(!server||!user||!pass){showToast('Sunucu, kullanıcı adı ve şifre girin','info');return;}
-  btn.disabled=true;btn.textContent='Bağlanılıyor…';
-  statusEl.textContent='';statusEl.style.color='var(--text-dim)';
-  if(_urlAbortCtrl)_urlAbortCtrl.abort();
-  _urlAbortCtrl=new AbortController();const cancelSig=_urlAbortCtrl.signal;
-  setP(8);_urlProgShow(0);
-  document.getElementById('url-prog-title').textContent='Bağlanılıyor…';
-  document.getElementById('url-prog-sub').textContent='Birden çok yöntem aynı anda deneniyor…';
-  const reset=()=>{btn.disabled=false;btn.textContent='Kanalları Yükle';};
-  function fallbackM3U(){
-    _urlProgHide();setP(0);reset();
-    statusEl.textContent='Otomatik bağlantı kurulamadı — JSON yöntemi açılıyor';statusEl.style.color='var(--text-dim)';
-    showToast('Otomatik bağlantı olmadı — JSON yöntemini kullan','info',3000);
-    setTimeout(()=>openXtJsonOverlay(),250);
-  }
-  try{
-    const liveRes=await _xtFetch(server,user,pass,'get_live_streams',cancelSig);
-    if(cancelSig.aborted){_urlProgHide();reset();return;}
-    if(liveRes===null){fallbackM3U();return;}
-    const live=liveRes.data;
-    if(!Array.isArray(live)){
-      if(live&&live.user_info){
-        const ui=live.user_info;
-        if(ui.auth===0||ui.auth==='0'){
-          _urlProgHide();setP(0);reset();
-          statusEl.textContent='Kullanıcı adı veya şifre hatalı';statusEl.style.color='var(--danger)';
-          showToast('Giriş başarısız — şifre hatalı','info',4500);return;
-        }
-        if(ui.status&&/(expired|disable|banned)/i.test(ui.status)){
-          _urlProgHide();setP(0);reset();
-          statusEl.textContent='Hesabınızın süresi dolmuş veya devre dışı';statusEl.style.color='var(--danger)';
-          showToast('Hesap süresi dolmuş','info',4500);return;
-        }
-      }
-      fallbackM3U();return;
-    }
-    // Working base — if a direct HTTPS variant won, streams will play natively on iOS (no proxy, no mixed-content, no VLC)
-    const base=liveRes.base;
-    setP(55);
-    document.getElementById('url-prog-title').textContent='Filmler yükleniyor…';
-    const vodRes=await _xtFetch(server,user,pass,'get_vod_streams',cancelSig);
-    if(cancelSig.aborted){_urlProgHide();reset();return;}
-    const vod=vodRes&&Array.isArray(vodRes.data)?vodRes.data:null;
-    setP(88);
-    const chs=[];let xi=0;
-    live.forEach(ch=>{if(!ch.stream_id)return;chs.push({id:xi++,n:String(ch.name||'Kanal'),g:String(ch.category_name||'Canlı TV'),l:String(ch.stream_icon||''),u:base+'/live/'+user+'/'+pass+'/'+ch.stream_id+'.m3u8',tid:String(ch.epg_channel_id||'')});});
-    if(vod)vod.forEach(ch=>{if(!ch.stream_id)return;const ext=ch.container_extension||'mp4';chs.push({id:xi++,n:String(ch.name||'Film'),g:String(ch.category_name||'Film'),l:String(ch.stream_icon||ch.cover||''),u:base+'/movie/'+user+'/'+pass+'/'+ch.stream_id+'.'+ext,tid:''});});
-    if(!chs.length){_urlProgHide();setP(0);reset();statusEl.textContent='Kanal listesi boş';statusEl.style.color='var(--danger)';return;}
-    S.set('xtream_creds',{server:base,user,pass});
-    _urlProgHide();setP(100);reset();
-    const viaHttps=base.startsWith('https://');
-    statusEl.textContent='✓ '+numFmt(chs.length)+' içerik yüklendi'+(viaHttps?' · HTTPS (VLC gerekmez)':'');statusEl.style.color='var(--success)';
-    let hn=base;try{hn=new URL(base).hostname;}catch{}
-    initApp(chs,{type:'xtream',url:null,name:'Xtream: '+hn,ts:Date.now(),xtream:{server:base,user,pass}});
-  }catch(e){
-    if(cancelSig.aborted){_urlProgHide();reset();return;}
-    _urlProgHide();setP(0);reset();
-    statusEl.textContent='Hata: '+e.message;statusEl.style.color='var(--danger)';
-  }
+  S.set('xtream_creds',{server,user,pass});
+  loadURL(server+'/get.php?username='+encodeURIComponent(user)+'&password='+encodeURIComponent(pass)+'&type=m3u_plus');
 }
-// Read credentials from whichever form is filled, else from saved creds
 function getXtCreds(){
   const g=id=>{const el=document.getElementById(id);return el?el.value.trim():'';};
-  let server=g('xt-server')||g('settings-xt-server');
-  let user=g('xt-user')||g('settings-xt-user');
-  let pass=g('xt-pass')||g('settings-xt-pass');
+  let server=g('xt-server'),user=g('xt-user'),pass=g('xt-pass');
   if(!server||!user||!pass){const s=S.get('xtream_creds',null);if(s){server=server||s.server||'';user=user||s.user||'';pass=pass||s.pass||'';}}
   return{server,user,pass};
 }
 function saveXtCreds(){const c=getXtCreds();if(c.server&&c.user&&c.pass)S.set('xtream_creds',{server:_xtNorm(c.server),user:c.user,pass:c.pass});}
-function xtApiUrl(action){const c=getXtCreds();if(!(c.server&&c.user&&c.pass))return'';return _xtNorm(c.server)+'/player_api.php?username='+encodeURIComponent(c.user)+'&password='+encodeURIComponent(c.pass)+'&action='+(action||'get_live_streams');}
-function xtM3uUrl(){const c=getXtCreds();if(!(c.server&&c.user&&c.pass))return'';return _xtNorm(c.server)+'/get.php?username='+encodeURIComponent(c.user)+'&password='+encodeURIComponent(c.pass)+'&type=m3u_plus&output=mpegts';}
-// Mirror credentials between load-screen and settings forms + persist on every keystroke
-const _xtMirror={'xt-server':'settings-xt-server','xt-user':'settings-xt-user','xt-pass':'settings-xt-pass','settings-xt-server':'xt-server','settings-xt-user':'xt-user','settings-xt-pass':'xt-pass'};
-Object.keys(_xtMirror).forEach(id=>{const el=document.getElementById(id);if(!el)return;el.addEventListener('input',()=>{const other=document.getElementById(_xtMirror[id]);if(other&&other.value!==el.value)other.value=el.value;saveXtCreds();});});
+['xt-server','xt-user','xt-pass'].forEach(id=>{const el=document.getElementById(id);if(!el)return;el.addEventListener('input',()=>saveXtCreds());});
 document.getElementById('xt-login-btn').addEventListener('click',()=>{const c=getXtCreds();loadXtream(c.server,c.user,c.pass);});
 ['xt-server','xt-user','xt-pass'].forEach(id=>{document.getElementById(id).addEventListener('keydown',e=>{if(e.key==='Enter'){e.target.blur();const c=getXtCreds();loadXtream(c.server,c.user,c.pass);}});});
-// Xtream JSON download/load overlay
-function openXtJsonOverlay(){
-  document.getElementById('settings-overlay').classList.remove('active');
-  document.getElementById('xt-json-overlay').classList.add('active');
-}
-document.getElementById('xt-json-open-btn').addEventListener('click',openXtJsonOverlay);
-document.getElementById('xt-json-close-btn').addEventListener('click',()=>document.getElementById('xt-json-overlay').classList.remove('active'));
-document.getElementById('xt-open-m3u-btn').addEventListener('click',()=>{
-  const url=xtM3uUrl();
-  if(!url){showToast('Önce sunucu, kullanıcı adı ve şifre girin','info');return;}
-  window.open(url,'_blank');
-});
-Object.entries({live:'get_live_streams',vod:'get_vod_streams',series:'get_series',livecat:'get_live_categories',vodcat:'get_vod_categories'}).forEach(([k,action])=>{
-  document.getElementById('xt-open-'+k+'-btn').addEventListener('click',()=>{
-    const url=xtApiUrl(action);
-    if(!url){showToast('Önce sunucu, kullanıcı adı ve şifre girin','info');return;}
-    window.open(url,'_blank');
-  });
-});
+document.getElementById('m3u-url-btn').addEventListener('click',()=>{const url=document.getElementById('m3u-url-input').value.trim();if(url)loadURL(url);});
+document.getElementById('m3u-url-input').addEventListener('keydown',e=>{if(e.key==='Enter'){e.target.blur();const url=e.target.value.trim();if(url)loadURL(url);}});
 // ── Series Detail Overlay ─────────────────────────────────────────────────
 function openSeriesDetail(ch){
   const sid=ch.u.replace('_xts_','');
@@ -1737,106 +1558,6 @@ document.getElementById('series-info-file').addEventListener('change',e=>{
   e.target.value='';
 });
 // ── /Series Detail Overlay ────────────────────────────────────────────────
-function processXtJson(text){
-  text=(text||'').trim();
-  if(!text){showToast('JSON içeriği boş','info');return;}
-  let data;try{data=JSON.parse(text);}catch{showToast('Geçersiz JSON — dosya/metin tam değil','info',3500);return;}
-  if(data&&data.user_info&&(data.user_info.auth===0||data.user_info.auth==='0')){showToast('auth:0 — kullanıcı adı veya şifre hatalı. Sağlayıcıdan birebir kontrol edin (büyük/küçük harf!)','info',5000);return;}
-  if(data&&data.user_info&&data.user_info.status&&/(expired|disable|banned)/i.test(data.user_info.status)){showToast('Hesabın süresi dolmuş veya devre dışı','info',5000);return;}
-  const arr=Array.isArray(data)?data:(data&&Array.isArray(data.available_channels)?data.available_channels:null);
-  if(!arr){showToast('Kanal dizisi bulunamadı — doğru linki açtığından emin ol','info',4000);return;}
-  // Category list: has category_id + category_name + parent_id → store for grouping
-  if(arr.length&&arr[0].category_id!==undefined&&arr[0].category_name!==undefined&&arr[0].parent_id!==undefined){
-    arr.forEach(cat=>{if(cat.category_id&&cat.category_name)XTREAM_CAT_MAP[String(cat.category_id)]=String(cat.category_name);});
-    S.set('xt_cat_map',XTREAM_CAT_MAP);
-    document.getElementById('xt-json-overlay').classList.remove('active');
-    document.getElementById('xt-json-ta').value='';
-    showToast(arr.length+' kategori kaydedildi','ok');
-    return;
-  }
-  // Series listing: has series_id but no stream_id
-  if(arr.length&&arr[0].series_id!==undefined&&!arr[0].stream_id){
-    const c=getXtCreds(),server=c.server?_xtNorm(c.server):'',usr=c.user,pwd=c.pass;
-    const chs=[];let xi=0;
-    const newMeta={};
-    arr.forEach(s=>{
-      if(!s.series_id)return;
-      const sid=String(s.series_id);
-      newMeta[sid]={name:String(s.name||''),genre:String(s.genre||''),plot:String(s.plot||''),cover:String(s.cover||'')};
-      chs.push({id:xi++,n:String(s.name||'Dizi'),g:String(s.category_name||s.genre||'Dizi'),l:String(s.cover||''),u:'_xts_'+sid,tid:''});
-    });
-    if(!chs.length){showToast('Dizi listesi boş','info');return;}
-    XTREAM_SERIES_META=Object.assign(XTREAM_SERIES_META,newMeta);
-    S.set('xt_series_meta',XTREAM_SERIES_META);
-    if(server&&usr&&pwd)S.set('xtream_creds',{server,user:usr,pass:pwd});
-    document.getElementById('xt-json-overlay').classList.remove('active');
-    document.getElementById('xt-json-ta').value='';
-    // Merge with existing Xtream playlist
-    const existingPl=server&&usr?PLAYLISTS.find(p=>p.type==='xtream'&&p.xtream&&p.xtream.server===server&&p.xtream.user===usr):null;
-    let finalChs=chs;
-    if(existingPl){
-      const existing=S.get('pl_'+existingPl.id,[])||[];
-      const existingUrls=new Set(existing.map(ch=>ch.u));
-      const newOnly=chs.filter(ch=>!existingUrls.has(ch.u));
-      if(newOnly.length){
-        finalChs=[...existing,...newOnly].map((ch,i)=>({...ch,id:i}));
-        showToast(newOnly.length+' dizi eklendi (toplam: '+numFmt(finalChs.length)+')','ok');
-      } else {finalChs=existing.map((ch,i)=>({...ch,id:i}));showToast('Diziler zaten mevcut','info');}
-    } else {showToast(numFmt(chs.length)+' dizi yüklendi','ok');}
-    let hn=server;try{hn=new URL(server).hostname;}catch{}
-    initApp(finalChs,{type:'xtream',url:null,name:'Xtream: '+hn,ts:Date.now(),xtream:server&&usr&&pwd?{server,user:usr,pass:pwd}:null});
-    return;
-  }
-  const c=getXtCreds(),usr=c.user,pwd=c.pass;
-  const server=c.server?_xtNorm(c.server):'';
-  const chs=[];let xi=0;
-  arr.forEach(ch=>{
-    if(!ch.stream_id)return;
-    const isVod=ch.stream_type==='movie'||(ch.container_extension&&ch.stream_type!=='live');
-    let u2;
-    if(isVod){
-      const ext=ch.container_extension||'mp4';
-      u2=server&&usr&&pwd?server+'/movie/'+usr+'/'+pwd+'/'+ch.stream_id+'.'+ext:(ch.stream_url||ch.url||'');
-    } else {
-      u2=server&&usr&&pwd?server+'/live/'+usr+'/'+pwd+'/'+ch.stream_id+'.m3u8':(ch.stream_url||ch.url||'');
-    }
-    if(!u2)return;
-    const grp=String(ch.category_name||ch.group_title||XTREAM_CAT_MAP[String(ch.category_id||'')]||(isVod?'Film':'Canlı TV'));
-    chs.push({id:xi++,n:String(ch.name||'Kanal'),g:grp,l:String(ch.stream_icon||ch.logo||''),u:u2,tid:String(ch.epg_channel_id||'')});
-  });
-  if(!chs.length){showToast('JSON içinde içerik bulunamadı','info',3500);return;}
-  if(server&&usr&&pwd)S.set('xtream_creds',{server,user:usr,pass:pwd});
-  document.getElementById('xt-json-overlay').classList.remove('active');
-  document.getElementById('xt-json-ta').value='';
-  // Merge with existing Xtream playlist for same server/user
-  let finalChs=chs;
-  const existingPl=server&&usr?PLAYLISTS.find(p=>p.type==='xtream'&&p.xtream&&p.xtream.server===server&&p.xtream.user===usr):null;
-  if(existingPl){
-    const existing=S.get('pl_'+existingPl.id,[])||[];
-    const existingUrls=new Set(existing.map(ch=>ch.u));
-    const newOnly=chs.filter(ch=>!existingUrls.has(ch.u));
-    if(newOnly.length){
-      finalChs=[...existing,...newOnly].map((ch,i)=>({...ch,id:i}));
-      showToast(numFmt(newOnly.length)+' yeni içerik eklendi (toplam: '+numFmt(finalChs.length)+')','ok');
-    } else {
-      finalChs=existing.map((ch,i)=>({...ch,id:i}));
-      showToast(numFmt(chs.length)+' içerik zaten mevcut','info');
-    }
-  } else {
-    showToast(numFmt(chs.length)+' içerik yüklendi','ok');
-  }
-  let hn=server;try{hn=new URL(server).hostname;}catch{}
-  initApp(finalChs,{type:'xtream',url:null,name:'Xtream: '+hn,ts:Date.now(),xtream:server&&usr&&pwd?{server,user:usr,pass:pwd}:null});
-}
-document.getElementById('xt-json-load-btn').addEventListener('click',()=>processXtJson(document.getElementById('xt-json-ta').value));
-document.getElementById('xt-json-file').addEventListener('change',e=>{
-  const f=e.target.files[0];if(!f)return;
-  const r=new FileReader();
-  r.onload=ev=>processXtJson(ev.target.result);
-  r.onerror=()=>showToast('Dosya okunamadı','info');
-  r.readAsText(f,'utf-8');
-  e.target.value='';
-});
 // Pre-fill Xtream form from saved credentials
 const _savedXt=S.get('xtream_creds',null);
 if(_savedXt){
@@ -1852,11 +1573,14 @@ renderPLList();
 const savedEpgUrl=S.get('epg_url','');
 if(savedEpgUrl){document.getElementById('epg-url-input').value=savedEpgUrl;loadEPG(savedEpgUrl);}
 // Auto-open single playlist
-(function(){
+(async function(){
+  await IDB.migrate();
+  IDB.get('meta','xt_series_meta',{}).then(v=>{XTREAM_SERIES_META=v;});
+  IDB.get('meta','xt_cat_map',{}).then(v=>{XTREAM_CAT_MAP=v;});
   if(PLAYLISTS.length===1){
     const pl=PLAYLISTS[0];
     if(pl.type==='xtream'&&pl.xtream){setTimeout(()=>loadPL(pl.id),200);return;}
-    const chs=S.get('pl_'+pl.id,null);
+    const chs=await IDB.get('channels',pl.id,null);
     if(chs&&chs.length){
       setTimeout(()=>loadPL(pl.id),200);
       // Background refresh for URL playlists (e.g. GitHub-hosted M3U)
