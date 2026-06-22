@@ -70,6 +70,12 @@ body{height:var(--vh);background:var(--bg);color:var(--text);
 .pl-del{width:34px;height:34px;border:none;background:none;color:var(--text-dim);cursor:pointer;display:flex;align-items:center;justify-content:center;border-radius:8px;flex-shrink:0;touch-action:manipulation;padding:0}
 .pl-del:active{background:rgba(255,80,114,.12);color:var(--danger)}
 .pl-del svg{width:16px;height:16px;fill:currentColor}
+.pl-refresh{width:34px;height:34px;border:none;background:none;color:var(--text-dim);cursor:pointer;display:flex;align-items:center;justify-content:center;border-radius:8px;flex-shrink:0;touch-action:manipulation;padding:0}
+.pl-refresh:active{background:var(--accent-dim);color:var(--accent)}
+.pl-refresh svg{width:16px;height:16px;fill:currentColor;transition:transform .15s}
+.pl-refresh.spinning{color:var(--accent);pointer-events:none}
+.pl-refresh.spinning svg{animation:pl-spin .8s linear infinite}
+@keyframes pl-spin{to{transform:rotate(360deg)}}
 /* BROWSE */
 #browse-screen{display:none;flex-direction:column;height:var(--vh);background:var(--bg);position:absolute;inset:0}
 #browse-screen.active{display:flex}
@@ -824,8 +830,8 @@ function renderPLList(){
   const wrap=document.getElementById('pl-list-wrap'),list=document.getElementById('pl-list');if(!wrap||!list)return;
   if(!PLAYLISTS.length){wrap.style.display='none';return;}
   wrap.style.display='';
-  list.innerHTML=PLAYLISTS.map(pl=>'<div class="pl-item" data-pl-id="'+esc(pl.id)+'"><div class="pl-icon"><svg viewBox="0 0 24 24"><path d="M4 6h16v2H4zm0 5h16v2H4zm0 5h16v2H4z"/></svg></div><div class="pl-info"><div class="pl-name">'+esc(pl.name)+'</div><div class="pl-meta">'+numFmt(pl.count||0)+' kanal · '+ago(pl.ts)+'</div><div class="pl-type">'+(pl.type==='url'?'URL':pl.type==='xtream'?'Xtream':'Dosya')+'</div></div><button class="pl-del" data-del-id="'+esc(pl.id)+'"><svg viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg></button></div>').join('');
-  list.querySelectorAll('.pl-item').forEach(el=>{el.addEventListener('click',()=>loadPL(el.dataset.plId));el.addEventListener('dblclick',e=>renamePL(el.dataset.plId,e));el.querySelector('.pl-del').addEventListener('click',e=>deletePL(el.dataset.plId,e));});
+  list.innerHTML=PLAYLISTS.map(pl=>{const canRefresh=(pl.type==='url'&&pl.url)||(pl.type==='xtream'&&pl.xtream);return '<div class="pl-item" data-pl-id="'+esc(pl.id)+'"><div class="pl-icon"><svg viewBox="0 0 24 24"><path d="M4 6h16v2H4zm0 5h16v2H4zm0 5h16v2H4z"/></svg></div><div class="pl-info"><div class="pl-name">'+esc(pl.name)+'</div><div class="pl-meta">'+numFmt(pl.count||0)+' kanal · '+ago(pl.ts)+'</div><div class="pl-type">'+(pl.type==='url'?'URL':pl.type==='xtream'?'Xtream':'Dosya')+'</div></div>'+(canRefresh?'<button class="pl-refresh" data-refresh-id="'+esc(pl.id)+'" title="Yenile"><svg viewBox="0 0 24 24"><path d="M17.65 6.35A7.96 7.96 0 0 0 12 4a8 8 0 1 0 7.74 10h-2.08A6 6 0 1 1 12 6c1.66 0 3.14.69 4.22 1.78L13 11h7V4z"/></svg></button>':'')+'<button class="pl-del" data-del-id="'+esc(pl.id)+'"><svg viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg></button></div>';}).join('');
+  list.querySelectorAll('.pl-item').forEach(el=>{el.addEventListener('click',()=>loadPL(el.dataset.plId));el.addEventListener('dblclick',e=>renamePL(el.dataset.plId,e));el.querySelector('.pl-del').addEventListener('click',e=>deletePL(el.dataset.plId,e));const rb=el.querySelector('.pl-refresh');if(rb)rb.addEventListener('click',e=>refreshPL(el.dataset.plId,e));});
 }
 // EPG
 function parseXMLTVDate(s){
@@ -1442,12 +1448,13 @@ async function loadURL(url,statusEl,onSuccess){
   if(statusEl)statusEl.textContent='Başarısız — alternatif yöntemi deneyin';
   showToast('URL yüklenemedi — M3U metnini yapıştır yöntemini deneyin','info',4500);
 }
-async function bgRefreshURL(url,plId){
+async function bgRefreshURL(url,plId,opts){
   // Silent background refresh — direct fetch first (GitHub raw is CORS-friendly), then proxies
-  const proxies=[url,'https://corsproxy.io/?'+encodeURIComponent(url),'https://api.allorigins.win/raw?url='+encodeURIComponent(url)];
+  opts=opts||{};
+  const proxies=[url,'https://corsproxy.io/?'+encodeURIComponent(url),'https://api.allorigins.win/raw?url='+encodeURIComponent(url),'https://thingproxy.freeboard.io/fetch/'+url,'https://api.codetabs.com/v1/proxy?quest='+encodeURIComponent(url)];
   for(const u of proxies){
     try{
-      const res=await fetch(u,{signal:makeSignal(20000)});
+      const res=await fetch(u,{signal:makeSignal(25000)});
       if(!res.ok)continue;
       const text=await res.text();
       if(!text.includes('#EXTM3U')&&!text.includes('#EXTINF'))continue;
@@ -1458,10 +1465,25 @@ async function bgRefreshURL(url,plId){
       if(document.getElementById('browse-screen').classList.contains('active')){
         ALL=chs.map((c,i)=>({id:i,...c}));PLAY_LIST=ALL;RECENT=S.get('recent',[]);renderBrowse();
       }
-      showToast('Playlist güncellendi — '+chs.length+' kanal','ok',3500);
-      return;
+      if(!opts.silent)showToast('Playlist güncellendi — '+numFmt(chs.length)+' kanal','ok',3500);
+      return true;
     }catch{}
   }
+  if(!opts.silent)showToast('Yenilenemedi — sunucuya ulaşılamadı','info',3500);
+  return false;
+}
+async function refreshPL(id,e){
+  if(e)e.stopPropagation();
+  const pl=PLAYLISTS.find(p=>p.id===id);if(!pl)return;
+  let url=null;
+  if(pl.type==='url'&&pl.url)url=pl.url;
+  else if(pl.type==='xtream'&&pl.xtream){const x=pl.xtream;url=_xtNorm(x.server)+'/get.php?username='+encodeURIComponent(x.user)+'&password='+encodeURIComponent(x.pass)+'&type=m3u_plus';}
+  else{showToast('Dosya playlistleri yenilenemez','info');return;}
+  const btn=e&&e.currentTarget?e.currentTarget:null;
+  if(btn)btn.classList.add('spinning');
+  await bgRefreshURL(url,id);
+  if(btn)btn.classList.remove('spinning');
+  renderPLList();
 }
 // File/Drop
 const dropZone=document.getElementById('drop-zone');
