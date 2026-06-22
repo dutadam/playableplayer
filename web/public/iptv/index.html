@@ -865,11 +865,13 @@ function getEPGNow(ch){
   }
   return null;
 }
+let _epgStatus='';
 async function loadEPG(url){
   const status=document.getElementById('epg-status');
-  if(!url){EPG={};status.textContent='';return;}
+  if(!url){EPG={};_epgStatus='';if(status)status.textContent='';return;}
   S.set('epg_url',url);
-  status.textContent='EPG yükleniyor…';status.style.color='var(--text-dim)';
+  _epgStatus='EPG yükleniyor…';
+  if(status){status.textContent=_epgStatus;status.style.color='var(--text-dim)';}
   try{
     const proxies=[url,'https://corsproxy.io/?'+encodeURIComponent(url),'https://api.allorigins.win/raw?url='+encodeURIComponent(url)];
     let xml=null;
@@ -880,8 +882,12 @@ async function loadEPG(url){
     EPG=parseXMLTV(xml);
     const count=Object.keys(EPG).length;
     if(!count)throw new Error('Program verisi bulunamadı');
-    status.textContent='✓ '+count+' kanal EPG yüklendi';status.style.color='var(--success)';
-  }catch(e){status.textContent='EPG yüklenemedi: '+e.message;status.style.color='var(--danger)';}
+    _epgStatus='✓ '+count+' kanal EPG yüklendi';
+    if(status){status.textContent=_epgStatus;status.style.color='var(--success)';}
+  }catch(e){
+    _epgStatus='EPG yüklenemedi: '+e.message;
+    if(status){status.textContent=_epgStatus;status.style.color='var(--danger)';}
+  }
 }
 function updatePlayerEPG(){
   const el=document.getElementById('p-epg');if(!el||!SEL)return;
@@ -1020,7 +1026,7 @@ function openSettings(){
   document.getElementById('settings-url-input').value=savedUrl;
   document.getElementById('settings-epg-input').value=S.get('epg_url','')||'';
   document.getElementById('settings-url-status').textContent='';
-  document.getElementById('settings-epg-status').textContent=document.getElementById('epg-status').textContent||'';
+  document.getElementById('settings-epg-status').textContent=_epgStatus||'';
   document.getElementById('settings-overlay').classList.add('active');
 }
 function closeSettings(){document.getElementById('settings-overlay').classList.remove('active');}
@@ -1046,7 +1052,7 @@ document.getElementById('settings-url-input').addEventListener('keydown',e=>{if(
 document.getElementById('settings-epg-btn').addEventListener('click',()=>{
   const url=document.getElementById('settings-epg-input').value.trim();
   loadEPG(url).then(()=>{
-    document.getElementById('settings-epg-status').textContent=document.getElementById('epg-status').textContent||'';
+    document.getElementById('settings-epg-status').textContent=_epgStatus||'';
   });
 });
 // Search
@@ -1365,9 +1371,6 @@ pipBtn.addEventListener('click',()=>{
   showOverlay();
 });
 pvEl.addEventListener('leavepictureinpicture',()=>showOverlay());
-// EPG controls
-document.getElementById('epg-load-btn').addEventListener('click',()=>loadEPG(document.getElementById('epg-url-input').value.trim()));
-document.getElementById('epg-url-input').addEventListener('keydown',e=>{if(e.key==='Enter'){e.target.blur();loadEPG(e.target.value.trim());}});
 // Init
 function initApp(channels,source){
   ALL=channels;PLAY_LIST=ALL;
@@ -1571,7 +1574,7 @@ if('serviceWorker' in navigator)window.addEventListener('load',()=>navigator.ser
 // Start
 renderPLList();
 const savedEpgUrl=S.get('epg_url','');
-if(savedEpgUrl){document.getElementById('epg-url-input').value=savedEpgUrl;loadEPG(savedEpgUrl);}
+if(savedEpgUrl){loadEPG(savedEpgUrl);}
 // Auto-open single playlist
 (async function(){
   await IDB.migrate();
