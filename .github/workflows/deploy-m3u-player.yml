@@ -3,7 +3,7 @@ name: Deploy to m3u-player
 on:
   push:
     branches: ['claude/memory-analysis-tool-design-tm5i3q']
-    paths: ['web/public/iptv/index.html']
+    paths: ['web/public/iptv/index.html', 'web/public/iptv/sw.js']
   workflow_dispatch:
 
 permissions:
@@ -22,10 +22,11 @@ jobs:
           git clone https://x-access-token:${PAT}@github.com/dutadam/m3u-player.git /tmp/m3u-player
           cd /tmp/m3u-player
           cp $GITHUB_WORKSPACE/web/public/iptv/index.html index.html
+          cp $GITHUB_WORKSPACE/web/public/iptv/sw.js sw.js
           sed -i 's|href="../apple-touch-icon.png"|href="./apple-touch-icon.png"|g' index.html
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add index.html
+          git add index.html sw.js
           git diff --staged --quiet && echo "Değişiklik yok" && exit 0
-          git commit -m "deploy: index.html güncellendi [skip ci]"
+          git commit -m "deploy: index.html ve sw.js güncellendi [skip ci]"
           git push
