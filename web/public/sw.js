@@ -2,7 +2,7 @@ const DB_NAME = "playable-player-db";
 const DB_VERSION = 1;
 const PLAYABLE_STORE = "playables";
 const FILE_STORE = "files";
-const APP_CACHE = "playable-player-shell-v15";
+const APP_CACHE = "playable-player-shell-v16";
 
 const STORE_HOSTS = [
   "apps.apple.com",
@@ -166,6 +166,10 @@ canvas, video {
   text-align: center !important;
   touch-action: manipulation !important;
   pointer-events: none !important;
+  transition: opacity 280ms ease !important;
+}
+#playable-player-audio-start.hide {
+  opacity: 0 !important;
 }
 #playable-player-audio-start img {
   display: block !important;
@@ -275,6 +279,10 @@ canvas, video {
       '<strong>Tap game to start</strong>' +
       '<span>' + playableName + '</span>';
     document.body.appendChild(prompt);
+    setTimeout(() => {
+      prompt.classList.add("hide");
+      setTimeout(removeAudioStart, 320);
+    }, 5500);
   };
   let audioStartScheduled = false;
   const isLoadingVisible = () => {
@@ -319,15 +327,6 @@ canvas, video {
   });
   window.addEventListener("message", (event) => {
     if (event.data?.type === "playable-audio-unlock") unlockAudio();
-    if (document.getElementById("playable-player-audio-start")) {
-      unlockAudio();
-      removeAudioStart();
-    }
-  });
-  window.addEventListener("blur", () => {
-    if (document.getElementById("playable-player-audio-start")) {
-      setTimeout(removeAudioStart, 120);
-    }
   });
   const originalOpen = window.open;
   window.open = function(url, ...rest) {
