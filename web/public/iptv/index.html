@@ -1524,13 +1524,24 @@ document.getElementById('gh-toggle').addEventListener('click',()=>{
 const GH_REPO='dutadam/m3u-player';
 document.getElementById('gh-save-btn').addEventListener('click',setGitHubAutoUpdate);
 document.getElementById('gh-pat').addEventListener('input',()=>S.set('gh_pat',document.getElementById('gh-pat').value));
-async function _loadSodium(){
-  if(typeof window.sodium!=='undefined'&&window.sodium.ready){await window.sodium.ready;return window.sodium;}
-  await new Promise((res,rej)=>{const s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/libsodium-wrappers@0.7.13/dist/modules/libsodium-wrappers.min.js';s.onload=res;s.onerror=()=>rej(new Error('libsodium yüklenemedi'));document.head.appendChild(s);});
-  const sod=window.sodium||self.sodium||globalThis.sodium;
-  if(!sod)throw new Error('libsodium global bulunamadı');
-  await sod.ready;return sod;
+async function _loadCryptoLibs(){
+  if(window._naclReady)return;
+  await Promise.all([
+    new Promise((res,rej)=>{const s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/tweetnacl@1.0.3/nacl-fast.min.js';s.onload=res;s.onerror=()=>rej(new Error('nacl yüklenemedi'));document.head.appendChild(s);}),
+    new Promise((res,rej)=>{const s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/blakejs@1.2.1/blakejs.min.js';s.onload=res;s.onerror=()=>rej(new Error('blakejs yüklenemedi'));document.head.appendChild(s);})
+  ]);
+  if(!window.nacl||!window.blakejs)throw new Error('Şifreleme kütüphanesi yüklenemedi');
+  window._naclReady=true;
 }
+function _sealBox(msg,recipientPk){
+  const eph=window.nacl.box.keyPair();
+  const ni=new Uint8Array(64);ni.set(eph.publicKey);ni.set(recipientPk,32);
+  const nonce=window.blakejs.blake2b(ni,null,24);
+  const boxed=window.nacl.box(msg,nonce,recipientPk,eph.secretKey);
+  const out=new Uint8Array(32+boxed.length);out.set(eph.publicKey);out.set(boxed,32);
+  return out;
+}
+function _u8b64(a){let s='';for(let i=0;i<a.length;i++)s+=String.fromCharCode(a[i]);return btoa(s);}
 async function setGitHubAutoUpdate(){
   const pat=(document.getElementById('gh-pat').value||'').trim();
   const statusEl=document.getElementById('gh-status');
@@ -1549,10 +1560,10 @@ async function setGitHubAutoUpdate(){
     if(!keyRes.ok)throw new Error('Erişim reddedildi — token\'ı ve repoyu kontrol edin ('+keyRes.status+')');
     const{key_id,key}=await keyRes.json();
     st('Şifreleniyor…');
-    const _s=await _loadSodium();
-    const keyBytes=_s.from_base64(key,_s.base64_variants.ORIGINAL);
-    const enc=_s.crypto_box_seal(_s.from_string(m3uUrl),keyBytes);
-    const encB64=_s.to_base64(enc,_s.base64_variants.ORIGINAL);
+    await _loadCryptoLibs();
+    const keyBytes=Uint8Array.from(atob(key),c=>c.charCodeAt(0));
+    const enc=_sealBox(new TextEncoder().encode(m3uUrl),keyBytes);
+    const encB64=_u8b64(enc);
     st('Secret kaydediliyor…');
     const putRes=await fetch('https://api.github.com/repos/'+owner+'/'+repo+'/actions/secrets/M3U_SOURCE_URL',{method:'PUT',headers:{'Authorization':'token '+pat,'Accept':'application/vnd.github.v3+json','Content-Type':'application/json'},body:JSON.stringify({encrypted_value:encB64,key_id})});
     if(!putRes.ok&&putRes.status!==204)throw new Error('Secret kaydedilemedi ('+putRes.status+')');
