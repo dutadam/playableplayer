@@ -2,7 +2,7 @@ const DB_NAME = "playable-player-db";
 const DB_VERSION = 1;
 const PLAYABLE_STORE = "playables";
 const FILE_STORE = "files";
-const APP_CACHE = "playable-player-shell-v14";
+const APP_CACHE = "playable-player-shell-v15";
 
 const STORE_HOSTS = [
   "apps.apple.com",
@@ -165,6 +165,7 @@ canvas, video {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
   text-align: center !important;
   touch-action: manipulation !important;
+  pointer-events: none !important;
 }
 #playable-player-audio-start img {
   display: block !important;
@@ -263,26 +264,17 @@ canvas, video {
     document.getElementById("playable-player-audio-start")?.remove();
     window.dispatchEvent(new CustomEvent("playable-player-start"));
   };
-  const startPlayable = () => {
-    primeAudio();
-    unlockAudio();
-    removeAudioStart();
-  };
   const createAudioStart = () => {
     if (document.body?.dataset.playablePlayerNoStart === "1") return;
     if (!document.body || document.getElementById("playable-player-audio-start")) return;
-    const button = document.createElement("button");
-    button.id = "playable-player-audio-start";
-    button.type = "button";
-    button.setAttribute("aria-label", "Start " + playableName + " with sound");
-    button.innerHTML =
+    const prompt = document.createElement("div");
+    prompt.id = "playable-player-audio-start";
+    prompt.setAttribute("aria-label", "Start " + playableName + " with sound");
+    prompt.innerHTML =
       (playableLogo ? '<img src="' + playableLogo + '" alt="' + playableGame + '">' : '<span>' + playableGame + '</span>') +
-      '<strong>Tap to start</strong>' +
+      '<strong>Tap game to start</strong>' +
       '<span>' + playableName + '</span>';
-    button.addEventListener("pointerdown", startPlayable, { once: true });
-    button.addEventListener("touchend", startPlayable, { once: true });
-    button.addEventListener("click", startPlayable, { once: true });
-    document.body.appendChild(button);
+    document.body.appendChild(prompt);
   };
   let audioStartScheduled = false;
   const isLoadingVisible = () => {
@@ -327,6 +319,15 @@ canvas, video {
   });
   window.addEventListener("message", (event) => {
     if (event.data?.type === "playable-audio-unlock") unlockAudio();
+    if (document.getElementById("playable-player-audio-start")) {
+      unlockAudio();
+      removeAudioStart();
+    }
+  });
+  window.addEventListener("blur", () => {
+    if (document.getElementById("playable-player-audio-start")) {
+      setTimeout(removeAudioStart, 120);
+    }
   });
   const originalOpen = window.open;
   window.open = function(url, ...rest) {
