@@ -476,8 +476,8 @@ body{height:var(--vh);background:var(--bg);color:var(--text);
         </button>
         <div class="gh-body" id="gh-body" style="display:none">
           <input class="url-input" id="gh-pat" type="password" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="GitHub Personal Access Token">
-          <button class="xt-btn" id="gh-save-btn">Kaydet &amp; Başlat</button>
           <div class="gh-status" id="gh-status"></div>
+          <button class="xt-btn" id="gh-save-btn">Kaydet &amp; Başlat</button>
         </div>
       </div>
     </div>
@@ -1533,34 +1533,33 @@ async function setGitHubAutoUpdate(){
   const pat=(document.getElementById('gh-pat').value||'').trim();
   const statusEl=document.getElementById('gh-status');
   const btn=document.getElementById('gh-save-btn');
-  if(!pat){statusEl.textContent='⚠ GitHub Token girin';statusEl.style.color='var(--danger)';return;}
+  function st(msg,color){statusEl.textContent=msg;statusEl.style.color=color||'var(--text-dim)';statusEl.scrollIntoView({behavior:'smooth',block:'nearest'});}
+  if(!pat){st('⚠ GitHub Token girin','var(--danger)');return;}
   const c=getXtCreds();
-  if(!c.server||!c.user||!c.pass){statusEl.textContent='⚠ Önce Xtream bilgilerini girin';statusEl.style.color='var(--danger)';return;}
+  if(!c.server||!c.user||!c.pass){st('⚠ Önce Xtream bilgilerini girin','var(--danger)');return;}
   const m3uUrl=_xtNorm(c.server)+'/get.php?username='+encodeURIComponent(c.user)+'&password='+encodeURIComponent(c.pass)+'&type=m3u_plus';
   const slash=GH_REPO.indexOf('/');
   const owner=GH_REPO.slice(0,slash);const repo=GH_REPO.slice(slash+1);
   btn.disabled=true;
-  statusEl.textContent='GitHub\'a bağlanılıyor…';statusEl.style.color='var(--text-dim)';
+  st('GitHub\'a bağlanılıyor…');
   try{
     const keyRes=await fetch('https://api.github.com/repos/'+owner+'/'+repo+'/actions/secrets/public-key',{headers:{'Authorization':'token '+pat,'Accept':'application/vnd.github.v3+json'}});
     if(!keyRes.ok)throw new Error('Erişim reddedildi — token\'ı ve repoyu kontrol edin ('+keyRes.status+')');
     const{key_id,key}=await keyRes.json();
-    statusEl.textContent='Şifreleniyor…';
+    st('Şifreleniyor…');
     const _s=await _loadSodium();
     const keyBytes=_s.from_base64(key,_s.base64_variants.ORIGINAL);
     const enc=_s.crypto_box_seal(_s.from_string(m3uUrl),keyBytes);
     const encB64=_s.to_base64(enc,_s.base64_variants.ORIGINAL);
-    statusEl.textContent='Secret kaydediliyor…';
+    st('Secret kaydediliyor…');
     const putRes=await fetch('https://api.github.com/repos/'+owner+'/'+repo+'/actions/secrets/M3U_SOURCE_URL',{method:'PUT',headers:{'Authorization':'token '+pat,'Accept':'application/vnd.github.v3+json','Content-Type':'application/json'},body:JSON.stringify({encrypted_value:encB64,key_id})});
     if(!putRes.ok&&putRes.status!==204)throw new Error('Secret kaydedilemedi ('+putRes.status+')');
-    statusEl.textContent='Workflow başlatılıyor…';
+    st('Workflow başlatılıyor…');
     await fetch('https://api.github.com/repos/'+owner+'/'+repo+'/actions/workflows/update-playlist.yml/dispatches',{method:'POST',headers:{'Authorization':'token '+pat,'Accept':'application/vnd.github.v3+json','Content-Type':'application/json'},body:JSON.stringify({ref:'main'})}).catch(()=>{});
     S.set('gh_pat',pat);
-    statusEl.textContent='✓ Ayarlandı — GitHub Actions her 6 saatte günceller';
-    statusEl.style.color='var(--success)';
+    st('✓ Ayarlandı — GitHub Actions her 6 saatte günceller','var(--success)');
   }catch(err){
-    statusEl.textContent='❌ '+err.message;
-    statusEl.style.color='var(--danger)';
+    st('❌ '+err.message,'var(--danger)');
   }finally{btn.disabled=false;}
 }
 document.getElementById('m3u-url-btn').addEventListener('click',()=>{const url=document.getElementById('m3u-url-input').value.trim();if(url)loadURL(url);});
