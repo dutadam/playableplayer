@@ -2,7 +2,7 @@ const DB_NAME = "playable-player-db";
 const DB_VERSION = 1;
 const PLAYABLE_STORE = "playables";
 const FILE_STORE = "files";
-const APP_CACHE = "playable-player-shell-v11";
+const APP_CACHE = "playable-player-shell-v12";
 
 const STORE_HOSTS = [
   "apps.apple.com",
@@ -99,7 +99,7 @@ async function servePlayableFile(relativePath) {
   }
 
   if (isHtmlPath(filePath)) {
-    const html = deferRemoteLunaIframe(await file.blob.text());
+    const html = normalizeRemoteLunaIframe(await file.blob.text());
     const playable = await getPlayable(playableId);
     return new Response(injectBridge(html, playable), {
       headers: {
@@ -284,6 +284,26 @@ canvas, video {
     button.addEventListener("click", startPlayable, { once: true });
     document.body.appendChild(button);
   };
+  let audioStartScheduled = false;
+  const isLoadingVisible = () => {
+    const nodes = document.querySelectorAll("#luna-loading, .loading, .loader, [data-loading='true'], [aria-busy='true']");
+    return [...nodes].some((node) => {
+      const style = getComputedStyle(node);
+      return style.display !== "none" && style.visibility !== "hidden" && style.opacity !== "0";
+    });
+  };
+  const scheduleAudioStart = (delay = 250) => {
+    if (audioStartScheduled || document.getElementById("playable-player-audio-start")) return;
+    audioStartScheduled = true;
+    setTimeout(() => {
+      audioStartScheduled = false;
+      if (isLoadingVisible()) {
+        scheduleAudioStart(300);
+        return;
+      }
+      createAudioStart();
+    }, delay);
+  };
   window.__playablePlayerUnlockAudio = unlockAudio;
   ["pointerdown", "touchend", "keydown", "click"].forEach((eventName) => {
     document.addEventListener(eventName, unlockAudio, { capture: true, passive: true });
@@ -372,19 +392,18 @@ canvas, video {
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", () => {
       observeStage();
-      createAudioStart();
       fitPlayable();
     }, { once: true });
   } else {
     observeStage();
-    createAudioStart();
     fitPlayable();
   }
   window.addEventListener("load", () => {
     observeStage();
-    createAudioStart();
+    scheduleAudioStart();
     fitPlayable();
   });
+  window.addEventListener("playable-player-ready", () => scheduleAudioStart(50));
   window.addEventListener("resize", fitPlayable);
   window.addEventListener("orientationchange", () => setTimeout(fitPlayable, 250));
   setTimeout(fitPlayable, 50);
@@ -416,29 +435,12 @@ function normalizePath(path) {
     .join("/");
 }
 
-function deferRemoteLunaIframe(html) {
+function normalizeRemoteLunaIframe(html) {
   if (!/assets\.lunalabs\.io\/uploads\/apps\/app\//i.test(html)) return html;
   let nextHtml = html;
-  if (!nextHtml.includes("playable-player-start")) {
-    nextHtml = nextHtml.replace(
-      "window.addEventListener( 'message', onMessage, false );",
-      "window.addEventListener( 'message', onMessage, false );\n        window.addEventListener( 'playable-player-start', loadLunaIframe, false );"
-    );
-  }
-  if (!nextHtml.includes("function loadLunaIframe()")) {
-    nextHtml = nextHtml.replace(
-      "function iframeLoaded() {",
-      `function loadLunaIframe() {
-            var iframe = document.getElementById("iframe");
-            if (iframe && !iframe.src) iframe.src = iframe.dataset.src;
-        }
-
-        function iframeLoaded() {`
-    );
-  }
   return nextHtml.replace(
-    /(<iframe id="iframe" onload="iframeLoaded\(\)" allow="[^"]+") src="([^"]+)"/g,
-    `$1 data-src="$2"`
+    /(<iframe id="iframe" onload="iframeLoaded\(\)" allow="[^"]+") data-src="([^"]+)"/g,
+    `$1 src="$2"`
   );
 }
 
