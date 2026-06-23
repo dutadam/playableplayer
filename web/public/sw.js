@@ -2,7 +2,7 @@ const DB_NAME = "playable-player-db";
 const DB_VERSION = 1;
 const PLAYABLE_STORE = "playables";
 const FILE_STORE = "files";
-const APP_CACHE = "playable-player-shell-v12";
+const APP_CACHE = "playable-player-shell-v13";
 
 const STORE_HOSTS = [
   "apps.apple.com",
@@ -292,14 +292,30 @@ canvas, video {
       return style.display !== "none" && style.visibility !== "hidden" && style.opacity !== "0";
     });
   };
+  const loadingSettleDelay = () => document.getElementById("luna-loading") ? 2200 : 0;
   const scheduleAudioStart = (delay = 250) => {
     if (audioStartScheduled || document.getElementById("playable-player-audio-start")) return;
     audioStartScheduled = true;
     setTimeout(() => {
       audioStartScheduled = false;
       if (isLoadingVisible()) {
+        if (document.body) delete document.body.dataset.playablePlayerLoadingReadyAt;
         scheduleAudioStart(300);
         return;
+      }
+      const settleDelay = loadingSettleDelay();
+      if (settleDelay && document.body) {
+        const readyAt = Number(document.body.dataset.playablePlayerLoadingReadyAt || 0);
+        if (!readyAt) {
+          document.body.dataset.playablePlayerLoadingReadyAt = String(Date.now());
+          scheduleAudioStart(300);
+          return;
+        }
+        const remaining = settleDelay - (Date.now() - readyAt);
+        if (remaining > 0) {
+          scheduleAudioStart(Math.min(remaining, 500));
+          return;
+        }
       }
       createAudioStart();
     }, delay);
