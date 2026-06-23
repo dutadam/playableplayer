@@ -1626,8 +1626,15 @@ async function setGitHubAutoUpdate(){
 
     // 3. Otomatik güncelleme workflow'u oluştur/güncelle
     st('Workflow oluşturuluyor…');
-    const wf=`name: Update Playlist\non:\n  schedule:\n    - cron: '0 */6 * * *'\n  workflow_dispatch:\npermissions:\n  contents: write\njobs:\n  update:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      - name: Download and commit\n        env:\n          M3U_URL: \${{ secrets.M3U_SOURCE_URL }}\n        run: |\n          curl -fsSL "$M3U_URL" -o playlist.m3u\n          git config user.name "github-actions[bot]"\n          git config user.email "github-actions[bot]@users.noreply.github.com"\n          git add playlist.m3u\n          git diff --staged --quiet && echo "no change" && exit 0\n          git commit -m "update: playlist güncellendi"\n          git push\n`;
-    await _ghPut('.github/workflows/update-playlist.yml',wf,'setup: otomatik güncelleme workflow eklendi').catch(()=>{});
+    const wf=`name: Update Playlist\non:\n  schedule:\n    - cron: '0 */6 * * *'\n  workflow_dispatch:\npermissions:\n  contents: write\njobs:\n  update:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      - name: Download and commit\n        env:\n          M3U_URL: \${{ secrets.M3U_SOURCE_URL }}\n        run: |\n          curl -fsSL --retry 3 --retry-delay 5 --max-time 60 -A "VLC/3.0 LibVLC/3.0" "$M3U_URL" -o playlist.m3u\n          head -1 playlist.m3u | grep -q '#EXTM3U' || (echo "Gecersiz M3U" && exit 1)\n          git config user.name "github-actions[bot]"\n          git config user.email "github-actions[bot]@users.noreply.github.com"\n          git add playlist.m3u\n          git diff --staged --quiet && echo "no change" && exit 0\n          git commit -m "update: playlist güncellendi"\n          git push\n`;
+    const wfRes=await fetch('https://api.github.com/repos/'+owner+'/'+repo+'/contents/.github/workflows/update-playlist.yml',{headers:{'Authorization':'token '+pat,'Accept':'application/vnd.github.v3+json'}});
+    let wfBody={message:'setup: otomatik güncelleme workflow eklendi',content:_toB64(wf)};
+    if(wfRes.ok){const wd=await wfRes.json();if(!Array.isArray(wd)&&wd.sha)wfBody.sha=wd.sha;}
+    const wfPut=await fetch('https://api.github.com/repos/'+owner+'/'+repo+'/contents/.github/workflows/update-playlist.yml',{method:'PUT',headers:{'Authorization':'token '+pat,'Accept':'application/vnd.github.v3+json','Content-Type':'application/json'},body:JSON.stringify(wfBody)});
+    if(!wfPut.ok&&wfPut.status!==201){
+      if(wfPut.status===403||wfPut.status===422)throw new Error('Workflow oluşturulamadı — Token\'a "workflow" yetkisi ekleyin (GitHub → Settings → Developer settings → Fine-grained tokens → Workflows)');
+      throw new Error('Workflow güncellenemedi ('+wfPut.status+')');
+    }
 
     // 4. Workflow'u şimdi tetikle (GitHub Actions indirsin)
     st('GitHub Actions başlatılıyor…');
