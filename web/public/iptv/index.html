@@ -1524,23 +1524,64 @@ document.getElementById('gh-toggle').addEventListener('click',()=>{
 const GH_REPO='dutadam/m3u-player';
 document.getElementById('gh-save-btn').addEventListener('click',setGitHubAutoUpdate);
 document.getElementById('gh-pat').addEventListener('input',()=>S.set('gh_pat',document.getElementById('gh-pat').value));
+var _blakejs=(function(){
+function ni(input){return input instanceof Uint8Array?input:new TextEncoder().encode(input);}
+function AA(v,a,b){var o0=v[a]+v[b];var o1=v[a+1]+v[b+1];if(o0>=0x100000000)o1++;v[a]=o0;v[a+1]=o1;}
+function AC(v,a,b0,b1){var o0=v[a]+b0;if(b0<0)o0+=0x100000000;var o1=v[a+1]+b1;if(o0>=0x100000000)o1++;v[a]=o0;v[a+1]=o1;}
+function G32(arr,i){return arr[i]^(arr[i+1]<<8)^(arr[i+2]<<16)^(arr[i+3]<<24);}
+var vv=new Uint32Array(32),mm=new Uint32Array(32);
+function BG(a,b,c,d,ix,iy){
+  var x0=mm[ix],x1=mm[ix+1],y0=mm[iy],y1=mm[iy+1];
+  AA(vv,a,b);AC(vv,a,x0,x1);
+  var r0=vv[d]^vv[a],r1=vv[d+1]^vv[a+1];vv[d]=r1;vv[d+1]=r0;
+  AA(vv,c,d);r0=vv[b]^vv[c];r1=vv[b+1]^vv[c+1];vv[b]=(r0>>>24)^(r1<<8);vv[b+1]=(r1>>>24)^(r0<<8);
+  AA(vv,a,b);AC(vv,a,y0,y1);
+  r0=vv[d]^vv[a];r1=vv[d+1]^vv[a+1];vv[d]=(r0>>>16)^(r1<<16);vv[d+1]=(r1>>>16)^(r0<<16);
+  AA(vv,c,d);r0=vv[b]^vv[c];r1=vv[b+1]^vv[c+1];vv[b]=(r1>>>31)^(r0<<1);vv[b+1]=(r0>>>31)^(r1<<1);
+}
+var IV=new Uint32Array([0xf3bcc908,0x6a09e667,0x84caa73b,0xbb67ae85,0xfe94f82b,0x3c6ef372,0x5f1d36f1,0xa54ff53a,0xade682d1,0x510e527f,0x2b3e6c1f,0x9b05688c,0xfb41bd6b,0x1f83d9ab,0x137e2179,0x5be0cd19]);
+var S8=[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,14,10,4,8,9,15,13,6,1,12,0,2,11,7,5,3,11,8,12,0,5,2,15,13,10,14,3,6,7,1,9,4,7,9,3,1,13,12,11,14,2,6,5,10,4,0,15,8,9,0,5,7,2,4,10,15,14,1,11,12,6,8,3,13,2,12,6,10,0,11,8,3,4,13,7,5,15,14,1,9,12,5,1,15,14,13,4,10,0,7,6,3,9,2,8,11,13,11,7,14,12,1,3,9,5,0,15,4,8,6,2,10,6,15,14,9,11,3,0,8,12,2,13,7,1,4,10,5,10,2,8,4,7,6,1,5,15,11,9,14,3,12,13,0,0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,14,10,4,8,9,15,13,6,1,12,0,2,11,7,5,3];
+var S82=new Uint8Array(S8.map(function(x){return x*2;}));
+var pb=new Uint8Array(64);
+function cmp(ctx,last){
+  var i;for(i=0;i<16;i++){vv[i]=ctx.h[i];vv[i+16]=IV[i];}
+  vv[24]=vv[24]^ctx.t;vv[25]=vv[25]^(ctx.t/0x100000000);
+  if(last){vv[28]=~vv[28];vv[29]=~vv[29];}
+  for(i=0;i<32;i++)mm[i]=G32(ctx.b,4*i);
+  for(i=0;i<12;i++){
+    BG(0,8,16,24,S82[i*16+0],S82[i*16+1]);BG(2,10,18,26,S82[i*16+2],S82[i*16+3]);
+    BG(4,12,20,28,S82[i*16+4],S82[i*16+5]);BG(6,14,22,30,S82[i*16+6],S82[i*16+7]);
+    BG(0,10,20,30,S82[i*16+8],S82[i*16+9]);BG(2,12,22,24,S82[i*16+10],S82[i*16+11]);
+    BG(4,14,16,26,S82[i*16+12],S82[i*16+13]);BG(6,8,18,28,S82[i*16+14],S82[i*16+15]);
+  }
+  for(i=0;i<16;i++)ctx.h[i]=ctx.h[i]^vv[i]^vv[i+16];
+}
+function init(ol,key){
+  var ctx={b:new Uint8Array(128),h:new Uint32Array(16),t:0,c:0,outlen:ol};
+  pb.fill(0);pb[0]=ol;if(key)pb[1]=key.length;pb[2]=1;pb[3]=1;
+  for(var i=0;i<16;i++)ctx.h[i]=IV[i]^G32(pb,i*4);
+  if(key){upd(ctx,key);ctx.c=128;}
+  return ctx;
+}
+function upd(ctx,input){for(var i=0;i<input.length;i++){if(ctx.c===128){ctx.t+=ctx.c;cmp(ctx,false);ctx.c=0;}ctx.b[ctx.c++]=input[i];}}
+function fin(ctx){ctx.t+=ctx.c;while(ctx.c<128)ctx.b[ctx.c++]=0;cmp(ctx,true);var out=new Uint8Array(ctx.outlen);for(var i=0;i<ctx.outlen;i++)out[i]=ctx.h[i>>2]>>(8*(i&3));return out;}
+function blake2b(input,key,outlen){outlen=outlen||64;input=ni(input);var ctx=init(outlen,key);upd(ctx,input);return fin(ctx);}
+return{blake2b:blake2b};
+})();
 async function _loadCryptoLibs(){
   if(window._naclReady)return;
-  async function _ldScr(urls,name){
-    for(const url of urls){
-      const ok=await new Promise(r=>{const s=document.createElement('script');s.src=url;s.onload=()=>r(true);s.onerror=()=>r(false);document.head.appendChild(s);});
-      if(ok&&window[name])return;
-    }
-    if(!window[name])throw new Error(name+' yüklenemedi');
+  let ok=false;
+  for(const url of['https://cdn.jsdelivr.net/npm/tweetnacl@1.0.3/nacl-fast.min.js','https://unpkg.com/tweetnacl@1.0.3/nacl-fast.min.js']){
+    ok=await new Promise(r=>{const s=document.createElement('script');s.src=url;s.onload=()=>r(true);s.onerror=()=>r(false);document.head.appendChild(s);});
+    if(ok&&window.nacl)break;
   }
-  await _ldScr(['https://cdn.jsdelivr.net/npm/tweetnacl@1.0.3/nacl-fast.min.js','https://unpkg.com/tweetnacl@1.0.3/nacl-fast.min.js'],'nacl');
-  await _ldScr(['https://cdn.jsdelivr.net/npm/blakejs@1.2.1/index.js','https://unpkg.com/blakejs@1.2.1/index.js'],'blakejs');
+  if(!window.nacl)throw new Error('nacl yüklenemedi');
   window._naclReady=true;
 }
 function _sealBox(msg,recipientPk){
   const eph=window.nacl.box.keyPair();
   const ni=new Uint8Array(64);ni.set(eph.publicKey);ni.set(recipientPk,32);
-  const nonce=window.blakejs.blake2b(ni,null,24);
+  const nonce=_blakejs.blake2b(ni,null,24);
   const boxed=window.nacl.box(msg,nonce,recipientPk,eph.secretKey);
   const out=new Uint8Array(32+boxed.length);out.set(eph.publicKey);out.set(boxed,32);
   return out;
