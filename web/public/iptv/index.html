@@ -1525,15 +1525,15 @@ const GH_REPO='dutadam/m3u-player';
 document.getElementById('gh-save-btn').addEventListener('click',setGitHubAutoUpdate);
 document.getElementById('gh-pat').addEventListener('input',()=>S.set('gh_pat',document.getElementById('gh-pat').value));
 async function _loadSodium(){
-  if(typeof sodium!=='undefined'){await sodium.ready;return sodium;}
-  await new Promise((res,rej)=>{const s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/libsodium-wrappers@0.7.13/dist/modules/libsodium-wrappers.min.js';s.onload=res;s.onerror=()=>rej(new Error('libsodium yüklenemedi'));document.head.appendChild(s);});
-  await sodium.ready;return sodium;
+  if(typeof window.sodium!=='undefined'&&window.sodium.ready){await window.sodium.ready;return window.sodium;}
+  await new Promise((res,rej)=>{const s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/libsodium-wrappers@0.7.13/dist/browsers/sodium.js';s.onload=res;s.onerror=()=>rej(new Error('libsodium yüklenemedi'));document.head.appendChild(s);});
+  await window.sodium.ready;return window.sodium;
 }
 async function setGitHubAutoUpdate(){
   const pat=(document.getElementById('gh-pat').value||'').trim();
   const statusEl=document.getElementById('gh-status');
   const btn=document.getElementById('gh-save-btn');
-  function st(msg,color){statusEl.textContent=msg;statusEl.style.color=color||'var(--text-dim)';statusEl.scrollIntoView({behavior:'smooth',block:'nearest'});}
+  function st(msg,color){statusEl.textContent=msg;statusEl.style.color=color||'var(--text-dim)';setTimeout(()=>statusEl.scrollIntoView({behavior:'smooth',block:'nearest'}),80);}
   if(!pat){st('⚠ GitHub Token girin','var(--danger)');return;}
   const c=getXtCreds();
   if(!c.server||!c.user||!c.pass){st('⚠ Önce Xtream bilgilerini girin','var(--danger)');return;}
