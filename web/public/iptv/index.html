@@ -685,11 +685,12 @@ body{height:var(--vh);background:var(--bg);color:var(--text);
 <div id="toast"></div>
 <div class="progress" id="progress" style="width:0"></div>
 <script>
-// VH
-function setVH(){const h=window.visualViewport?window.visualViewport.height:window.innerHeight;document.documentElement.style.setProperty('--vh',h+'px');}
+// VH — use the larger of innerHeight and visualViewport so the on-screen
+// keyboard (which shrinks visualViewport, not innerHeight) can't collapse the layout
+function setVH(){const vv=window.visualViewport?window.visualViewport.height:0;const h=Math.max(window.innerHeight||0,vv);document.documentElement.style.setProperty('--vh',h+'px');}
 setVH();
-if(window.visualViewport)window.visualViewport.addEventListener('resize',setVH);
-else window.addEventListener('resize',setVH);
+window.addEventListener('resize',setVH);
+window.addEventListener('orientationchange',setVH);
 const isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent)&&!window.MSStream;
 // Storage
 const S={_p:'m3u_',get(k,d){try{const v=localStorage.getItem(this._p+k);if(v==null)return d;if(v.charCodeAt(0)===1)return JSON.parse(LZString.decompressFromUTF16(v.slice(1)));return JSON.parse(v);}catch{return d}},set(k,v){try{localStorage.setItem(this._p+k,JSON.stringify(v))}catch(e){if(e.name==='QuotaExceededError')try{localStorage.removeItem(this._p+'chs')}catch{}}},del(k){try{localStorage.removeItem(this._p+k)}catch{}}};
