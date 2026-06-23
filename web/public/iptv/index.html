@@ -1613,41 +1613,60 @@ async function setGitHubAutoUpdate(){
     const chk=await fetch('https://api.github.com/repos/'+owner+'/'+repo,{headers:{'Authorization':'token '+pat,'Accept':'application/vnd.github.v3+json'}});
     if(!chk.ok)throw new Error('Erişim reddedildi — token\'ı kontrol edin ('+chk.status+')');
 
-    // 2. M3U indir
-    st('M3U listesi indiriliyor…');
-    const proxies=[m3uUrl,'https://corsproxy.io/?'+encodeURIComponent(m3uUrl),'https://api.allorigins.win/raw?url='+encodeURIComponent(m3uUrl),'https://api.codetabs.com/v1/proxy?quest='+encodeURIComponent(m3uUrl)];
-    let m3uContent=null;
-    for(const u of proxies){
-      st('İndiriliyor… ('+(proxies.indexOf(u)===0?'doğrudan':'proxy '+(proxies.indexOf(u)))+')');
-      try{const r=await fetch(u,{signal:AbortSignal.timeout(30000)});if(r.ok){const t=await r.text();if(t.includes('#EXTM3U')){m3uContent=t;break;}}}catch(e){}
-    }
-    if(!m3uContent)throw new Error('M3U indirilemedi — sunucu erişilemiyor veya tüm proxy\'ler başarısız');
-
-    // 3. playlist.m3u GitHub'a yükle
-    st('playlist.m3u yükleniyor…');
-    await _ghPut('playlist.m3u',m3uContent,'update: playlist güncellendi');
-
-    // 4. Otomatik güncelleme workflow'u oluştur
-    st('6 saatlik otomatik güncelleme ayarlanıyor…');
-    const wf=`name: Update Playlist\non:\n  schedule:\n    - cron: '0 */6 * * *'\n  workflow_dispatch:\npermissions:\n  contents: write\njobs:\n  update:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      - name: Download and commit\n        env:\n          M3U_URL: \${{ secrets.M3U_SOURCE_URL }}\n        run: |\n          curl -fL "$M3U_URL" -o playlist.m3u\n          git config user.name "github-actions[bot]"\n          git config user.email "github-actions[bot]@users.noreply.github.com"\n          git add playlist.m3u\n          git diff --staged --quiet && exit 0\n          git commit -m "update: playlist güncellendi"\n          git push\n`;
-    await _ghPut('.github/workflows/update-playlist.yml',wf,'setup: otomatik güncelleme workflow eklendi').catch(()=>{});
-
-    // 5. M3U_SOURCE_URL'yi secret olarak kaydet (workflow için)
+    // 2. M3U_SOURCE_URL'yi secret olarak kaydet
     st('URL secret olarak kaydediliyor…');
     const keyRes=await fetch('https://api.github.com/repos/'+owner+'/'+repo+'/actions/secrets/public-key',{headers:{'Authorization':'token '+pat,'Accept':'application/vnd.github.v3+json'}});
-    if(keyRes.ok){
-      const{key_id,key}=await keyRes.json();
-      await _loadCryptoLibs();
-      const kb=Uint8Array.from(atob(key),ch=>ch.charCodeAt(0));
-      const enc=_sealBox(new TextEncoder().encode(m3uUrl),kb);
-      await fetch('https://api.github.com/repos/'+owner+'/'+repo+'/actions/secrets/M3U_SOURCE_URL',{method:'PUT',headers:{'Authorization':'token '+pat,'Accept':'application/vnd.github.v3+json','Content-Type':'application/json'},body:JSON.stringify({encrypted_value:_u8b64(enc),key_id})}).catch(()=>{});
+    if(!keyRes.ok)throw new Error('Secret public key alınamadı ('+keyRes.status+')');
+    const{key_id,key}=await keyRes.json();
+    await _loadCryptoLibs();
+    const kb=Uint8Array.from(atob(key),ch=>ch.charCodeAt(0));
+    const enc=_sealBox(new TextEncoder().encode(m3uUrl),kb);
+    const secRes=await fetch('https://api.github.com/repos/'+owner+'/'+repo+'/actions/secrets/M3U_SOURCE_URL',{method:'PUT',headers:{'Authorization':'token '+pat,'Accept':'application/vnd.github.v3+json','Content-Type':'application/json'},body:JSON.stringify({encrypted_value:_u8b64(enc),key_id})});
+    if(!secRes.ok&&secRes.status!==204)throw new Error('Secret kaydedilemedi ('+secRes.status+')');
+
+    // 3. Otomatik güncelleme workflow'u oluştur/güncelle
+    st('Workflow oluşturuluyor…');
+    const wf=`name: Update Playlist\non:\n  schedule:\n    - cron: '0 */6 * * *'\n  workflow_dispatch:\npermissions:\n  contents: write\njobs:\n  update:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      - name: Download and commit\n        env:\n          M3U_URL: \${{ secrets.M3U_SOURCE_URL }}\n        run: |\n          curl -fsSL "$M3U_URL" -o playlist.m3u\n          git config user.name "github-actions[bot]"\n          git config user.email "github-actions[bot]@users.noreply.github.com"\n          git add playlist.m3u\n          git diff --staged --quiet && echo "no change" && exit 0\n          git commit -m "update: playlist güncellendi"\n          git push\n`;
+    await _ghPut('.github/workflows/update-playlist.yml',wf,'setup: otomatik güncelleme workflow eklendi').catch(()=>{});
+
+    // 4. Workflow'u şimdi tetikle (GitHub Actions indirsin)
+    st('GitHub Actions başlatılıyor…');
+    const dispRes=await fetch('https://api.github.com/repos/'+owner+'/'+repo+'/actions/workflows/update-playlist.yml/dispatches',{method:'POST',headers:{'Authorization':'token '+pat,'Accept':'application/vnd.github.v3+json','Content-Type':'application/json'},body:JSON.stringify({ref:'main'})});
+    if(!dispRes.ok&&dispRes.status!==204)throw new Error('Workflow tetiklenemedi ('+dispRes.status+')');
+
+    // 5. Workflow tamamlanana kadar bekle (polling, max 3 dk)
+    st('M3U indiriliyor — GitHub Actions çalışıyor…');
+    const deadline=Date.now()+180000;
+    let runId=null;
+    // run ID'yi bul (birkaç saniye bekleyip en son run'ı al)
+    for(let i=0;i<8;i++){
+      await new Promise(r=>setTimeout(r,3000));
+      const rr=await fetch('https://api.github.com/repos/'+owner+'/'+repo+'/actions/workflows/update-playlist.yml/runs?per_page=1',{headers:{'Authorization':'token '+pat,'Accept':'application/vnd.github.v3+json'}});
+      if(rr.ok){const d=await rr.json();if(d.workflow_runs&&d.workflow_runs[0]){runId=d.workflow_runs[0].id;if(d.workflow_runs[0].status==='queued'||d.workflow_runs[0].status==='in_progress')break;if(d.workflow_runs[0].status==='completed'){break;}}}
+    }
+    if(runId){
+      // run tamamlanana kadar bekle
+      while(Date.now()<deadline){
+        await new Promise(r=>setTimeout(r,5000));
+        const sr=await fetch('https://api.github.com/repos/'+owner+'/'+repo+'/actions/runs/'+runId,{headers:{'Authorization':'token '+pat,'Accept':'application/vnd.github.v3+json'}});
+        if(!sr.ok)break;
+        const sd=await sr.json();
+        st('GitHub Actions çalışıyor… ('+sd.status+')');
+        if(sd.status==='completed'){
+          if(sd.conclusion!=='success')throw new Error('Workflow başarısız: '+sd.conclusion);
+          break;
+        }
+      }
+    }else{
+      // run bulunamadı, 20 saniye bekleyip devam et
+      await new Promise(r=>setTimeout(r,20000));
     }
 
     // 6. Kanalları GitHub'dan yükle
     S.set('gh_pat',pat);
-    const ghUrl='https://raw.githubusercontent.com/'+owner+'/'+repo+'/main/playlist.m3u';
-    S.set('gh_playlist_url',ghUrl);
-    st('✓ Yüklendi — kanallar açılıyor…','var(--success)');
+    const ghUrl='https://raw.githubusercontent.com/'+owner+'/'+repo+'/main/playlist.m3u?t='+Date.now();
+    S.set('gh_playlist_url','https://raw.githubusercontent.com/'+owner+'/'+repo+'/main/playlist.m3u');
+    st('✓ Hazır — kanallar açılıyor…','var(--success)');
     setTimeout(()=>loadURL(ghUrl),800);
 
   }catch(err){
