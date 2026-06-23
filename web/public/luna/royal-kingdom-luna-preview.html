@@ -52,6 +52,8 @@
         let TEXTURE_ID_START = 1e6;
         let FONT_DTO_TEXTURE_ID_INDEX = 6;
         let bannerTimeout;
+        let playgroundFrameLoaded = false;
+        let playableReadySent = false;
 
         // Listen all the messages across the window to catch important events such Luna CTA Button clicked, etc.
         window.addEventListener( 'message', onMessage, false );
@@ -59,6 +61,7 @@
         // message structure is next: { target: "editor", title: "CTA Button Clicked", type: "success" }
         function onMessage( event ) {
             const data = event.data;
+            maybeMarkPlayableReady(event, data);
 
             // for 'CTA Button Clicked' event type always will be 'success'
             // and there're no other events with this type
@@ -66,6 +69,14 @@
                 showBanner( data.title );
                 parent.postMessage({ type: "playable-store-intent", url: data.title || "Luna CTA Button Clicked" }, "*");
             }
+        }
+
+        function maybeMarkPlayableReady(event, data) {
+            var iframe = document.getElementById("iframe");
+            if (playableReadySent || !playgroundFrameLoaded || !iframe || event.source !== iframe.contentWindow) return;
+            if (data && data.type === 'success') return;
+            playableReadySent = true;
+            window.dispatchEvent(new CustomEvent("playable-player-ready"));
         }
 
         function showBanner( title ) {
@@ -81,6 +92,7 @@
 
 
         function iframeLoaded() {
+            playgroundFrameLoaded = true;
             var loading = document.getElementById("luna-loading");
             if (loading) loading.style.display = "none";
             var iframe = document.getElementById("iframe");
@@ -114,7 +126,7 @@
         }
     </script>
 </head>
-<body data-playable-player-fit="manual">
+<body data-playable-player-fit="manual" data-playable-player-wait-ready="1">
     <div id="luna-loading">Loading Luna preview...</div>
     <div id="banner" class="hidden"></div>
     <iframe id="iframe" onload="iframeLoaded()" allow="autoplay; fullscreen; gamepad; accelerometer; gyroscope; encrypted-media" src="https://assets.lunalabs.io/uploads/apps/app/396546/81fccaf99868919f74daa80d5329f5a2/data/index.html"></iframe>
