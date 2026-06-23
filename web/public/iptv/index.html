@@ -1599,23 +1599,57 @@ async function setGitHubAutoUpdate(){
   const slash=GH_REPO.indexOf('/');
   const owner=GH_REPO.slice(0,slash);const repo=GH_REPO.slice(slash+1);
   btn.disabled=true;
-  st('GitHub\'a bağlanılıyor…');
+  function _toB64(str){const b=new TextEncoder().encode(str);let s='';for(let i=0;i<b.length;i+=8192)s+=String.fromCharCode.apply(null,b.subarray(i,Math.min(i+8192,b.length)));return btoa(s);}
+  async function _ghPut(path,content,msg){
+    const r=await fetch('https://api.github.com/repos/'+owner+'/'+repo+'/contents/'+path,{headers:{'Authorization':'token '+pat,'Accept':'application/vnd.github.v3+json'}});
+    const body={message:msg,content:_toB64(content)};
+    if(r.ok){const d=await r.json();body.sha=Array.isArray(d)?undefined:d.sha;}
+    const pr=await fetch('https://api.github.com/repos/'+owner+'/'+repo+'/contents/'+path,{method:'PUT',headers:{'Authorization':'token '+pat,'Accept':'application/vnd.github.v3+json','Content-Type':'application/json'},body:JSON.stringify(body)});
+    if(!pr.ok&&pr.status!==201)throw new Error(path+' yüklenemedi ('+pr.status+')');
+  }
   try{
+    // 1. PAT doğrula
+    st('GitHub bağlantısı kontrol ediliyor…');
+    const chk=await fetch('https://api.github.com/repos/'+owner+'/'+repo,{headers:{'Authorization':'token '+pat,'Accept':'application/vnd.github.v3+json'}});
+    if(!chk.ok)throw new Error('Erişim reddedildi — token\'ı kontrol edin ('+chk.status+')');
+
+    // 2. M3U indir
+    st('M3U listesi indiriliyor…');
+    const proxies=[m3uUrl,'https://corsproxy.io/?'+encodeURIComponent(m3uUrl),'https://api.allorigins.win/raw?url='+encodeURIComponent(m3uUrl),'https://api.codetabs.com/v1/proxy?quest='+encodeURIComponent(m3uUrl)];
+    let m3uContent=null;
+    for(const u of proxies){
+      st('İndiriliyor… ('+(proxies.indexOf(u)===0?'doğrudan':'proxy '+(proxies.indexOf(u)))+')');
+      try{const r=await fetch(u,{signal:AbortSignal.timeout(30000)});if(r.ok){const t=await r.text();if(t.includes('#EXTM3U')){m3uContent=t;break;}}}catch(e){}
+    }
+    if(!m3uContent)throw new Error('M3U indirilemedi — sunucu erişilemiyor veya tüm proxy\'ler başarısız');
+
+    // 3. playlist.m3u GitHub'a yükle
+    st('playlist.m3u yükleniyor…');
+    await _ghPut('playlist.m3u',m3uContent,'update: playlist güncellendi');
+
+    // 4. Otomatik güncelleme workflow'u oluştur
+    st('6 saatlik otomatik güncelleme ayarlanıyor…');
+    const wf=`name: Update Playlist\non:\n  schedule:\n    - cron: '0 */6 * * *'\n  workflow_dispatch:\npermissions:\n  contents: write\njobs:\n  update:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      - name: Download and commit\n        env:\n          M3U_URL: \${{ secrets.M3U_SOURCE_URL }}\n        run: |\n          curl -fL "$M3U_URL" -o playlist.m3u\n          git config user.name "github-actions[bot]"\n          git config user.email "github-actions[bot]@users.noreply.github.com"\n          git add playlist.m3u\n          git diff --staged --quiet && exit 0\n          git commit -m "update: playlist güncellendi"\n          git push\n`;
+    await _ghPut('.github/workflows/update-playlist.yml',wf,'setup: otomatik güncelleme workflow eklendi').catch(()=>{});
+
+    // 5. M3U_SOURCE_URL'yi secret olarak kaydet (workflow için)
+    st('URL secret olarak kaydediliyor…');
     const keyRes=await fetch('https://api.github.com/repos/'+owner+'/'+repo+'/actions/secrets/public-key',{headers:{'Authorization':'token '+pat,'Accept':'application/vnd.github.v3+json'}});
-    if(!keyRes.ok)throw new Error('Erişim reddedildi — token\'ı ve repoyu kontrol edin ('+keyRes.status+')');
-    const{key_id,key}=await keyRes.json();
-    st('Şifreleniyor…');
-    await _loadCryptoLibs();
-    const keyBytes=Uint8Array.from(atob(key),c=>c.charCodeAt(0));
-    const enc=_sealBox(new TextEncoder().encode(m3uUrl),keyBytes);
-    const encB64=_u8b64(enc);
-    st('Secret kaydediliyor…');
-    const putRes=await fetch('https://api.github.com/repos/'+owner+'/'+repo+'/actions/secrets/M3U_SOURCE_URL',{method:'PUT',headers:{'Authorization':'token '+pat,'Accept':'application/vnd.github.v3+json','Content-Type':'application/json'},body:JSON.stringify({encrypted_value:encB64,key_id})});
-    if(!putRes.ok&&putRes.status!==204)throw new Error('Secret kaydedilemedi ('+putRes.status+')');
-    st('Workflow başlatılıyor…');
-    await fetch('https://api.github.com/repos/'+owner+'/'+repo+'/actions/workflows/update-playlist.yml/dispatches',{method:'POST',headers:{'Authorization':'token '+pat,'Accept':'application/vnd.github.v3+json','Content-Type':'application/json'},body:JSON.stringify({ref:'main'})}).catch(()=>{});
+    if(keyRes.ok){
+      const{key_id,key}=await keyRes.json();
+      await _loadCryptoLibs();
+      const kb=Uint8Array.from(atob(key),ch=>ch.charCodeAt(0));
+      const enc=_sealBox(new TextEncoder().encode(m3uUrl),kb);
+      await fetch('https://api.github.com/repos/'+owner+'/'+repo+'/actions/secrets/M3U_SOURCE_URL',{method:'PUT',headers:{'Authorization':'token '+pat,'Accept':'application/vnd.github.v3+json','Content-Type':'application/json'},body:JSON.stringify({encrypted_value:_u8b64(enc),key_id})}).catch(()=>{});
+    }
+
+    // 6. Kanalları GitHub'dan yükle
     S.set('gh_pat',pat);
-    st('✓ Ayarlandı — GitHub Actions her 6 saatte günceller','var(--success)');
+    const ghUrl='https://raw.githubusercontent.com/'+owner+'/'+repo+'/main/playlist.m3u';
+    S.set('gh_playlist_url',ghUrl);
+    st('✓ Yüklendi — kanallar açılıyor…','var(--success)');
+    setTimeout(()=>loadURL(ghUrl),800);
+
   }catch(err){
     st('❌ '+err.message,'var(--danger)');
   }finally{btn.disabled=false;}
