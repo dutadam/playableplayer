@@ -1526,11 +1526,15 @@ document.getElementById('gh-save-btn').addEventListener('click',setGitHubAutoUpd
 document.getElementById('gh-pat').addEventListener('input',()=>S.set('gh_pat',document.getElementById('gh-pat').value));
 async function _loadCryptoLibs(){
   if(window._naclReady)return;
-  await Promise.all([
-    new Promise((res,rej)=>{const s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/tweetnacl@1.0.3/nacl-fast.min.js';s.onload=res;s.onerror=()=>rej(new Error('nacl yüklenemedi'));document.head.appendChild(s);}),
-    new Promise((res,rej)=>{const s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/blakejs@1.2.1/blakejs.min.js';s.onload=res;s.onerror=()=>rej(new Error('blakejs yüklenemedi'));document.head.appendChild(s);})
-  ]);
-  if(!window.nacl||!window.blakejs)throw new Error('Şifreleme kütüphanesi yüklenemedi');
+  async function _ldScr(urls,name){
+    for(const url of urls){
+      const ok=await new Promise(r=>{const s=document.createElement('script');s.src=url;s.onload=()=>r(true);s.onerror=()=>r(false);document.head.appendChild(s);});
+      if(ok&&window[name])return;
+    }
+    if(!window[name])throw new Error(name+' yüklenemedi');
+  }
+  await _ldScr(['https://cdn.jsdelivr.net/npm/tweetnacl@1.0.3/nacl-fast.min.js','https://unpkg.com/tweetnacl@1.0.3/nacl-fast.min.js'],'nacl');
+  await _ldScr(['https://cdn.jsdelivr.net/npm/blakejs@1.2.1/index.js','https://unpkg.com/blakejs@1.2.1/index.js'],'blakejs');
   window._naclReady=true;
 }
 function _sealBox(msg,recipientPk){
