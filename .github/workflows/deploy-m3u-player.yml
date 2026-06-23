@@ -20,6 +20,7 @@ jobs:
         env:
           PAT: ${{ secrets.M3U_PLAYER_PAT }}
         run: |
+          if [ -z "$PAT" ]; then echo "PAT bos!"; exit 1; fi
           git clone https://x-access-token:${PAT}@github.com/dutadam/m3u-player.git /tmp/m3u-player
           cd /tmp/m3u-player
           cp $GITHUB_WORKSPACE/web/public/iptv/index.html index.html
@@ -27,6 +28,6 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add index.html
-          git diff --staged --quiet && echo "Değişiklik yok" && exit 0
-          git commit -m "deploy: index.html güncellendi [skip ci]"
+          git diff --staged --quiet && echo "Degisiklik yok" && exit 0
+          git commit -m "deploy: index.html guncellendi [skip ci]"
           git push
