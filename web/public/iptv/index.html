@@ -1526,8 +1526,10 @@ document.getElementById('gh-save-btn').addEventListener('click',setGitHubAutoUpd
 document.getElementById('gh-pat').addEventListener('input',()=>S.set('gh_pat',document.getElementById('gh-pat').value));
 async function _loadSodium(){
   if(typeof window.sodium!=='undefined'&&window.sodium.ready){await window.sodium.ready;return window.sodium;}
-  await new Promise((res,rej)=>{const s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/libsodium-wrappers@0.7.13/dist/browsers/sodium.js';s.onload=res;s.onerror=()=>rej(new Error('libsodium yüklenemedi'));document.head.appendChild(s);});
-  await window.sodium.ready;return window.sodium;
+  await new Promise((res,rej)=>{const s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/libsodium-wrappers@0.7.13/dist/modules/libsodium-wrappers.min.js';s.onload=res;s.onerror=()=>rej(new Error('libsodium yüklenemedi'));document.head.appendChild(s);});
+  const sod=window.sodium||self.sodium||globalThis.sodium;
+  if(!sod)throw new Error('libsodium global bulunamadı');
+  await sod.ready;return sod;
 }
 async function setGitHubAutoUpdate(){
   const pat=(document.getElementById('gh-pat').value||'').trim();
