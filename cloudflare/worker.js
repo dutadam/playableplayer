@@ -28,13 +28,20 @@ export default {
       return new Response('Gecersiz URL', { status: 400, headers: CORS });
     }
 
+    const fetchWithTimeout = (url, opts, ms) => Promise.race([
+      fetch(url, opts),
+      new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Sunucu yanit vermedi (' + ms / 1000 + 's)')), ms)
+      ),
+    ]);
+
     try {
-      const resp = await fetch(targetUrl.toString(), {
+      const resp = await fetchWithTimeout(targetUrl.toString(), {
         headers: {
           'User-Agent': 'VLC/3.0 LibVLC/3.0',
           'Accept': '*/*',
         },
-      });
+      }, 15000);
 
       const ct = (resp.headers.get('Content-Type') || '').toLowerCase();
       const isPlaylist =
