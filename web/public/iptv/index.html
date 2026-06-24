@@ -1636,17 +1636,43 @@ async function setGitHubAutoUpdate(){
       throw new Error('Workflow güncellenemedi ('+wfPut.status+')');
     }
 
-    // 4. M3U dosyasını kullanıcı indirip seçsin (sunucu dışarıdan erişimi engelliyor)
+    // 4. Önce HTTPS ile doğrudan fetch dene (sunucu HTTPS destekliyorsa tam otomatik)
+    st('M3U indiriliyor…');
+    const httpsUrl=m3uUrl.replace(/^http:\/\//i,'https://');
+    let m3uContent=null;
+    try{
+      const r=await fetch(httpsUrl,{signal:AbortSignal.timeout(15000)});
+      if(r.ok){const t=await r.text();if(t.trim().startsWith('#EXTM3U'))m3uContent=t;}
+    }catch(e){}
+    // Aynı portla başarısız olduysa https:443 dene
+    if(!m3uContent){
+      try{
+        const url443=m3uUrl.replace(/^http:\/\/([^/:]+)(:\d+)?/i,'https://$1');
+        const r=await fetch(url443,{signal:AbortSignal.timeout(15000)});
+        if(r.ok){const t=await r.text();if(t.trim().startsWith('#EXTM3U'))m3uContent=t;}
+      }catch(e){}
+    }
+
+    if(m3uContent){
+      // HTTPS çalıştı — tamamen otomatik
+      st('GitHub\'a yükleniyor…');
+      await _ghPut('playlist.m3u',m3uContent,'update: playlist güncellendi');
+      S.set('gh_pat',pat);
+      const ghUrl='https://raw.githubusercontent.com/'+owner+'/'+repo+'/main/playlist.m3u?t='+Date.now();
+      S.set('gh_playlist_url','https://raw.githubusercontent.com/'+owner+'/'+repo+'/main/playlist.m3u');
+      st('✓ Hazır — kanallar açılıyor…','var(--success)');
+      setTimeout(()=>loadURL(ghUrl),800);
+      return;
+    }
+
+    // 5. HTTPS çalışmadı — dosya seç (manuel fallback)
     S.set('gh_pat',pat);
-    S.set('_gh_owner',owner);
-    S.set('_gh_repo',repo);
-    S.set('_gh_m3u_url',m3uUrl);
     btn.disabled=false;
     statusEl.innerHTML='<div style="font-size:13px;line-height:1.7">'
       +'<b style="color:var(--success)">✓ Token ve workflow hazır</b><br>'
-      +'Sunucu dış bağlantıyı engelliyor.<br>'
-      +'<b>1.</b> Aşağıdan M3U\'yu indir:<br>'
-      +'<a href="'+m3uUrl+'" target="_blank" rel="noopener" style="color:var(--accent);word-break:break-all">⬇ M3U Dosyasını Aç / İndir</a><br><br>'
+      +'Sunucu HTTPS desteklemiyor, dış bağlantıyı engelliyor.<br><br>'
+      +'<b>1.</b> M3U dosyasını indir:<br>'
+      +'<a href="'+m3uUrl+'" target="_blank" rel="noopener" style="color:var(--accent)">⬇ M3U İndir</a><br><br>'
       +'<b>2.</b> İndirilen dosyayı seç:<br>'
       +'<label style="display:inline-block;margin-top:6px;padding:8px 16px;background:var(--accent);color:#fff;border-radius:8px;cursor:pointer">'
       +'Dosya Seç'
@@ -1658,11 +1684,11 @@ async function setGitHubAutoUpdate(){
       statusEl.textContent='Dosya okunuyor…';
       try{
         const text=await file.text();
-        if(!text.trim().startsWith('#EXTM3U'))throw new Error('Geçersiz M3U — dosya #EXTM3U ile başlamıyor');
+        if(!text.trim().startsWith('#EXTM3U'))throw new Error('Geçersiz M3U dosyası');
         statusEl.textContent='GitHub\'a yükleniyor…';
         await _ghPut('playlist.m3u',text,'update: playlist güncellendi');
-        const ghUrl='https://raw.githubusercontent.com/'+owner+'/'+repo+'/main/playlist.m3u?t='+Date.now();
         S.set('gh_playlist_url','https://raw.githubusercontent.com/'+owner+'/'+repo+'/main/playlist.m3u');
+        const ghUrl='https://raw.githubusercontent.com/'+owner+'/'+repo+'/main/playlist.m3u?t='+Date.now();
         statusEl.textContent='✓ Yüklendi — kanallar açılıyor…';
         statusEl.style.color='var(--success)';
         setTimeout(()=>loadURL(ghUrl),800);
