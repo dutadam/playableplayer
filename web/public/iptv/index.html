@@ -1636,45 +1636,39 @@ async function setGitHubAutoUpdate(){
       throw new Error('Workflow güncellenemedi ('+wfPut.status+')');
     }
 
-    // 4. Workflow'u şimdi tetikle (GitHub Actions indirsin)
-    st('GitHub Actions başlatılıyor…');
-    const dispRes=await fetch('https://api.github.com/repos/'+owner+'/'+repo+'/actions/workflows/update-playlist.yml/dispatches',{method:'POST',headers:{'Authorization':'token '+pat,'Accept':'application/vnd.github.v3+json','Content-Type':'application/json'},body:JSON.stringify({ref:'main'})});
-    if(!dispRes.ok&&dispRes.status!==204)throw new Error('Workflow tetiklenemedi ('+dispRes.status+')');
-
-    // 5. Workflow tamamlanana kadar bekle (polling, max 3 dk)
-    st('M3U indiriliyor — GitHub Actions çalışıyor…');
-    const deadline=Date.now()+180000;
-    let runId=null;
-    // run ID'yi bul (birkaç saniye bekleyip en son run'ı al)
-    for(let i=0;i<8;i++){
-      await new Promise(r=>setTimeout(r,3000));
-      const rr=await fetch('https://api.github.com/repos/'+owner+'/'+repo+'/actions/workflows/update-playlist.yml/runs?per_page=1',{headers:{'Authorization':'token '+pat,'Accept':'application/vnd.github.v3+json'}});
-      if(rr.ok){const d=await rr.json();if(d.workflow_runs&&d.workflow_runs[0]){runId=d.workflow_runs[0].id;if(d.workflow_runs[0].status==='queued'||d.workflow_runs[0].status==='in_progress')break;if(d.workflow_runs[0].status==='completed'){break;}}}
-    }
-    if(runId){
-      // run tamamlanana kadar bekle
-      while(Date.now()<deadline){
-        await new Promise(r=>setTimeout(r,5000));
-        const sr=await fetch('https://api.github.com/repos/'+owner+'/'+repo+'/actions/runs/'+runId,{headers:{'Authorization':'token '+pat,'Accept':'application/vnd.github.v3+json'}});
-        if(!sr.ok)break;
-        const sd=await sr.json();
-        st('GitHub Actions çalışıyor… ('+sd.status+')');
-        if(sd.status==='completed'){
-          if(sd.conclusion!=='success')throw new Error('Workflow başarısız: '+sd.conclusion);
-          break;
-        }
-      }
-    }else{
-      // run bulunamadı, 20 saniye bekleyip devam et
-      await new Promise(r=>setTimeout(r,20000));
-    }
-
-    // 6. Kanalları GitHub'dan yükle
+    // 4. M3U dosyasını kullanıcı indirip seçsin (sunucu dışarıdan erişimi engelliyor)
     S.set('gh_pat',pat);
-    const ghUrl='https://raw.githubusercontent.com/'+owner+'/'+repo+'/main/playlist.m3u?t='+Date.now();
-    S.set('gh_playlist_url','https://raw.githubusercontent.com/'+owner+'/'+repo+'/main/playlist.m3u');
-    st('✓ Hazır — kanallar açılıyor…','var(--success)');
-    setTimeout(()=>loadURL(ghUrl),800);
+    S.set('_gh_owner',owner);
+    S.set('_gh_repo',repo);
+    S.set('_gh_m3u_url',m3uUrl);
+    btn.disabled=false;
+    statusEl.innerHTML='<div style="font-size:13px;line-height:1.7">'
+      +'<b style="color:var(--success)">✓ Token ve workflow hazır</b><br>'
+      +'Sunucu dış bağlantıyı engelliyor.<br>'
+      +'<b>1.</b> Aşağıdan M3U\'yu indir:<br>'
+      +'<a href="'+m3uUrl+'" target="_blank" rel="noopener" style="color:var(--accent);word-break:break-all">⬇ M3U Dosyasını Aç / İndir</a><br><br>'
+      +'<b>2.</b> İndirilen dosyayı seç:<br>'
+      +'<label style="display:inline-block;margin-top:6px;padding:8px 16px;background:var(--accent);color:#fff;border-radius:8px;cursor:pointer">'
+      +'Dosya Seç'
+      +'<input type="file" accept=".m3u,.m3u8,text/plain" id="gh-m3u-file" style="display:none">'
+      +'</label>'
+      +'</div>';
+    document.getElementById('gh-m3u-file').onchange=async function(e){
+      const file=e.target.files[0];if(!file)return;
+      statusEl.textContent='Dosya okunuyor…';
+      try{
+        const text=await file.text();
+        if(!text.trim().startsWith('#EXTM3U'))throw new Error('Geçersiz M3U — dosya #EXTM3U ile başlamıyor');
+        statusEl.textContent='GitHub\'a yükleniyor…';
+        await _ghPut('playlist.m3u',text,'update: playlist güncellendi');
+        const ghUrl='https://raw.githubusercontent.com/'+owner+'/'+repo+'/main/playlist.m3u?t='+Date.now();
+        S.set('gh_playlist_url','https://raw.githubusercontent.com/'+owner+'/'+repo+'/main/playlist.m3u');
+        statusEl.textContent='✓ Yüklendi — kanallar açılıyor…';
+        statusEl.style.color='var(--success)';
+        setTimeout(()=>loadURL(ghUrl),800);
+      }catch(err){statusEl.textContent='❌ '+err.message;statusEl.style.color='var(--danger)';}
+    };
+    return;
 
   }catch(err){
     st('❌ '+err.message,'var(--danger)');
