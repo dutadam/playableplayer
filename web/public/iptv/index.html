@@ -469,15 +469,15 @@ body{height:var(--vh);background:var(--bg);color:var(--text);
       <button class="xt-btn" id="xt-login-btn">Kanalları Yükle</button>
       <div class="xt-status" id="xt-status"></div>
       <div class="gh-section">
-        <button class="gh-toggle" id="gh-toggle">
-          <svg viewBox="0 0 24 24"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
-          GitHub Otomatik Güncelleme
-          <span class="gh-toggle-arr" id="gh-toggle-arr">▸</span>
+        <button class="gh-toggle" id="cf-toggle">
+          <svg viewBox="0 0 24 24"><path d="M20.3 12.04c.37-3.55-2.37-6.67-5.94-6.67-2.59 0-4.83 1.56-5.84 3.8-.44-.2-.92-.3-1.42-.3-1.93 0-3.5 1.57-3.5 3.5 0 .17.01.33.04.49C1.9 13.26.5 14.82.5 16.7c0 2.07 1.68 3.75 3.75 3.75h15.5c1.79 0 3.25-1.46 3.25-3.25 0-1.57-1.11-2.88-2.7-3.16z"/></svg>
+          Cloudflare Proxy
+          <span class="gh-toggle-arr" id="cf-toggle-arr">▸</span>
         </button>
-        <div class="gh-body" id="gh-body" style="display:none">
-          <input class="url-input" id="gh-pat" type="password" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="GitHub Personal Access Token">
-          <div class="gh-status" id="gh-status"></div>
-          <button class="xt-btn" id="gh-save-btn">Kaydet &amp; Başlat</button>
+        <div class="gh-body" id="cf-body" style="display:none">
+          <input class="url-input" id="cf-proxy-url" type="url" inputmode="url" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="https://iptv-proxy.kullanici.workers.dev">
+          <div class="gh-status" id="cf-status"></div>
+          <button class="xt-btn" id="cf-save-btn">Kaydet</button>
         </div>
       </div>
     </div>
@@ -1501,7 +1501,13 @@ function loadXtream(server,user,pass){
   server=_xtNorm(server);
   if(!server||!user||!pass){showToast('Sunucu, kullanıcı adı ve şifre girin','info');return;}
   S.set('xtream_creds',{server,user,pass});
-  loadURL(server+'/get.php?username='+encodeURIComponent(user)+'&password='+encodeURIComponent(pass)+'&type=m3u_plus');
+  const m3uUrl=server+'/get.php?username='+encodeURIComponent(user)+'&password='+encodeURIComponent(pass)+'&type=m3u_plus';
+  const cfProxy=(document.getElementById('cf-proxy-url')?.value||'').trim()||S.get('cf_proxy_url','');
+  if(cfProxy){
+    loadURL(cfProxy.replace(/\/$/,'')+'/'+  '?url='+encodeURIComponent(m3uUrl));
+  }else{
+    loadURL(m3uUrl);
+  }
 }
 function getXtCreds(){
   const g=id=>{const el=document.getElementById(id);return el?el.value.trim():'';};
@@ -1513,194 +1519,22 @@ function saveXtCreds(){const c=getXtCreds();if(c.server&&c.user&&c.pass)S.set('x
 ['xt-server','xt-user','xt-pass'].forEach(id=>{const el=document.getElementById(id);if(!el)return;el.addEventListener('input',()=>saveXtCreds());});
 document.getElementById('xt-login-btn').addEventListener('click',()=>{const c=getXtCreds();loadXtream(c.server,c.user,c.pass);});
 ['xt-server','xt-user','xt-pass'].forEach(id=>{document.getElementById(id).addEventListener('keydown',e=>{if(e.key==='Enter'){e.target.blur();const c=getXtCreds();loadXtream(c.server,c.user,c.pass);}});});
-// ── GitHub Auto-Update ───────────────────────────────────────────────────
-document.getElementById('gh-toggle').addEventListener('click',()=>{
-  const body=document.getElementById('gh-body');
-  const arr=document.getElementById('gh-toggle-arr');
+// ── Cloudflare Proxy ─────────────────────────────────────────────────────
+document.getElementById('cf-toggle').addEventListener('click',()=>{
+  const body=document.getElementById('cf-body');
+  const arr=document.getElementById('cf-toggle-arr');
   const open=body.style.display!=='none';
   body.style.display=open?'none':'';
   arr.textContent=open?'▸':'▾';
 });
-const GH_REPO='dutadam/m3u-player';
-document.getElementById('gh-save-btn').addEventListener('click',setGitHubAutoUpdate);
-document.getElementById('gh-pat').addEventListener('input',()=>S.set('gh_pat',document.getElementById('gh-pat').value));
-var _blakejs=(function(){
-function ni(input){return input instanceof Uint8Array?input:new TextEncoder().encode(input);}
-function AA(v,a,b){var o0=v[a]+v[b];var o1=v[a+1]+v[b+1];if(o0>=0x100000000)o1++;v[a]=o0;v[a+1]=o1;}
-function AC(v,a,b0,b1){var o0=v[a]+b0;if(b0<0)o0+=0x100000000;var o1=v[a+1]+b1;if(o0>=0x100000000)o1++;v[a]=o0;v[a+1]=o1;}
-function G32(arr,i){return arr[i]^(arr[i+1]<<8)^(arr[i+2]<<16)^(arr[i+3]<<24);}
-var vv=new Uint32Array(32),mm=new Uint32Array(32);
-function BG(a,b,c,d,ix,iy){
-  var x0=mm[ix],x1=mm[ix+1],y0=mm[iy],y1=mm[iy+1];
-  AA(vv,a,b);AC(vv,a,x0,x1);
-  var r0=vv[d]^vv[a],r1=vv[d+1]^vv[a+1];vv[d]=r1;vv[d+1]=r0;
-  AA(vv,c,d);r0=vv[b]^vv[c];r1=vv[b+1]^vv[c+1];vv[b]=(r0>>>24)^(r1<<8);vv[b+1]=(r1>>>24)^(r0<<8);
-  AA(vv,a,b);AC(vv,a,y0,y1);
-  r0=vv[d]^vv[a];r1=vv[d+1]^vv[a+1];vv[d]=(r0>>>16)^(r1<<16);vv[d+1]=(r1>>>16)^(r0<<16);
-  AA(vv,c,d);r0=vv[b]^vv[c];r1=vv[b+1]^vv[c+1];vv[b]=(r1>>>31)^(r0<<1);vv[b+1]=(r0>>>31)^(r1<<1);
-}
-var IV=new Uint32Array([0xf3bcc908,0x6a09e667,0x84caa73b,0xbb67ae85,0xfe94f82b,0x3c6ef372,0x5f1d36f1,0xa54ff53a,0xade682d1,0x510e527f,0x2b3e6c1f,0x9b05688c,0xfb41bd6b,0x1f83d9ab,0x137e2179,0x5be0cd19]);
-var S8=[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,14,10,4,8,9,15,13,6,1,12,0,2,11,7,5,3,11,8,12,0,5,2,15,13,10,14,3,6,7,1,9,4,7,9,3,1,13,12,11,14,2,6,5,10,4,0,15,8,9,0,5,7,2,4,10,15,14,1,11,12,6,8,3,13,2,12,6,10,0,11,8,3,4,13,7,5,15,14,1,9,12,5,1,15,14,13,4,10,0,7,6,3,9,2,8,11,13,11,7,14,12,1,3,9,5,0,15,4,8,6,2,10,6,15,14,9,11,3,0,8,12,2,13,7,1,4,10,5,10,2,8,4,7,6,1,5,15,11,9,14,3,12,13,0,0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,14,10,4,8,9,15,13,6,1,12,0,2,11,7,5,3];
-var S82=new Uint8Array(S8.map(function(x){return x*2;}));
-var pb=new Uint8Array(64);
-function cmp(ctx,last){
-  var i;for(i=0;i<16;i++){vv[i]=ctx.h[i];vv[i+16]=IV[i];}
-  vv[24]=vv[24]^ctx.t;vv[25]=vv[25]^(ctx.t/0x100000000);
-  if(last){vv[28]=~vv[28];vv[29]=~vv[29];}
-  for(i=0;i<32;i++)mm[i]=G32(ctx.b,4*i);
-  for(i=0;i<12;i++){
-    BG(0,8,16,24,S82[i*16+0],S82[i*16+1]);BG(2,10,18,26,S82[i*16+2],S82[i*16+3]);
-    BG(4,12,20,28,S82[i*16+4],S82[i*16+5]);BG(6,14,22,30,S82[i*16+6],S82[i*16+7]);
-    BG(0,10,20,30,S82[i*16+8],S82[i*16+9]);BG(2,12,22,24,S82[i*16+10],S82[i*16+11]);
-    BG(4,14,16,26,S82[i*16+12],S82[i*16+13]);BG(6,8,18,28,S82[i*16+14],S82[i*16+15]);
-  }
-  for(i=0;i<16;i++)ctx.h[i]=ctx.h[i]^vv[i]^vv[i+16];
-}
-function init(ol,key){
-  var ctx={b:new Uint8Array(128),h:new Uint32Array(16),t:0,c:0,outlen:ol};
-  pb.fill(0);pb[0]=ol;if(key)pb[1]=key.length;pb[2]=1;pb[3]=1;
-  for(var i=0;i<16;i++)ctx.h[i]=IV[i]^G32(pb,i*4);
-  if(key){upd(ctx,key);ctx.c=128;}
-  return ctx;
-}
-function upd(ctx,input){for(var i=0;i<input.length;i++){if(ctx.c===128){ctx.t+=ctx.c;cmp(ctx,false);ctx.c=0;}ctx.b[ctx.c++]=input[i];}}
-function fin(ctx){ctx.t+=ctx.c;while(ctx.c<128)ctx.b[ctx.c++]=0;cmp(ctx,true);var out=new Uint8Array(ctx.outlen);for(var i=0;i<ctx.outlen;i++)out[i]=ctx.h[i>>2]>>(8*(i&3));return out;}
-function blake2b(input,key,outlen){outlen=outlen||64;input=ni(input);var ctx=init(outlen,key);upd(ctx,input);return fin(ctx);}
-return{blake2b:blake2b};
-})();
-async function _loadCryptoLibs(){
-  if(window._naclReady)return;
-  let ok=false;
-  for(const url of['https://cdn.jsdelivr.net/npm/tweetnacl@1.0.3/nacl-fast.min.js','https://unpkg.com/tweetnacl@1.0.3/nacl-fast.min.js']){
-    ok=await new Promise(r=>{const s=document.createElement('script');s.src=url;s.onload=()=>r(true);s.onerror=()=>r(false);document.head.appendChild(s);});
-    if(ok&&window.nacl)break;
-  }
-  if(!window.nacl)throw new Error('nacl yüklenemedi');
-  window._naclReady=true;
-}
-function _sealBox(msg,recipientPk){
-  const eph=window.nacl.box.keyPair();
-  const ni=new Uint8Array(64);ni.set(eph.publicKey);ni.set(recipientPk,32);
-  const nonce=_blakejs.blake2b(ni,null,24);
-  const boxed=window.nacl.box(msg,nonce,recipientPk,eph.secretKey);
-  const out=new Uint8Array(32+boxed.length);out.set(eph.publicKey);out.set(boxed,32);
-  return out;
-}
-function _u8b64(a){let s='';for(let i=0;i<a.length;i++)s+=String.fromCharCode(a[i]);return btoa(s);}
-async function setGitHubAutoUpdate(){
-  const pat=(document.getElementById('gh-pat').value||'').trim();
-  const statusEl=document.getElementById('gh-status');
-  const btn=document.getElementById('gh-save-btn');
-  function st(msg,color){statusEl.textContent=msg;statusEl.style.color=color||'var(--text-dim)';setTimeout(()=>statusEl.scrollIntoView({behavior:'smooth',block:'nearest'}),80);}
-  if(!pat){st('⚠ GitHub Token girin','var(--danger)');return;}
-  const c=getXtCreds();
-  if(!c.server||!c.user||!c.pass){st('⚠ Önce Xtream bilgilerini girin','var(--danger)');return;}
-  const m3uUrl=_xtNorm(c.server)+'/get.php?username='+encodeURIComponent(c.user)+'&password='+encodeURIComponent(c.pass)+'&type=m3u_plus';
-  const slash=GH_REPO.indexOf('/');
-  const owner=GH_REPO.slice(0,slash);const repo=GH_REPO.slice(slash+1);
-  btn.disabled=true;
-  function _toB64(str){const b=new TextEncoder().encode(str);let s='';for(let i=0;i<b.length;i+=8192)s+=String.fromCharCode.apply(null,b.subarray(i,Math.min(i+8192,b.length)));return btoa(s);}
-  async function _ghPut(path,content,msg){
-    const r=await fetch('https://api.github.com/repos/'+owner+'/'+repo+'/contents/'+path,{headers:{'Authorization':'token '+pat,'Accept':'application/vnd.github.v3+json'}});
-    const body={message:msg,content:_toB64(content)};
-    if(r.ok){const d=await r.json();body.sha=Array.isArray(d)?undefined:d.sha;}
-    const pr=await fetch('https://api.github.com/repos/'+owner+'/'+repo+'/contents/'+path,{method:'PUT',headers:{'Authorization':'token '+pat,'Accept':'application/vnd.github.v3+json','Content-Type':'application/json'},body:JSON.stringify(body)});
-    if(!pr.ok&&pr.status!==201)throw new Error(path+' yüklenemedi ('+pr.status+')');
-  }
-  try{
-    // 1. PAT doğrula
-    st('GitHub bağlantısı kontrol ediliyor…');
-    const chk=await fetch('https://api.github.com/repos/'+owner+'/'+repo,{headers:{'Authorization':'token '+pat,'Accept':'application/vnd.github.v3+json'}});
-    if(!chk.ok)throw new Error('Erişim reddedildi — token\'ı kontrol edin ('+chk.status+')');
-
-    // 2. M3U_SOURCE_URL'yi secret olarak kaydet
-    st('URL secret olarak kaydediliyor…');
-    const keyRes=await fetch('https://api.github.com/repos/'+owner+'/'+repo+'/actions/secrets/public-key',{headers:{'Authorization':'token '+pat,'Accept':'application/vnd.github.v3+json'}});
-    if(!keyRes.ok)throw new Error('Secret public key alınamadı ('+keyRes.status+')');
-    const{key_id,key}=await keyRes.json();
-    await _loadCryptoLibs();
-    const kb=Uint8Array.from(atob(key),ch=>ch.charCodeAt(0));
-    const enc=_sealBox(new TextEncoder().encode(m3uUrl),kb);
-    const secRes=await fetch('https://api.github.com/repos/'+owner+'/'+repo+'/actions/secrets/M3U_SOURCE_URL',{method:'PUT',headers:{'Authorization':'token '+pat,'Accept':'application/vnd.github.v3+json','Content-Type':'application/json'},body:JSON.stringify({encrypted_value:_u8b64(enc),key_id})});
-    if(!secRes.ok&&secRes.status!==204)throw new Error('Secret kaydedilemedi ('+secRes.status+')');
-
-    // 3. Otomatik güncelleme workflow'u oluştur/güncelle
-    st('Workflow oluşturuluyor…');
-    const wf=`name: Update Playlist\non:\n  schedule:\n    - cron: '0 */6 * * *'\n  workflow_dispatch:\npermissions:\n  contents: write\njobs:\n  update:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      - name: Download and commit\n        env:\n          M3U_URL: \${{ secrets.M3U_SOURCE_URL }}\n        run: |\n          curl -fsSL --retry 3 --retry-delay 5 --max-time 60 -A "VLC/3.0 LibVLC/3.0" "$M3U_URL" -o playlist.m3u\n          head -1 playlist.m3u | grep -q '#EXTM3U' || (echo "Gecersiz M3U" && exit 1)\n          git config user.name "github-actions[bot]"\n          git config user.email "github-actions[bot]@users.noreply.github.com"\n          git add playlist.m3u\n          git diff --staged --quiet && echo "no change" && exit 0\n          git commit -m "update: playlist güncellendi"\n          git push\n`;
-    const wfRes=await fetch('https://api.github.com/repos/'+owner+'/'+repo+'/contents/.github/workflows/update-playlist.yml',{headers:{'Authorization':'token '+pat,'Accept':'application/vnd.github.v3+json'}});
-    let wfBody={message:'setup: otomatik güncelleme workflow eklendi',content:_toB64(wf)};
-    if(wfRes.ok){const wd=await wfRes.json();if(!Array.isArray(wd)&&wd.sha)wfBody.sha=wd.sha;}
-    const wfPut=await fetch('https://api.github.com/repos/'+owner+'/'+repo+'/contents/.github/workflows/update-playlist.yml',{method:'PUT',headers:{'Authorization':'token '+pat,'Accept':'application/vnd.github.v3+json','Content-Type':'application/json'},body:JSON.stringify(wfBody)});
-    if(!wfPut.ok&&wfPut.status!==201){
-      if(wfPut.status===403||wfPut.status===422)throw new Error('Workflow oluşturulamadı — Token\'a "workflow" yetkisi ekleyin (GitHub → Settings → Developer settings → Fine-grained tokens → Workflows)');
-      throw new Error('Workflow güncellenemedi ('+wfPut.status+')');
-    }
-
-    // 4. Önce HTTPS ile doğrudan fetch dene (sunucu HTTPS destekliyorsa tam otomatik)
-    st('M3U indiriliyor…');
-    const httpsUrl=m3uUrl.replace(/^http:\/\//i,'https://');
-    let m3uContent=null;
-    try{
-      const r=await fetch(httpsUrl,{signal:AbortSignal.timeout(15000)});
-      if(r.ok){const t=await r.text();if(t.trim().startsWith('#EXTM3U'))m3uContent=t;}
-    }catch(e){}
-    // Aynı portla başarısız olduysa https:443 dene
-    if(!m3uContent){
-      try{
-        const url443=m3uUrl.replace(/^http:\/\/([^/:]+)(:\d+)?/i,'https://$1');
-        const r=await fetch(url443,{signal:AbortSignal.timeout(15000)});
-        if(r.ok){const t=await r.text();if(t.trim().startsWith('#EXTM3U'))m3uContent=t;}
-      }catch(e){}
-    }
-
-    if(m3uContent){
-      // HTTPS çalıştı — tamamen otomatik
-      st('GitHub\'a yükleniyor…');
-      await _ghPut('playlist.m3u',m3uContent,'update: playlist güncellendi');
-      S.set('gh_pat',pat);
-      const ghUrl='https://raw.githubusercontent.com/'+owner+'/'+repo+'/main/playlist.m3u?t='+Date.now();
-      S.set('gh_playlist_url','https://raw.githubusercontent.com/'+owner+'/'+repo+'/main/playlist.m3u');
-      st('✓ Hazır — kanallar açılıyor…','var(--success)');
-      setTimeout(()=>loadURL(ghUrl),800);
-      return;
-    }
-
-    // 5. HTTPS çalışmadı — dosya seç (manuel fallback)
-    S.set('gh_pat',pat);
-    btn.disabled=false;
-    statusEl.innerHTML='<div style="font-size:13px;line-height:1.7">'
-      +'<b style="color:var(--success)">✓ Token ve workflow hazır</b><br>'
-      +'Sunucu HTTPS desteklemiyor, dış bağlantıyı engelliyor.<br><br>'
-      +'<b>1.</b> M3U dosyasını indir:<br>'
-      +'<a href="'+m3uUrl+'" target="_blank" rel="noopener" style="color:var(--accent)">⬇ M3U İndir</a><br><br>'
-      +'<b>2.</b> İndirilen dosyayı seç:<br>'
-      +'<label style="display:inline-block;margin-top:6px;padding:8px 16px;background:var(--accent);color:#fff;border-radius:8px;cursor:pointer">'
-      +'Dosya Seç'
-      +'<input type="file" accept=".m3u,.m3u8,text/plain" id="gh-m3u-file" style="display:none">'
-      +'</label>'
-      +'</div>';
-    setTimeout(()=>statusEl.scrollIntoView({behavior:'smooth',block:'end'}),120);
-    document.getElementById('gh-m3u-file').onchange=async function(e){
-      const file=e.target.files[0];if(!file)return;
-      statusEl.textContent='Dosya okunuyor…';
-      try{
-        const text=await file.text();
-        if(!text.trim().startsWith('#EXTM3U'))throw new Error('Geçersiz M3U dosyası');
-        statusEl.textContent='GitHub\'a yükleniyor…';
-        await _ghPut('playlist.m3u',text,'update: playlist güncellendi');
-        S.set('gh_playlist_url','https://raw.githubusercontent.com/'+owner+'/'+repo+'/main/playlist.m3u');
-        const ghUrl='https://raw.githubusercontent.com/'+owner+'/'+repo+'/main/playlist.m3u?t='+Date.now();
-        statusEl.textContent='✓ Yüklendi — kanallar açılıyor…';
-        statusEl.style.color='var(--success)';
-        setTimeout(()=>loadURL(ghUrl),800);
-      }catch(err){statusEl.textContent='❌ '+err.message;statusEl.style.color='var(--danger)';}
-    };
-    return;
-
-  }catch(err){
-    st('❌ '+err.message,'var(--danger)');
-  }finally{btn.disabled=false;}
-}
+document.getElementById('cf-save-btn').addEventListener('click',()=>{
+  const url=(document.getElementById('cf-proxy-url').value||'').trim();
+  const st=document.getElementById('cf-status');
+  if(!url){st.textContent='⚠ Worker URL girin';st.style.color='var(--danger)';return;}
+  S.set('cf_proxy_url',url.replace(/\/$/,''));
+  st.textContent='✓ Kaydedildi';st.style.color='var(--success)';
+  setTimeout(()=>{st.textContent='';},2000);
+});
 document.getElementById('m3u-url-btn').addEventListener('click',()=>{const url=document.getElementById('m3u-url-input').value.trim();if(url)loadURL(url);});
 document.getElementById('m3u-url-input').addEventListener('keydown',e=>{if(e.key==='Enter'){e.target.blur();const url=e.target.value.trim();if(url)loadURL(url);}});
 // ── Series Detail Overlay ─────────────────────────────────────────────────
@@ -1778,10 +1612,13 @@ if(_savedXt){
   if(pi&&_savedXt.pass)pi.value=_savedXt.pass;
 }
 {
-  const _ghPat=S.get('gh_pat','');
-  const _ghPatEl=document.getElementById('gh-pat');
-  if(_ghPatEl&&_ghPat)_ghPatEl.value=_ghPat;
-  if(_ghPat){document.getElementById('gh-body').style.display='';document.getElementById('gh-toggle-arr').textContent='▾';}
+  const _cfProxy=S.get('cf_proxy_url','');
+  if(_cfProxy){
+    const el=document.getElementById('cf-proxy-url');
+    if(el)el.value=_cfProxy;
+    document.getElementById('cf-body').style.display='';
+    document.getElementById('cf-toggle-arr').textContent='▾';
+  }
 }
 // PWA
 if('serviceWorker' in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
