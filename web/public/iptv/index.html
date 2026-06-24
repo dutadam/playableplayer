@@ -38,7 +38,7 @@ body{height:var(--vh);background:var(--bg);color:var(--text);
 .logo-icon svg{width:22px;height:22px;fill:white}
 .logo-name{font-size:22px;font-weight:700;letter-spacing:-.5px}
 .section-label{font-size:11px;color:var(--text-dim);font-weight:600;letter-spacing:1px;text-transform:uppercase;width:100%;max-width:440px}
-.add-card{width:100%;max-width:440px;background:var(--surface);border:1px solid var(--border);border-radius:16px;overflow:hidden;transition:border-color .2s}
+.add-card{width:100%;max-width:440px;background:var(--surface);border:1px solid var(--border);border-radius:16px;overflow:clip;transition:border-color .2s}
 .add-card.drag-over{border-color:var(--accent)}
 .add-tabs{display:flex;border-bottom:1px solid var(--border)}
 .add-tab{flex:1;padding:12px 8px;border:none;background:none;color:var(--text-dim);font-size:13px;font-weight:600;cursor:pointer;touch-action:manipulation;transition:color .15s,background .15s;-webkit-appearance:none}
@@ -1679,6 +1679,7 @@ async function setGitHubAutoUpdate(){
       +'<input type="file" accept=".m3u,.m3u8,text/plain" id="gh-m3u-file" style="display:none">'
       +'</label>'
       +'</div>';
+    setTimeout(()=>statusEl.scrollIntoView({behavior:'smooth',block:'end'}),120);
     document.getElementById('gh-m3u-file').onchange=async function(e){
       const file=e.target.files[0];if(!file)return;
       statusEl.textContent='Dosya okunuyor…';
