@@ -466,20 +466,12 @@ body{height:var(--vh);background:var(--bg);color:var(--text);
       <input class="url-input" id="xt-server" type="url" inputmode="url" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="http://sunucu:8080">
       <input class="url-input" id="xt-user" type="text" inputmode="text" autocomplete="username" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Kullanıcı adı">
       <input class="url-input" id="xt-pass" type="password" autocomplete="current-password" placeholder="Şifre">
-      <button class="xt-btn" id="xt-login-btn">Kanalları Yükle</button>
-      <div class="xt-status" id="xt-status"></div>
-      <div class="gh-section">
-        <button class="gh-toggle" id="cf-toggle">
-          <svg viewBox="0 0 24 24"><path d="M20.3 12.04c.37-3.55-2.37-6.67-5.94-6.67-2.59 0-4.83 1.56-5.84 3.8-.44-.2-.92-.3-1.42-.3-1.93 0-3.5 1.57-3.5 3.5 0 .17.01.33.04.49C1.9 13.26.5 14.82.5 16.7c0 2.07 1.68 3.75 3.75 3.75h15.5c1.79 0 3.25-1.46 3.25-3.25 0-1.57-1.11-2.88-2.7-3.16z"/></svg>
-          Cloudflare Proxy
-          <span class="gh-toggle-arr" id="cf-toggle-arr">▸</span>
-        </button>
-        <div class="gh-body" id="cf-body" style="display:none">
-          <input class="url-input" id="cf-proxy-url" type="url" inputmode="url" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="https://iptv-proxy.kullanici.workers.dev">
-          <div class="gh-status" id="cf-status"></div>
-          <button class="xt-btn" id="cf-save-btn">Kaydet</button>
-        </div>
+      <button class="xt-btn" id="xt-login-btn">M3U Linki Oluştur</button>
+      <div id="xt-url-wrap" style="display:none;flex-direction:column;gap:8px">
+        <input class="url-input" id="xt-generated-url" type="url" readonly style="font-size:12px;color:var(--text-dim)">
+        <button class="xt-btn" id="xt-copy-btn">Kopyala</button>
       </div>
+      <div class="xt-status" id="xt-status"></div>
     </div>
   </div>
 </div>
@@ -1502,12 +1494,10 @@ function loadXtream(server,user,pass){
   if(!server||!user||!pass){showToast('Sunucu, kullanıcı adı ve şifre girin','info');return;}
   S.set('xtream_creds',{server,user,pass});
   const m3uUrl=server+'/get.php?username='+encodeURIComponent(user)+'&password='+encodeURIComponent(pass)+'&type=m3u_plus';
-  const cfProxy=(document.getElementById('cf-proxy-url')?.value||'').trim()||S.get('cf_proxy_url','');
-  if(cfProxy){
-    loadURL(cfProxy.replace(/\/$/,'')+'/'+  '?url='+encodeURIComponent(m3uUrl));
-  }else{
-    loadURL(m3uUrl);
-  }
+  const wrap=document.getElementById('xt-url-wrap');
+  const inp=document.getElementById('xt-generated-url');
+  if(wrap&&inp){inp.value=m3uUrl;wrap.style.display='flex';}
+  showToast('M3U linki oluşturuldu — kopyalayıp tarayıcıda aç','ok',4000);
 }
 function getXtCreds(){
   const g=id=>{const el=document.getElementById(id);return el?el.value.trim():'';};
@@ -1519,21 +1509,12 @@ function saveXtCreds(){const c=getXtCreds();if(c.server&&c.user&&c.pass)S.set('x
 ['xt-server','xt-user','xt-pass'].forEach(id=>{const el=document.getElementById(id);if(!el)return;el.addEventListener('input',()=>saveXtCreds());});
 document.getElementById('xt-login-btn').addEventListener('click',()=>{const c=getXtCreds();loadXtream(c.server,c.user,c.pass);});
 ['xt-server','xt-user','xt-pass'].forEach(id=>{document.getElementById(id).addEventListener('keydown',e=>{if(e.key==='Enter'){e.target.blur();const c=getXtCreds();loadXtream(c.server,c.user,c.pass);}});});
-// ── Cloudflare Proxy ─────────────────────────────────────────────────────
-document.getElementById('cf-toggle').addEventListener('click',()=>{
-  const body=document.getElementById('cf-body');
-  const arr=document.getElementById('cf-toggle-arr');
-  const open=body.style.display!=='none';
-  body.style.display=open?'none':'';
-  arr.textContent=open?'▸':'▾';
-});
-document.getElementById('cf-save-btn').addEventListener('click',()=>{
-  const url=(document.getElementById('cf-proxy-url').value||'').trim();
-  const st=document.getElementById('cf-status');
-  if(!url){st.textContent='⚠ Worker URL girin';st.style.color='var(--danger)';return;}
-  S.set('cf_proxy_url',url.replace(/\/$/,''));
-  st.textContent='✓ Kaydedildi';st.style.color='var(--success)';
-  setTimeout(()=>{st.textContent='';},2000);
+document.getElementById('xt-copy-btn')?.addEventListener('click',()=>{
+  const val=document.getElementById('xt-generated-url')?.value||'';
+  if(!val)return;
+  navigator.clipboard.writeText(val).then(()=>showToast('Link kopyalandı','ok',2000)).catch(()=>{
+    document.getElementById('xt-generated-url').select();document.execCommand('copy');showToast('Link kopyalandı','ok',2000);
+  });
 });
 document.getElementById('m3u-url-btn').addEventListener('click',()=>{const url=document.getElementById('m3u-url-input').value.trim();if(url)loadURL(url);});
 document.getElementById('m3u-url-input').addEventListener('keydown',e=>{if(e.key==='Enter'){e.target.blur();const url=e.target.value.trim();if(url)loadURL(url);}});
@@ -1610,15 +1591,6 @@ if(_savedXt){
   if(si&&_savedXt.server)si.value=_savedXt.server;
   if(ui&&_savedXt.user)ui.value=_savedXt.user;
   if(pi&&_savedXt.pass)pi.value=_savedXt.pass;
-}
-{
-  const _cfProxy=S.get('cf_proxy_url','');
-  if(_cfProxy){
-    const el=document.getElementById('cf-proxy-url');
-    if(el)el.value=_cfProxy;
-    document.getElementById('cf-body').style.display='';
-    document.getElementById('cf-toggle-arr').textContent='▾';
-  }
 }
 // PWA
 if('serviceWorker' in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
