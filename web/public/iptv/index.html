@@ -1354,7 +1354,18 @@ function toggleFav(ch,btn){
 function addRecent(ch){RECENT=RECENT.filter(r=>r.u!==ch.u);RECENT.unshift({n:ch.n,g:ch.g,l:ch.l,u:ch.u,ts:Date.now()});if(RECENT.length>20)RECENT.pop();S.set('recent',RECENT);}
 function copyLink(ch){const text=ch.u;if(navigator.clipboard?.writeText)navigator.clipboard.writeText(text).then(()=>showToast('Link kopyalandı','ok')).catch(()=>fbCopy(text));else fbCopy(text);}
 function fbCopy(text){const ta=document.createElement('textarea');ta.value=text;ta.style.cssText='position:fixed;top:0;left:0;opacity:0;font-size:16px;';document.body.appendChild(ta);ta.focus();ta.select();ta.setSelectionRange(0,99999);try{document.execCommand('copy');showToast('Link kopyalandı','ok');}catch{showToast('Kopyalanamadı','info');}document.body.removeChild(ta);}
-function openVLC(ch){const url=isIOS?'vlc-x-callback://x-callback-url/stream?url='+encodeURIComponent(ch.u):'vlc://'+ch.u;const a=document.createElement('a');a.href=url;a.style.display='none';document.body.appendChild(a);a.click();document.body.removeChild(a);showToast('VLC açılıyor…','info');}
+function openVLC(ch){
+  let url;
+  if(isIOS){
+    url='vlc-x-callback://x-callback-url/stream?url='+encodeURIComponent(ch.u);
+  }else{
+    // Android: intent:// formatı yayının şemasını (http/https) ayrı taşır,
+    // 'vlc://http://...' gibi çift şema bozulmasını önler.
+    const m=ch.u.match(/^(https?):\/\/(.*)$/i);
+    url=m?'intent://'+m[2]+'#Intent;scheme='+m[1].toLowerCase()+';package=org.videolan.vlc;end':'vlc://'+ch.u;
+  }
+  const a=document.createElement('a');a.href=url;a.style.display='none';document.body.appendChild(a);a.click();document.body.removeChild(a);showToast('VLC açılıyor…','info');
+}
 function exportFavs(){const fcs=ALL.filter(c=>FAVS.has(c.u));if(!fcs.length){showToast('Hiç favori kanal yok','info');return;}let m3u='#EXTM3U\n';fcs.forEach(ch=>{m3u+='#EXTINF:-1'+(ch.l?' tvg-logo="'+ch.l+'"':'')+' group-title="'+ch.g+'",'+ch.n+'\n'+ch.u+'\n';});const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([m3u],{type:'audio/x-mpegurl'}));a.download='favoriler.m3u';document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);document.body.removeChild(a);},1000);showToast(fcs.length+' kanal indirildi','ok');}
 // Bottom Sheet
 function openSheet(ch){
