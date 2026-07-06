@@ -1,4 +1,4 @@
-const CACHE = 'm3u-player-v5';
+const CACHE = 'm3u-player-v6';
 const SHELL = [
   './',
   './index.html',

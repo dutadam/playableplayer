@@ -1355,16 +1355,20 @@ function addRecent(ch){RECENT=RECENT.filter(r=>r.u!==ch.u);RECENT.unshift({n:ch.
 function copyLink(ch){const text=ch.u;if(navigator.clipboard?.writeText)navigator.clipboard.writeText(text).then(()=>showToast('Link kopyalandı','ok')).catch(()=>fbCopy(text));else fbCopy(text);}
 function fbCopy(text){const ta=document.createElement('textarea');ta.value=text;ta.style.cssText='position:fixed;top:0;left:0;opacity:0;font-size:16px;';document.body.appendChild(ta);ta.focus();ta.select();ta.setSelectionRange(0,99999);try{document.execCommand('copy');showToast('Link kopyalandı','ok');}catch{showToast('Kopyalanamadı','info');}document.body.removeChild(ta);}
 function openVLC(ch){
-  let url;
   if(isIOS){
-    url='vlc-x-callback://x-callback-url/stream?url='+encodeURIComponent(ch.u);
-  }else{
-    // Android: intent:// formatı yayının şemasını (http/https) ayrı taşır,
-    // 'vlc://http://...' gibi çift şema bozulmasını önler.
-    const m=ch.u.match(/^(https?):\/\/(.*)$/i);
-    url=m?'intent://'+m[2]+'#Intent;scheme='+m[1].toLowerCase()+';package=org.videolan.vlc;end':'vlc://'+ch.u;
+    const a=document.createElement('a');a.href='vlc-x-callback://x-callback-url/stream?url='+encodeURIComponent(ch.u);a.style.display='none';document.body.appendChild(a);a.click();document.body.removeChild(a);showToast('VLC açılıyor…','info');return;
   }
-  const a=document.createElement('a');a.href=url;a.style.display='none';document.body.appendChild(a);a.click();document.body.removeChild(a);showToast('VLC açılıyor…','info');
+  // Android: 'intent:' + tam URL şemayı bozmadan taşır, type=video/* VLC'nin eşleşmesini sağlar.
+  const intentUrl='intent:'+ch.u+'#Intent;action=android.intent.action.VIEW;type=video/*;package=org.videolan.vlc;end';
+  let left=false;const onHide=()=>{left=true;};
+  document.addEventListener('visibilitychange',onHide,{once:true});
+  window.location.href=intentUrl;
+  showToast('VLC açılıyor…','info');
+  // VLC devralmadıysa (açılmadıysa) eski vlc:// yöntemine düş
+  setTimeout(()=>{
+    document.removeEventListener('visibilitychange',onHide);
+    if(!left&&!document.hidden)window.location.href='vlc://'+ch.u;
+  },1200);
 }
 function exportFavs(){const fcs=ALL.filter(c=>FAVS.has(c.u));if(!fcs.length){showToast('Hiç favori kanal yok','info');return;}let m3u='#EXTM3U\n';fcs.forEach(ch=>{m3u+='#EXTINF:-1'+(ch.l?' tvg-logo="'+ch.l+'"':'')+' group-title="'+ch.g+'",'+ch.n+'\n'+ch.u+'\n';});const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([m3u],{type:'audio/x-mpegurl'}));a.download='favoriler.m3u';document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);document.body.removeChild(a);},1000);showToast(fcs.length+' kanal indirildi','ok');}
 // Bottom Sheet
