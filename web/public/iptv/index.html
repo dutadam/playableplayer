@@ -1267,7 +1267,7 @@ function playChannel(ch){
   function nextSource(){srcIdx++;return srcIdx<sources.length;}
   function tryHLS(src){
     if(typeof Hls!=='undefined'&&Hls.isSupported()){
-      hlsInstance=new Hls({enableWorker:true,lowLatencyMode:true,maxBufferLength:30,maxMaxBufferLength:60,fragLoadingTimeOut:12000,manifestLoadingTimeOut:12000,xhrSetup:(xhr)=>{xhr.timeout=15000;}});
+      hlsInstance=new Hls({enableWorker:true,lowLatencyMode:false,maxBufferLength:60,maxMaxBufferLength:900,backBufferLength:90,maxBufferSize:300*1000*1000,fragLoadingTimeOut:20000,manifestLoadingTimeOut:15000,xhrSetup:(xhr)=>{xhr.timeout=20000;}});
       hlsInstance.loadSource(src);hlsInstance.attachMedia(video);
       hlsInstance.on(Hls.Events.MANIFEST_PARSED,()=>{showPlayerLoading(false);const rp=getResume(origUrl);if(rp>0){if(video.readyState>=1)video.currentTime=rp;else video.addEventListener('loadedmetadata',()=>{video.currentTime=rp;},{once:true});}video.play().catch(e=>showPlayerError('Oynatma başlatılamadı: '+e.message));});
       hlsInstance.on(Hls.Events.ERROR,(evt,data)=>{
