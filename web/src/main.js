@@ -8,6 +8,33 @@ const GAME_OPTIONS = ["Royal Match", "Royal Kingdom", "Other"];
 const CREATIVE_TYPES = ["Gameplay", "Meta", "Rewarded", "Minigame", "Storefront", "Other"];
 const LANGUAGE_OPTIONS = ["English", "Turkish", "German", "French", "Spanish", "Italian", "Portuguese", "Arabic", "Japanese", "Korean", "Chinese", "Unknown"];
 const QUICK_TAGS = ["cta", "tutorial", "booster", "fail-state", "win-state", "seasonal", "character", "level", "offer", "luna"];
+const ONBOARDING_STEPS = [
+  {
+    image: "onboarding/step-1.png",
+    title: "Safari paylaş butonunu aç",
+    body: "Playable Player tam ekran çalışmak için ana ekrandan açılmalı. Safari’de üstteki paylaş ikonuna dokun."
+  },
+  {
+    image: "onboarding/step-2.png",
+    title: "Gerekirse seçenekleri genişlet",
+    body: "Add to Home Screen görünmüyorsa paylaş ekranında View More ile tüm seçenekleri aç."
+  },
+  {
+    image: "onboarding/step-3.png",
+    title: "Add to Home Screen’i seç",
+    body: "Listeden Add to Home Screen seçeneğine dokun ve Playable Player kısayolunu ekle."
+  },
+  {
+    image: "onboarding/step-4.png",
+    title: "Uygulamayı ana ekrandan başlat",
+    body: "Kurulumdan sonra Playable Player ikonuyla aç. Böylece browser UI yerine app gibi fullscreen kullanırsın."
+  },
+  {
+    image: "onboarding/step-5.png",
+    title: "Playable’ları yükle",
+    body: "Ana ekranda Load Playable ile gömülü demoları yükle veya Settings içinden kendi HTML/ZIP dosyanı import et."
+  }
+];
 
 const state = {
   playables: [],
@@ -16,6 +43,7 @@ const state = {
   serviceWorkerReady: false,
   isImporting: false,
   installDismissed: localStorage.getItem("install-onboarding-dismissed") === "1",
+  onboardingStep: 0,
   controlsOpen: false,
   storeIntent: null,
   pendingMetadata: null,
@@ -210,13 +238,9 @@ function renderLibrary() {
 }
 
 function renderInstallOnboarding() {
-  const platform = detectPlatform();
-  const canShare = platform !== "ios" && typeof navigator.share === "function";
-  const hasInstallPrompt = Boolean(deferredInstallPrompt);
-  const actionLabel = hasInstallPrompt ? "Install app" : "Open share sheet";
-  const installLine = platform === "ios"
-    ? "Safari share menu > Add to Home Screen"
-    : "Install app or Add to Home Screen";
+  const stepIndex = Math.min(Math.max(state.onboardingStep, 0), ONBOARDING_STEPS.length - 1);
+  const step = ONBOARDING_STEPS[stepIndex];
+  const isLastStep = stepIndex === ONBOARDING_STEPS.length - 1;
 
   document.body.classList.remove("player-active");
   app.className = "app onboarding-shell";
@@ -224,24 +248,26 @@ function renderInstallOnboarding() {
   app.innerHTML = `
     <main class="onboarding-page">
       <section class="onboarding-hero">
-        <div class="brand-row">
+        <div class="onboarding-top">
           ${renderDreamLogo()}
+          <span>${stepIndex + 1}/${ONBOARDING_STEPS.length}</span>
+        </div>
+        <div class="onboarding-visual">
+          <img src="${basePath}${step.image}" alt="${escapeHtml(step.title)}" />
         </div>
         <div class="onboarding-copy">
-          <p class="eyebrow">One-time setup</p>
-          <h1>Open as a fullscreen app.</h1>
-          <p>${installLine}. After the icon is on your Home Screen, launch it once and continue here.</p>
+          <p class="eyebrow">Kurulum</p>
+          <h1>${escapeHtml(step.title)}</h1>
+          <p>${escapeHtml(step.body)}</p>
         </div>
-        <div class="install-card">
-          ${platform === "ios" ? renderShareHint() : `<span class="install-arrow">↓</span>`}
-          <strong>${platform === "ios" ? "Use Safari's native share button" : "Use the browser install prompt"}</strong>
-          <span>${platform === "ios" ? "Apple does not allow websites to trigger Add to Home Screen directly." : "The button appears when your browser supports app install."}</span>
+        <div class="onboarding-dots" aria-label="Onboarding progress">
+          ${ONBOARDING_STEPS.map((_, index) => `<button class="${index === stepIndex ? "active" : ""}" data-action="set-onboarding-step" data-step="${index}" aria-label="Go to step ${index + 1}"></button>`).join("")}
         </div>
         <div class="onboarding-actions">
-          ${canShare || hasInstallPrompt ? `<button class="primary-button" data-action="open-share">${actionLabel}</button>` : ""}
-          <button class="secondary-button" data-action="mark-installed">I added it</button>
+          ${stepIndex > 0 ? `<button class="secondary-button" data-action="prev-onboarding">Geri</button>` : ""}
+          <button class="primary-button" data-action="${isLastStep ? "mark-installed" : "next-onboarding"}">${isLastStep ? "Başla" : "İleri"}</button>
         </div>
-        <p class="onboarding-note">This setup screen will not appear again on this device.</p>
+        <p class="onboarding-note">Bu kurulum tamamlandıktan sonra aynı cihazda tekrar gösterilmez.</p>
       </section>
       ${state.error ? `<div class="toast" role="alert">${escapeHtml(state.error)}</div>` : ""}
     </main>
@@ -344,6 +370,7 @@ function renderPlayer() {
       <button class="secret-zone secret-top-right" data-action="secret-tap" aria-label="Open controls"></button>
       <button class="secret-zone secret-bottom-left" data-action="secret-tap" aria-label="Open controls"></button>
       <button class="secret-zone secret-bottom-right" data-action="secret-tap" aria-label="Open controls"></button>
+      <div class="player-audio-note">Ses başlamazsa playable içinde bir kez dokun.</div>
 
       <aside class="control-panel ${state.controlsOpen ? "open" : ""}" aria-hidden="${state.controlsOpen ? "false" : "true"}">
         <div>
@@ -486,6 +513,18 @@ async function handleLibraryAction(event) {
   if (action === "mark-installed") {
     localStorage.setItem("install-onboarding-dismissed", "1");
     state.installDismissed = true;
+    render();
+  }
+  if (action === "next-onboarding") {
+    state.onboardingStep = Math.min(state.onboardingStep + 1, ONBOARDING_STEPS.length - 1);
+    render();
+  }
+  if (action === "prev-onboarding") {
+    state.onboardingStep = Math.max(state.onboardingStep - 1, 0);
+    render();
+  }
+  if (action === "set-onboarding-step") {
+    state.onboardingStep = Number(event.currentTarget.dataset.step || 0);
     render();
   }
   if (action === "open-playable") {

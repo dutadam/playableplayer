@@ -2,7 +2,7 @@ const DB_NAME = "playable-player-db";
 const DB_VERSION = 1;
 const PLAYABLE_STORE = "playables";
 const FILE_STORE = "files";
-const APP_CACHE = "playable-player-shell-v16";
+const APP_CACHE = "playable-player-shell-v17";
 
 const STORE_HOSTS = [
   "apps.apple.com",
@@ -125,9 +125,6 @@ function getScopeRelativePath(pathname) {
 }
 
 function injectBridge(html, playable = {}) {
-  const safeName = escapeHtml(playable?.name || playable?.sourceName || "Playable");
-  const safeGame = escapeHtml(playable?.game || "Playable");
-  const logoPath = getGameLogoPath(playable?.game);
   const fitStyles = `<style id="playable-player-fit">
 html, body {
   margin: 0 !important;
@@ -150,54 +147,9 @@ canvas, video {
   max-width: 100vw !important;
   max-height: 100dvh !important;
 }
-#playable-player-audio-start {
-  position: fixed !important;
-  inset: 0 !important;
-  z-index: 2147483647 !important;
-  display: grid !important;
-  place-items: center !important;
-  align-content: center !important;
-  gap: 16px !important;
-  border: 0 !important;
-  padding: 32px !important;
-  color: #101623 !important;
-  background: linear-gradient(180deg, rgba(255,255,255,.98), rgba(246,248,255,.98)) !important;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
-  text-align: center !important;
-  touch-action: manipulation !important;
-  pointer-events: none !important;
-  transition: opacity 280ms ease !important;
-}
-#playable-player-audio-start.hide {
-  opacity: 0 !important;
-}
-#playable-player-audio-start img {
-  display: block !important;
-  max-width: min(168px, 54vw) !important;
-  max-height: 112px !important;
-  object-fit: contain !important;
-}
-#playable-player-audio-start strong {
-  display: block !important;
-  color: #101623 !important;
-  font-size: 32px !important;
-  font-weight: 900 !important;
-  line-height: 1.1 !important;
-}
-#playable-player-audio-start span {
-  display: block !important;
-  max-width: 300px !important;
-  color: #637084 !important;
-  font-size: 16px !important;
-  font-weight: 700 !important;
-  line-height: 1.35 !important;
-}
 </style>`;
   const bridge = `<script>
 (() => {
-  const playableName = ${JSON.stringify(safeName)};
-  const playableGame = ${JSON.stringify(safeGame)};
-  const playableLogo = ${JSON.stringify(logoPath)};
   const storeHosts = ${JSON.stringify(STORE_HOSTS)};
   const storeSchemes = ["itms-apps:", "itmss:", "market:"];
   const isStoreUrl = (raw) => {
@@ -248,79 +200,6 @@ canvas, video {
       } catch {}
     });
   };
-  const primeAudio = () => {
-    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-    if (!AudioContextClass) return;
-    try {
-      const context = new AudioContextClass();
-      const oscillator = context.createOscillator();
-      const gain = context.createGain();
-      gain.gain.value = 0.0001;
-      oscillator.connect(gain);
-      gain.connect(context.destination);
-      oscillator.start(0);
-      oscillator.stop(context.currentTime + 0.04);
-      context.resume?.();
-      setTimeout(() => context.close?.(), 250);
-    } catch {}
-  };
-  const removeAudioStart = () => {
-    document.getElementById("playable-player-audio-start")?.remove();
-    window.dispatchEvent(new CustomEvent("playable-player-start"));
-  };
-  const createAudioStart = () => {
-    if (document.body?.dataset.playablePlayerNoStart === "1") return;
-    if (!document.body || document.getElementById("playable-player-audio-start")) return;
-    const prompt = document.createElement("div");
-    prompt.id = "playable-player-audio-start";
-    prompt.setAttribute("aria-label", "Start " + playableName + " with sound");
-    prompt.innerHTML =
-      (playableLogo ? '<img src="' + playableLogo + '" alt="' + playableGame + '">' : '<span>' + playableGame + '</span>') +
-      '<strong>Tap game to start</strong>' +
-      '<span>' + playableName + '</span>';
-    document.body.appendChild(prompt);
-    setTimeout(() => {
-      prompt.classList.add("hide");
-      setTimeout(removeAudioStart, 320);
-    }, 5500);
-  };
-  let audioStartScheduled = false;
-  const isLoadingVisible = () => {
-    const nodes = document.querySelectorAll("#luna-loading, .loading, .loader, [data-loading='true'], [aria-busy='true']");
-    return [...nodes].some((node) => {
-      const style = getComputedStyle(node);
-      return style.display !== "none" && style.visibility !== "hidden" && style.opacity !== "0";
-    });
-  };
-  const loadingSettleDelay = () => document.getElementById("luna-loading") ? 2200 : 0;
-  const scheduleAudioStart = (delay = 250) => {
-    if (audioStartScheduled || document.getElementById("playable-player-audio-start")) return;
-    audioStartScheduled = true;
-    setTimeout(() => {
-      audioStartScheduled = false;
-      if (isLoadingVisible()) {
-        if (document.body) delete document.body.dataset.playablePlayerLoadingReadyAt;
-        scheduleAudioStart(300);
-        return;
-      }
-      const settleDelay = loadingSettleDelay();
-      if (settleDelay && document.body) {
-        const readyAt = Number(document.body.dataset.playablePlayerLoadingReadyAt || 0);
-        if (!readyAt) {
-          document.body.dataset.playablePlayerLoadingReadyAt = String(Date.now());
-          scheduleAudioStart(300);
-          return;
-        }
-        const remaining = settleDelay - (Date.now() - readyAt);
-        if (remaining > 0) {
-          scheduleAudioStart(Math.min(remaining, 500));
-          return;
-        }
-      }
-      createAudioStart();
-    }, delay);
-  };
-  const shouldWaitForReadySignal = () => document.body?.dataset.playablePlayerWaitReady === "1";
   window.__playablePlayerUnlockAudio = unlockAudio;
   ["pointerdown", "touchend", "keydown", "click"].forEach((eventName) => {
     document.addEventListener(eventName, unlockAudio, { capture: true, passive: true });
@@ -366,7 +245,7 @@ canvas, video {
     const body = document.body;
     if (!body) return;
     [...body.childNodes].forEach((node) => {
-      if (node !== stage && node.id !== "playable-player-audio-start") stage.appendChild(node);
+      if (node !== stage) stage.appendChild(node);
     });
   };
   const observeStage = () => {
@@ -417,10 +296,8 @@ canvas, video {
   }
   window.addEventListener("load", () => {
     observeStage();
-    if (!shouldWaitForReadySignal()) scheduleAudioStart();
     fitPlayable();
   });
-  window.addEventListener("playable-player-ready", () => scheduleAudioStart(50));
   window.addEventListener("resize", fitPlayable);
   window.addEventListener("orientationchange", () => setTimeout(fitPlayable, 250));
   setTimeout(fitPlayable, 50);
