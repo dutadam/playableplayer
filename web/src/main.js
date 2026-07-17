@@ -17,7 +17,7 @@ const BUNDLED_PLAYABLE_PACKS = [
   "RM_PL_Rep_2865_Improved-2026-07-17.zip",
   "RM_PL_Rep_14349_Improved-2026-07-17.zip"
 ];
-const EXPECTED_BUNDLED_PLAYABLE_COUNT = 37;
+const EXPECTED_BUNDLED_PLAYABLE_COUNT = 31;
 const ONBOARDING_SHARED_STEPS = [
   {
     image: "onboarding/step-2.png",
@@ -648,6 +648,12 @@ async function handleLibraryAction(event) {
     await refreshLibrary();
   }
   if (action === "clear-library" && confirm("Delete all imported playables on this device?")) {
+    state.error = "";
+    state.loadProgress = null;
+    state.pendingMetadata = null;
+    state.editingPlayableId = null;
+    state.settingsOpen = false;
+    state.gameFilter = "";
     await clearLibrary();
     await refreshLibrary();
   }
@@ -799,11 +805,16 @@ async function loadDemoPlayables() {
       active: true,
       percent: 3,
       title: "Cleaning old demos",
-      message: "Removing previous demo entries from the local library.",
-      detail: "The new July playable packs will replace them."
+      message: "Removing previous bundled entries from the local library.",
+      detail: "The current ZIP set will replace them."
     });
     await removeLegacyDemoPlayables();
-    const existingBySource = new Map(state.playables.map((item) => [item.sourceName, item]));
+    await removeBundledPlayables();
+    const existingBySource = new Map(
+      state.playables
+        .filter((item) => !isBundledPlayable(item))
+        .map((item) => [item.sourceName, item])
+    );
     const importedItems = [];
     const totalPacks = BUNDLED_PLAYABLE_PACKS.length;
 
@@ -1001,6 +1012,23 @@ async function removeLegacyDemoPlayables() {
   }
 }
 
+async function removeBundledPlayables() {
+  const bundledItems = state.playables.filter(isBundledPlayable);
+  for (const item of bundledItems) {
+    await deletePlayable(item.id);
+  }
+  if (bundledItems.length) {
+    state.playables = state.playables.filter((item) => !bundledItems.some((bundled) => bundled.id === item.id));
+  }
+}
+
+function isBundledPlayable(item) {
+  const sourceName = item.sourceName || "";
+  const sourceUrl = item.sourceUrl || "";
+  return /\/bundled-playables\//i.test(sourceUrl) ||
+    BUNDLED_PLAYABLE_PACKS.some((packName) => sourceName.startsWith(`${packName}/`));
+}
+
 function getBundledPlayableInfo(sourceName, packName, html = "") {
   const game = /^RK_/i.test(sourceName) ? "Royal Kingdom" : /^RM_/i.test(sourceName) ? "Royal Match" : "Other";
   const language = inferLanguageFromFilename(sourceName);
@@ -1024,7 +1052,7 @@ function getBundledPlayableDetails(baseName, html) {
   const source = `${baseName}\n${html}`.toLowerCase();
   const tags = new Set(["playable-pack"]);
   const id = baseName.match(/_(\d+)(?:_|$)/)?.[1] || "";
-  let concept = "Puzzle Repair";
+  let concept = /ugc/i.test(baseName) ? "UGC Puzzle Repair" : "Puzzle Repair";
 
   if (/_stk_/i.test(baseName) || /twoitemleveldata|threeitemleveldata/i.test(html)) {
     concept = "Richard's Journey";
@@ -1036,6 +1064,7 @@ function getBundledPlayableDetails(baseName, html) {
   }
 
   if (/text1/i.test(baseName)) tags.add("text-variant");
+  if (/ugc/i.test(baseName)) tags.add("ugc");
   if (/2ndgp/i.test(baseName)) tags.add("second-gameplay");
   if (/improved/i.test(baseName)) tags.add("improved");
   if (/istutorialenabled["':\[\],a-z0-9\\.\s-]*1/i.test(source)) tags.add("guided");
@@ -1053,7 +1082,7 @@ function createBundledPlayableName(baseName, game, language, packName, details) 
   if (details.id) parts.push(details.id);
   if (/text1/i.test(baseName)) parts.push("Text 1");
   if (/2ndgp/i.test(baseName)) parts.push("2nd Gameplay");
-  if (/tr|fr|de|it|es|pt|jp|kr|zh_tw/i.test(baseName) && language && language !== "Unknown") {
+  if (/en|tr|fr|de|it|es|pt|jp|kr|zh_tw/i.test(baseName) && language && language !== "Unknown") {
     parts.push(language);
   }
   return dedupeNameParts(parts).join(" ") || cleanupName(packName);
@@ -1061,10 +1090,11 @@ function createBundledPlayableName(baseName, game, language, packName, details) 
 
 function inferLanguageFromFilename(sourceName) {
   const normalized = sourceName.replace(/\s+/g, "");
-  const match = normalized.match(/_((?:ZH_TW)|TR|FR|DE|IT|ES|PT|JP|KR)_applovin\.html?$/i);
+  const match = normalized.match(/_((?:ZH_TW)|EN|TR|FR|DE|IT|ES|PT|JP|KR)_applovin\.html?$/i);
   const code = match?.[1]?.toUpperCase();
   const languages = {
     TR: "Turkish",
+    EN: "English",
     FR: "French",
     DE: "German",
     IT: "Italian",
@@ -1310,6 +1340,7 @@ function getDisplayTags(item) {
     storefront: "Storefront",
     improved: "Improved",
     guided: "Guided",
+    ugc: "UGC",
     tnt: "TNT",
     saw: "Saw",
     "store-cta": "CTA",
@@ -1324,7 +1355,7 @@ function getDisplayTags(item) {
 }
 
 function tagPriority(tag) {
-  const order = ["Move CTA", "Storefront", "No intro", "Text variant", "2nd gameplay", "Slow motion", "Two-board", "Guided", "Level data", "TNT", "Saw", "CTA", "Hook line", "Rock fall", "Wall push", "Drop", "Three item", "Multi-stage", "Dynamic aspect", "Tutorial"];
+  const order = ["UGC", "Move CTA", "Storefront", "No intro", "Text variant", "2nd gameplay", "Slow motion", "Two-board", "Guided", "Level data", "TNT", "Saw", "CTA", "Hook line", "Rock fall", "Wall push", "Drop", "Three item", "Multi-stage", "Dynamic aspect", "Tutorial"];
   const index = order.indexOf(tag);
   return index === -1 ? 99 : index;
 }
