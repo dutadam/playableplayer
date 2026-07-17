@@ -279,14 +279,9 @@ function renderInstallOnboarding() {
 
 function renderInstallGuide() {
   const platform = detectPlatform();
-  const browser = detectBrowser();
   const canShare = platform !== "ios" && typeof navigator.share === "function";
   const hasInstallPrompt = Boolean(deferredInstallPrompt);
-  const installLine = platform === "ios" && browser === "chrome-ios"
-    ? "Tap the ... button in the bottom-right corner, choose Share, then Add to Home Screen."
-    : platform === "ios"
-      ? "Tap the Safari share button, choose Add to Home Screen, then launch from the new icon."
-    : "Install the app or choose Add to Home Screen, then launch from the new icon.";
+  const installLine = getInstallGuideShareText();
 
   document.body.classList.remove("player-active");
   app.className = "app onboarding-shell";
@@ -304,7 +299,7 @@ function renderInstallGuide() {
         </div>
         <div class="install-card">
           ${renderShareHint()}
-          <strong>Use the browser share button</strong>
+          <strong>${getInstallGuideCardTitle()}</strong>
           <span>Websites cannot directly add themselves to the Home Screen. Finish setup from the browser menu, then open Playable Player from the Home Screen icon.</span>
         </div>
         ${canShare || hasInstallPrompt ? `<button class="primary-button" data-action="open-share">${hasInstallPrompt ? "Install app" : "Open share sheet"}</button>` : ""}
@@ -1129,31 +1124,62 @@ function shouldShowInstallOnboarding() {
 }
 
 function getOnboardingSteps() {
-  return [getFirstOnboardingStep(), ...ONBOARDING_SHARED_STEPS];
+  return [...getIntroOnboardingSteps(), ...ONBOARDING_SHARED_STEPS];
 }
 
-function getFirstOnboardingStep() {
+function getIntroOnboardingSteps() {
   const platform = detectPlatform();
   const browser = detectBrowser();
   if (platform === "ios" && browser === "safari") {
-    return {
+    return [{
       image: "onboarding/step-1.png",
       title: "Tap the Safari share button",
       body: "Use Safari's share button to start adding Playable Player to your Home Screen."
-    };
+    }];
   }
   if (platform === "ios" && browser === "chrome-ios") {
-    return {
-      image: "onboarding/step-1-browser-menu.png",
-      title: "Open the Chrome menu",
-      body: "Tap the ... button in the bottom-right corner, then choose Share."
-    };
+    return [
+      {
+        image: "onboarding/step-1-chrome-menu.png",
+        title: "Open the Chrome menu",
+        body: "Tap the ... button in the bottom-right corner."
+      },
+      {
+        image: "onboarding/step-1-browser-menu.png",
+        title: "Choose Share",
+        body: "After the menu opens, tap Share to continue the Home Screen setup."
+      }
+    ];
   }
-  return {
-    image: "onboarding/step-1-browser-menu.png",
+  return [{
+    image: "onboarding/step-1-chrome-menu.png",
     title: "Open the browser menu",
     body: "Open your browser menu, choose Share, then add Playable Player to your Home Screen."
-  };
+  }];
+}
+
+function getInstallGuideShareText() {
+  const platform = detectPlatform();
+  const browser = detectBrowser();
+  if (platform === "ios" && browser === "safari") {
+    return "Tap the Safari share button, choose Add to Home Screen, then launch from the new icon.";
+  }
+  if (platform === "ios" && browser === "chrome-ios") {
+    return "Tap the ... button in the bottom-right corner, choose Share, then Add to Home Screen.";
+  }
+  return "Install the app or choose Add to Home Screen, then launch from the new icon.";
+}
+
+function getInstallGuideCardTitle() {
+  const platform = detectPlatform();
+  const browser = detectBrowser();
+  if (platform === "ios" && browser === "chrome-ios") {
+    return "Use Chrome's menu button";
+  }
+  if (platform === "ios" && browser === "safari") {
+    return "Use Safari's share button";
+  }
+  return "Use the browser share button";
 }
 
 function isStandaloneMode() {
