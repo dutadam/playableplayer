@@ -11,33 +11,33 @@ const QUICK_TAGS = ["cta", "tutorial", "booster", "fail-state", "win-state", "se
 const ONBOARDING_STEPS = [
   {
     image: "onboarding/step-1.png",
-    title: "Safari paylaş butonunu aç",
-    body: "Playable Player tam ekran çalışmak için ana ekrandan açılmalı. Safari’de üstteki paylaş ikonuna dokun."
+    title: "Paylaş menüsünü aç",
+    body: "Playable Player’ı tam ekran kullanmak için önce tarayıcının paylaş menüsünden ana ekrana ekle."
   },
   {
     image: "onboarding/step-2.png",
-    title: "Gerekirse seçenekleri genişlet",
-    body: "Add to Home Screen görünmüyorsa paylaş ekranında View More ile tüm seçenekleri aç."
+    title: "Tüm seçenekleri göster",
+    body: "Add to Home Screen görünmüyorsa paylaş ekranındaki View More seçeneğiyle listeyi genişlet."
   },
   {
     image: "onboarding/step-3.png",
-    title: "Add to Home Screen’i seç",
-    body: "Listeden Add to Home Screen seçeneğine dokun ve Playable Player kısayolunu ekle."
+    title: "Ana ekrana ekle",
+    body: "Listeden Add to Home Screen seçeneğini seç. Böylece Player tarayıcı UI olmadan açılır."
   },
   {
     image: "onboarding/step-4-add.png",
-    title: "Add ile onayla",
-    body: "İsim ve Open as Web App ayarını kontrol et, ardından Add butonuna dokun."
+    title: "Kurulumu onayla",
+    body: "İsim Playable Player kalsın, Open as Web App açık olsun ve Add ile onayla."
   },
   {
     image: "onboarding/step-4.png",
-    title: "Uygulamayı ana ekrandan başlat",
-    body: "Kurulumdan sonra Playable Player ikonuyla aç. Böylece browser UI yerine app gibi fullscreen kullanırsın."
+    title: "Ana ekrandan başlat",
+    body: "Kurulumdan sonra Playable Player ikonundan aç. En temiz fullscreen deneyim burada çalışır."
   },
   {
     image: "onboarding/step-5.png",
     title: "Playable’ları yükle",
-    body: "Ana ekranda Load Playable ile gömülü demoları yükle veya Settings içinden kendi HTML/ZIP dosyanı import et."
+    body: "Load Playable ile hazır playable’ları yükle. Kendi dosyaların için Settings içinden import kullan."
   }
 ];
 
@@ -253,13 +253,24 @@ function renderInstallOnboarding() {
   app.innerHTML = `
     <main class="onboarding-page">
       <section class="onboarding-hero">
+        <div class="onboarding-top">
+          ${renderDreamLogo()}
+          <span>${stepIndex + 1}/${ONBOARDING_STEPS.length}</span>
+        </div>
         <div class="onboarding-visual">
           <img src="${basePath}${step.image}" alt="${escapeHtml(step.title)}" />
-          ${stepIndex > 0 ? `<button class="onboarding-nav onboarding-prev" data-action="prev-onboarding" aria-label="Previous onboarding screen">‹</button>` : ""}
-          <button class="onboarding-nav onboarding-next" data-action="${isLastStep ? "mark-installed" : "next-onboarding"}" aria-label="${isLastStep ? "Finish onboarding" : "Next onboarding screen"}">${isLastStep ? "✓" : "›"}</button>
-          <div class="onboarding-dots" aria-label="Onboarding progress">
-            ${ONBOARDING_STEPS.map((_, index) => `<button class="${index === stepIndex ? "active" : ""}" data-action="set-onboarding-step" data-step="${index}" aria-label="Go to step ${index + 1}"></button>`).join("")}
-          </div>
+        </div>
+        <div class="onboarding-copy">
+          <p class="eyebrow">Kurulum</p>
+          <h1>${escapeHtml(step.title)}</h1>
+          <p>${escapeHtml(step.body)}</p>
+        </div>
+        <div class="onboarding-dots" aria-label="Onboarding progress">
+          ${ONBOARDING_STEPS.map((_, index) => `<button class="${index === stepIndex ? "active" : ""}" data-action="set-onboarding-step" data-step="${index}" aria-label="Go to step ${index + 1}"></button>`).join("")}
+        </div>
+        <div class="onboarding-actions">
+          ${stepIndex > 0 ? `<button class="secondary-button" data-action="prev-onboarding">Geri</button>` : ""}
+          <button class="primary-button" data-action="${isLastStep ? "mark-installed" : "next-onboarding"}">${isLastStep ? "Başla" : "İleri"}</button>
         </div>
       </section>
       ${state.error ? `<div class="toast" role="alert">${escapeHtml(state.error)}</div>` : ""}
