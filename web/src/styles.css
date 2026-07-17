@@ -752,6 +752,20 @@ h2 {
   border: 0;
 }
 
+.cta-retry-zone {
+  position: fixed;
+  inset: 0;
+  z-index: 4;
+  display: none;
+  border: 0;
+  padding: 0;
+  background: transparent;
+}
+
+.cta-retry-zone.active {
+  display: block;
+}
+
 .player-audio-note {
   position: fixed;
   top: 50%;

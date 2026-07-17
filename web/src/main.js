@@ -454,6 +454,7 @@ function renderPlayer() {
       <button class="secret-zone secret-top-right" data-action="secret-tap" aria-label="Open controls"></button>
       <button class="secret-zone secret-bottom-left" data-action="secret-tap" aria-label="Open controls"></button>
       <button class="secret-zone secret-bottom-right" data-action="secret-tap" aria-label="Open controls"></button>
+      <button class="cta-retry-zone" data-action="cta-retry" aria-label="Retry playable"></button>
       ${state.audioUnlocked ? "" : `<div class="player-audio-note">If audio does not start, tap once inside the playable.</div>`}
 
       <aside class="control-panel ${state.controlsOpen ? "open" : ""}" aria-hidden="${state.controlsOpen ? "false" : "true"}">
@@ -467,7 +468,6 @@ function renderPlayer() {
         </div>
       </aside>
 
-      ${state.storeIntent ? renderStoreModal(state.storeIntent) : ""}
     </main>
   `;
 
@@ -680,7 +680,7 @@ function handlePlayerAction(event) {
   if (action === "secret-tap") {
     registerSecretTap();
   }
-  if (action === "reload-player" || action === "store-retry") {
+  if (action === "reload-player" || action === "store-retry" || action === "cta-retry") {
     state.storeIntent = null;
     state.controlsOpen = false;
     state.reloadNonce += 1;
@@ -1452,7 +1452,7 @@ function handleFrameMessage(event) {
   if (data?.type === "playable-store-intent") {
     state.storeIntent = { url: data.url };
     state.controlsOpen = false;
-    render();
+    enableCtaRetryZone();
   }
 }
 
@@ -1472,17 +1472,24 @@ function detectExternalFrameNavigation(frame) {
     const href = frame.contentWindow.location.href;
     if (href.startsWith(location.origin)) return;
     state.storeIntent = { url: href };
-    render();
+    enableCtaRetryZone();
   } catch {
     state.storeIntent = { url: "External store or browser navigation" };
-    render();
+    enableCtaRetryZone();
   }
+}
+
+function enableCtaRetryZone() {
+  const retryZone = app.querySelector(".cta-retry-zone");
+  if (!retryZone) return;
+  retryZone.classList.add("active");
+  retryZone.setAttribute("aria-hidden", "false");
 }
 
 function registerSecretTap() {
   const now = Date.now();
   tripleTapTimes = [...tripleTapTimes.filter((time) => now - time < 900), now];
-  if (tripleTapTimes.length >= 3) {
+  if (tripleTapTimes.length >= 2) {
     state.controlsOpen = true;
     tripleTapTimes = [];
     showControlPanel();
