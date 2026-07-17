@@ -2,7 +2,7 @@ const DB_NAME = "playable-player-db";
 const DB_VERSION = 1;
 const PLAYABLE_STORE = "playables";
 const FILE_STORE = "files";
-const APP_CACHE = "playable-player-shell-v19";
+const APP_CACHE = "playable-player-shell-v20";
 
 const STORE_HOSTS = [
   "apps.apple.com",
@@ -167,6 +167,59 @@ canvas, video {
   const report = (raw) => {
     parent.postMessage({ type: "playable-store-intent", url: String(raw) }, "*");
   };
+  const createEventBus = () => {
+    const listeners = {};
+    return {
+      on(name, callback) {
+        listeners[name] = listeners[name] || [];
+        listeners[name].push(callback);
+      },
+      emit(name, ...args) {
+        (listeners[name] || []).forEach((callback) => {
+          try { callback(...args); } catch {}
+        });
+      }
+    };
+  };
+  const adEvents = createEventBus();
+  if (!window.mraid) {
+    window.mraid = {
+      addEventListener: adEvents.on,
+      removeEventListener() {},
+      getState: () => "default",
+      isViewable: () => true,
+      open: report,
+      close() {},
+      useCustomClose() {},
+      expand() {},
+      playVideo() {},
+      getVersion: () => "3.0"
+    };
+  }
+  if (!window.dapi) {
+    window.dapi = {
+      addEventListener: adEvents.on,
+      removeEventListener() {},
+      isReady: () => true,
+      getScreenSize: () => ({ width: innerWidth, height: innerHeight }),
+      openStoreUrl: report,
+      open: report
+    };
+  }
+  if (!window.FbPlayableAd) {
+    window.FbPlayableAd = {
+      logGameLoad() {},
+      logLevelComplete() {},
+      logLevelFail() {},
+      logLevelStart() {},
+      onCTAClick: report
+    };
+  }
+  setTimeout(() => {
+    adEvents.emit("ready");
+    adEvents.emit("viewableChange", true);
+    window.dispatchEvent(new Event("luna:resume"));
+  }, 0);
   let interactionReported = false;
   const reportInteraction = () => {
     if (interactionReported) return;

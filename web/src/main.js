@@ -10,6 +10,7 @@ const CREATIVE_TYPES = ["Gameplay", "Meta", "Rewarded", "Minigame", "Storefront"
 const LANGUAGE_OPTIONS = ["English", "Turkish", "German", "French", "Spanish", "Italian", "Portuguese", "Arabic", "Japanese", "Korean", "Chinese", "Unknown"];
 const QUICK_TAGS = ["cta", "tutorial", "booster", "fail-state", "win-state", "seasonal", "character", "level", "offer", "luna"];
 const INSTALL_DISMISSED_KEY = "install-onboarding-dismissed-v2";
+const LANGUAGE_FILTER_MIGRATION_KEY = "language-filter-default-english-v1";
 const BUNDLED_PLAYABLE_PACKS = [
   "RK_PL_Rep_14349_Improved-2026-07-17.zip",
   "RK_PL_STK_RichardsJourney_10-2026-07-17.zip",
@@ -44,6 +45,12 @@ const ONBOARDING_SHARED_STEPS = [
   }
 ];
 
+const storedLanguageFilter = localStorage.getItem("language-filter");
+if (!localStorage.getItem(LANGUAGE_FILTER_MIGRATION_KEY) && (!storedLanguageFilter || storedLanguageFilter === "All")) {
+  localStorage.setItem("language-filter", "English");
+  localStorage.setItem(LANGUAGE_FILTER_MIGRATION_KEY, "1");
+}
+
 const state = {
   playables: [],
   activePlayable: null,
@@ -61,7 +68,7 @@ const state = {
   settingsOpen: false,
   audioUnlocked: false,
   gameFilter: localStorage.getItem("game-filter") || "All",
-  languageFilter: localStorage.getItem("language-filter") || "All",
+  languageFilter: localStorage.getItem("language-filter") || "English",
   error: "",
   fullscreenState: "idle",
   reloadNonce: 0
@@ -844,7 +851,7 @@ async function loadDemoPlayables() {
         const createdAt = existing?.createdAt || new Date().toISOString();
         const html = await entry.async("string");
         const blob = new Blob([html], { type: "text/html; charset=utf-8" });
-        const info = getBundledPlayableInfo(sourceName, packName);
+        const info = getBundledPlayableInfo(sourceName, packName, html);
         const inferred = inferPlayableMetadata([sourceName, packName, html.slice(0, 120000)].join("\n"));
         const tags = new Set([...(inferred.tags || []), ...info.tags]);
         if (info.language && info.language !== "Unknown") tags.add(`lang-${info.language.toLowerCase()}`);
@@ -989,52 +996,62 @@ async function removeLegacyDemoPlayables() {
   }
 }
 
-function getBundledPlayableInfo(sourceName, packName) {
+function getBundledPlayableInfo(sourceName, packName, html = "") {
   const game = /^RK_/i.test(sourceName) ? "Royal Kingdom" : /^RM_/i.test(sourceName) ? "Royal Match" : "Other";
   const language = inferLanguageFromFilename(sourceName);
   const baseName = sourceName
     .replace(/_applovin\.html?$/i, "")
     .replace(/\.html?$/i, "");
   const creativeType = /_STK_/i.test(baseName) ? "Storefront" : "Gameplay";
-  const tags = new Set(["bundled", "applovin"]);
-  if (/_Rep_/i.test(baseName)) tags.add("repair");
-  if (/_STK_/i.test(baseName)) tags.add("storefront");
-  if (/Improved/i.test(baseName)) tags.add("improved");
-  if (/NoIntro/i.test(baseName)) tags.add("no-intro");
-  if (/Text1/i.test(baseName)) tags.add("text-1");
-  if (/2ndGP/i.test(baseName)) tags.add("2nd-gp");
-  if (/RichardsJourney/i.test(baseName)) tags.add("richards-journey");
+  const details = getBundledPlayableDetails(baseName, html);
+  const tags = new Set(details.tags);
 
   return {
     game,
     creativeType,
     language,
     tags: [...tags],
-    name: createBundledPlayableName(baseName, game, language, packName)
+    name: createBundledPlayableName(baseName, game, language, packName, details)
   };
 }
 
-function createBundledPlayableName(baseName, game, language, packName) {
-  const withoutGame = baseName
-    .replace(/^RK_PL_/i, "")
-    .replace(/^RM_PL_/i, "")
-    .replace(/_(TR|FR|DE|IT|ES|PT|JP|KR|ZH_TW)$/i, "")
-    .replace(/_2ndGP\s*$/i, "_2ndGP");
-  const parts = withoutGame
-    .split("_")
-    .map((part) => {
-      if (/^Rep$/i.test(part)) return "Repair";
-      if (/^STK$/i.test(part)) return "Storefront";
-      if (/^RichardsJourney$/i.test(part)) return "Richard's Journey";
-      if (/^NoIntro$/i.test(part)) return "No Intro";
-      if (/^Text1$/i.test(part)) return "Text 1";
-      if (/^2ndGP$/i.test(part)) return "2nd GP";
-      return cleanupName(part);
-    })
-    .filter(Boolean);
-  const label = dedupeNameParts(parts).join(" ");
-  const languageSuffix = language && language !== "Unknown" ? ` - ${language}` : "";
-  return `${label || cleanupName(packName)}${languageSuffix}`;
+function getBundledPlayableDetails(baseName, html) {
+  const source = `${baseName}\n${html}`.toLowerCase();
+  const tags = new Set(["playable-pack"]);
+  const id = baseName.match(/_(\d+)(?:_|$)/)?.[1] || "";
+  let concept = "Puzzle Repair";
+
+  if (/_stk_/i.test(baseName) || /twoitemleveldata|threeitemleveldata/i.test(html)) {
+    concept = "Richard's Journey";
+    tags.add("storefront");
+    tags.add("two-board");
+  } else if (/nointro/i.test(baseName)) {
+    concept = "No-Intro Repair";
+    tags.add("no-intro");
+  }
+
+  if (/text1/i.test(baseName)) tags.add("text-variant");
+  if (/2ndgp/i.test(baseName)) tags.add("second-gameplay");
+  if (/improved/i.test(baseName)) tags.add("improved");
+  if (/istutorialenabled["':\[\],a-z0-9\\.\s-]*1/i.test(source)) tags.add("guided");
+  if (/gotomarketafterxmove(second|third)?board["':\[\],a-z0-9\\.\s-]*1/i.test(source)) tags.add("move-cta");
+  if (/snakeslowmotion|slowmotiontrigger/i.test(source)) tags.add("slow-motion");
+  if (/leveldata/i.test(source)) tags.add("level-data");
+  if (/tnt/i.test(source)) tags.add("tnt");
+  if (/saw/i.test(source)) tags.add("saw");
+
+  return { concept, id, tags: [...tags] };
+}
+
+function createBundledPlayableName(baseName, game, language, packName, details) {
+  const parts = [details.concept];
+  if (details.id) parts.push(details.id);
+  if (/text1/i.test(baseName)) parts.push("Text 1");
+  if (/2ndgp/i.test(baseName)) parts.push("2nd Gameplay");
+  if (/tr|fr|de|it|es|pt|jp|kr|zh_tw/i.test(baseName) && language && language !== "Unknown") {
+    parts.push(language);
+  }
+  return dedupeNameParts(parts).join(" ") || cleanupName(packName);
 }
 
 function inferLanguageFromFilename(sourceName) {
@@ -1255,7 +1272,7 @@ function getPlayableTags(item) {
 }
 
 function getDisplayTags(item) {
-  const hidden = new Set(["demo", "preview", "remote-assets", "remote-preview", "gameplay", "luna", "lang-english", "lang-turkish"]);
+  const hidden = new Set(["demo", "preview", "remote-assets", "remote-preview", "gameplay", "luna", "bundled", "applovin", "playable-pack"]);
   const labels = {
     "lang-english": "English",
     "lang-turkish": "Turkish",
@@ -1274,19 +1291,31 @@ function getDisplayTags(item) {
     "three-item": "Three item",
     "multi-stage": "Multi-stage",
     "harder-than-you-think": "Hook line",
+    "text-variant": "Text variant",
+    "second-gameplay": "2nd gameplay",
+    "two-board": "Two-board",
+    "move-cta": "Move CTA",
+    "slow-motion": "Slow motion",
+    "level-data": "Level data",
+    "no-intro": "No intro",
+    storefront: "Storefront",
+    improved: "Improved",
+    guided: "Guided",
+    tnt: "TNT",
+    saw: "Saw",
     "store-cta": "CTA",
     gameplay: "Gameplay",
     luna: "Luna"
   };
   return getPlayableTags(item)
-    .filter((tag) => !hidden.has(tag))
+    .filter((tag) => !hidden.has(tag) && !tag.startsWith("lang-"))
     .map((tag) => labels[tag] || titleCaseTag(tag))
     .sort((a, b) => tagPriority(a) - tagPriority(b))
     .filter((tag, index, list) => list.indexOf(tag) === index);
 }
 
 function tagPriority(tag) {
-  const order = ["CTA", "Hook line", "Rock fall", "Wall push", "Drop", "Three item", "Multi-stage", "Dynamic aspect", "Tutorial"];
+  const order = ["Move CTA", "Storefront", "No intro", "Text variant", "2nd gameplay", "Slow motion", "Two-board", "Guided", "Level data", "TNT", "Saw", "CTA", "Hook line", "Rock fall", "Wall push", "Drop", "Three item", "Multi-stage", "Dynamic aspect", "Tutorial"];
   const index = order.indexOf(tag);
   return index === -1 ? 99 : index;
 }
