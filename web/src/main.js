@@ -70,6 +70,7 @@ init();
 async function init() {
   installDoubleTapZoomGuard();
   window.addEventListener("message", handleFrameMessage);
+  window.addEventListener("blur", handlePlayerWindowBlur);
   window.addEventListener("hashchange", syncRoute);
   window.addEventListener("beforeinstallprompt", (event) => {
     event.preventDefault();
@@ -610,10 +611,16 @@ function wirePlayerEvents() {
   });
   const frame = app.querySelector("#player-frame");
   if (!frame) return;
+  ["pointerdown", "touchstart", "mousedown"].forEach((eventName) => {
+    frame.addEventListener(eventName, dismissPlayerAudioNotice, { passive: true });
+  });
   frame.addEventListener("load", () => {
     detectExternalFrameNavigation(frame);
     if (state.audioUnlocked) unlockPlayerAudio();
   });
+  setTimeout(() => {
+    if (document.activeElement === frame) dismissPlayerAudioNotice();
+  }, 250);
 }
 
 function handlePlayerAction(event) {
@@ -646,6 +653,22 @@ function unlockPlayerAudio() {
     // Cross-origin nested frames cannot be touched directly; the bridge message is the fallback.
   }
   frame.contentWindow.postMessage({ type: "playable-audio-unlock" }, "*");
+}
+
+function handlePlayerWindowBlur() {
+  if (!state.activePlayable || state.audioUnlocked) return;
+  setTimeout(() => {
+    const frame = app.querySelector("#player-frame");
+    if (document.activeElement === frame || app.querySelector(".player-audio-note")) {
+      dismissPlayerAudioNotice();
+    }
+  }, 80);
+}
+
+function dismissPlayerAudioNotice() {
+  if (!state.activePlayable || state.audioUnlocked) return;
+  state.audioUnlocked = true;
+  app.querySelector(".player-audio-note")?.remove();
 }
 
 async function importFiles(files) {
@@ -1066,10 +1089,7 @@ function parseTags(value) {
 function handleFrameMessage(event) {
   const data = parseFrameMessage(event.data);
   if (data?.type === "playable-user-interaction") {
-    if (!state.audioUnlocked) {
-      state.audioUnlocked = true;
-      app.querySelector(".player-audio-note")?.remove();
-    }
+    dismissPlayerAudioNotice();
     return;
   }
   if (data?.type === "playable-store-intent") {
@@ -1140,27 +1160,20 @@ function getIntroOnboardingSteps() {
   const browser = detectBrowser();
   if (platform === "ios" && browser === "safari") {
     return [{
-      image: "onboarding/step-1.png",
-      title: "Tap the Safari share button",
-      body: "Use Safari's share button to start adding Playable Player to your Home Screen."
+      image: "onboarding/safari-01.png",
+      title: "Open the Safari menu",
+      body: "Tap the ... button, then choose Share to start adding Playable Player."
     }];
   }
   if (platform === "ios" && browser === "chrome-ios") {
-    return [
-      {
-        image: "onboarding/step-1-chrome-menu.png",
-        title: "Open the Chrome menu",
-        body: "Tap the ... button in the bottom-right corner."
-      },
-      {
-        image: "onboarding/step-1-browser-menu.png",
-        title: "Choose Share",
-        body: "After the menu opens, tap Share to continue the Home Screen setup."
-      }
-    ];
+    return [{
+      image: "onboarding/chrome-01.png",
+      title: "Tap the Chrome share button",
+      body: "Use Chrome's share button to start adding Playable Player to your Home Screen."
+    }];
   }
   return [{
-    image: "onboarding/step-1-chrome-menu.png",
+    image: "onboarding/chrome-01.png",
     title: "Open the browser menu",
     body: "Open your browser menu, choose Share, then add Playable Player to your Home Screen."
   }];
@@ -1170,10 +1183,10 @@ function getInstallGuideShareText() {
   const platform = detectPlatform();
   const browser = detectBrowser();
   if (platform === "ios" && browser === "safari") {
-    return "Tap the Safari share button, choose Add to Home Screen, then launch from the new icon.";
+    return "Tap the ... button, choose Share, then Add to Home Screen.";
   }
   if (platform === "ios" && browser === "chrome-ios") {
-    return "Tap the ... button in the bottom-right corner, choose Share, then Add to Home Screen.";
+    return "Tap the Chrome share button, then choose Add to Home Screen.";
   }
   return "Install the app or choose Add to Home Screen, then launch from the new icon.";
 }
@@ -1182,10 +1195,10 @@ function getInstallGuideCardTitle() {
   const platform = detectPlatform();
   const browser = detectBrowser();
   if (platform === "ios" && browser === "chrome-ios") {
-    return "Use Chrome's menu button";
+    return "Use Chrome's share button";
   }
   if (platform === "ios" && browser === "safari") {
-    return "Use Safari's share button";
+    return "Use Safari's menu button";
   }
   return "Use the browser share button";
 }
