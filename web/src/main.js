@@ -216,11 +216,11 @@ function renderLibrary() {
       ${bootNotice}
 
       <section class="library-summary">
-        <button class="summary-card ${state.gameFilter === "Royal Match" ? "active" : ""}" style="--game-color: ${royalMatchTheme.primary}; --game-soft: ${royalMatchTheme.soft}" data-action="set-game-filter" data-game="Royal Match">
+        <button class="summary-card ${state.gameFilter === "Royal Match" ? "active" : ""}" style="--game-color: ${royalMatchTheme.primary}; --game-accent: ${royalMatchTheme.accent}; --game-soft: ${royalMatchTheme.soft}; --game-ink: ${royalMatchTheme.ink}" data-action="set-game-filter" data-game="Royal Match">
           <strong>${countByGame("Royal Match")}</strong>
           <span>Royal Match</span>
         </button>
-        <button class="summary-card ${state.gameFilter === "Royal Kingdom" ? "active" : ""}" style="--game-color: ${royalKingdomTheme.primary}; --game-soft: ${royalKingdomTheme.soft}" data-action="set-game-filter" data-game="Royal Kingdom">
+        <button class="summary-card ${state.gameFilter === "Royal Kingdom" ? "active" : ""}" style="--game-color: ${royalKingdomTheme.primary}; --game-accent: ${royalKingdomTheme.accent}; --game-soft: ${royalKingdomTheme.soft}; --game-ink: ${royalKingdomTheme.ink}" data-action="set-game-filter" data-game="Royal Kingdom">
           <strong>${countByGame("Royal Kingdom")}</strong>
           <span>Royal Kingdom</span>
         </button>
