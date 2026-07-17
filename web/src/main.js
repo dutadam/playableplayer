@@ -25,6 +25,11 @@ const ONBOARDING_STEPS = [
     body: "Listeden Add to Home Screen seçeneğine dokun ve Playable Player kısayolunu ekle."
   },
   {
+    image: "onboarding/step-4-add.png",
+    title: "Add ile onayla",
+    body: "İsim ve Open as Web App ayarını kontrol et, ardından Add butonuna dokun."
+  },
+  {
     image: "onboarding/step-4.png",
     title: "Uygulamayı ana ekrandan başlat",
     body: "Kurulumdan sonra Playable Player ikonuyla aç. Böylece browser UI yerine app gibi fullscreen kullanırsın."
@@ -250,24 +255,10 @@ function renderInstallOnboarding() {
       <section class="onboarding-hero">
         <div class="onboarding-visual">
           <img src="${basePath}${step.image}" alt="${escapeHtml(step.title)}" />
-          <div class="onboarding-top">
-            ${renderDreamLogo()}
-            <span>${stepIndex + 1}/${ONBOARDING_STEPS.length}</span>
-          </div>
-          <div class="onboarding-copy">
-            <p class="eyebrow">Kurulum</p>
-            <h1>${escapeHtml(step.title)}</h1>
-            <p>${escapeHtml(step.body)}</p>
-          </div>
-          <div class="onboarding-footer">
-            <div class="onboarding-dots" aria-label="Onboarding progress">
-              ${ONBOARDING_STEPS.map((_, index) => `<button class="${index === stepIndex ? "active" : ""}" data-action="set-onboarding-step" data-step="${index}" aria-label="Go to step ${index + 1}"></button>`).join("")}
-            </div>
-            <div class="onboarding-actions">
-              ${stepIndex > 0 ? `<button class="secondary-button" data-action="prev-onboarding">Geri</button>` : ""}
-              <button class="primary-button" data-action="${isLastStep ? "mark-installed" : "next-onboarding"}">${isLastStep ? "Başla" : "İleri"}</button>
-            </div>
-            <p class="onboarding-note">Bu kurulum tamamlandıktan sonra aynı cihazda tekrar gösterilmez.</p>
+          ${stepIndex > 0 ? `<button class="onboarding-nav onboarding-prev" data-action="prev-onboarding" aria-label="Previous onboarding screen">‹</button>` : ""}
+          <button class="onboarding-nav onboarding-next" data-action="${isLastStep ? "mark-installed" : "next-onboarding"}" aria-label="${isLastStep ? "Finish onboarding" : "Next onboarding screen"}">${isLastStep ? "✓" : "›"}</button>
+          <div class="onboarding-dots" aria-label="Onboarding progress">
+            ${ONBOARDING_STEPS.map((_, index) => `<button class="${index === stepIndex ? "active" : ""}" data-action="set-onboarding-step" data-step="${index}" aria-label="Go to step ${index + 1}"></button>`).join("")}
           </div>
         </div>
       </section>
