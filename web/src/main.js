@@ -50,6 +50,7 @@ const state = {
   isBooting: true,
   serviceWorkerReady: false,
   isImporting: false,
+  loadProgress: null,
   installDismissed: localStorage.getItem(INSTALL_DISMISSED_KEY) === "1",
   onboardingStep: 0,
   installGuideOpen: false,
@@ -231,7 +232,8 @@ function renderLibrary() {
         ${
           rows ||
           `<div class="empty-state">
-            <button class="primary-button load-button" data-action="load-demos">Load Playable</button>
+            ${renderLoadPlayableButton()}
+            ${renderLoadProgress()}
           </div>`
         }
       </section>
@@ -367,13 +369,42 @@ function renderSettingsSheet() {
           <button class="icon-button" type="button" data-action="close-settings" aria-label="Close">×</button>
         </div>
         <div class="settings-actions">
-          <button class="primary-button" data-action="load-demos">Load Playable</button>
+          ${renderLoadPlayableButton()}
+          ${renderLoadProgress()}
           <button class="secondary-button" data-action="pick-file">Import HTML or ZIP</button>
           <button class="secondary-button" data-action="refresh">Refresh library</button>
           ${state.playables.length ? `<button class="secondary-button danger-action" data-action="clear-library">Clear library</button>` : ""}
         </div>
       </div>
     </section>
+  `;
+}
+
+function renderLoadPlayableButton() {
+  const progress = state.loadProgress;
+  const percent = Math.max(0, Math.min(100, progress?.percent || 0));
+  const label = progress?.active ? `${Math.round(percent)}% Loading` : "Load Playable";
+  return `
+    <button
+      class="primary-button load-button ${progress?.active ? "loading" : ""}"
+      style="--load-percent: ${percent}%"
+      data-action="load-demos"
+      ${progress?.active ? "disabled" : ""}
+    >
+      <span>${escapeHtml(label)}</span>
+    </button>
+  `;
+}
+
+function renderLoadProgress() {
+  const progress = state.loadProgress;
+  if (!progress) return "";
+  return `
+    <div class="load-progress-card" role="status" aria-live="polite">
+      <strong>${escapeHtml(progress.title)}</strong>
+      <span>${escapeHtml(progress.message)}</span>
+      <small>${escapeHtml(progress.detail)}</small>
+    </div>
   `;
 }
 
@@ -528,7 +559,7 @@ async function handleLibraryAction(event) {
 
   if (action === "pick-file") fileInput.click();
   if (action === "refresh") await refreshLibrary();
-  if (action === "load-demos") await loadDemoPlayables();
+  if (action === "load-demos") loadDemoPlayables();
   if (action === "open-share") await openShareSheet();
   if (action === "filter-game") {
     state.gameFilter = event.currentTarget.value;
@@ -741,27 +772,71 @@ async function openShareSheet() {
 }
 
 async function loadDemoPlayables() {
+  if (state.loadProgress?.active) return;
   state.error = "";
   state.isImporting = true;
+  setLoadProgress({
+    active: true,
+    percent: 1,
+    title: "Preparing bundled playables",
+    message: "Large playable packs are being downloaded and saved on this device.",
+    detail: "Keep this screen open while loading continues."
+  });
   render();
 
   try {
+    setLoadProgress({
+      active: true,
+      percent: 3,
+      title: "Cleaning old demos",
+      message: "Removing previous demo entries from the local library.",
+      detail: "The new July playable packs will replace them."
+    });
     await removeLegacyDemoPlayables();
     const existingBySource = new Map(state.playables.map((item) => [item.sourceName, item]));
     const importedItems = [];
+    const totalPacks = BUNDLED_PLAYABLE_PACKS.length;
 
-    for (const packName of BUNDLED_PLAYABLE_PACKS) {
+    for (const [packIndex, packName] of BUNDLED_PLAYABLE_PACKS.entries()) {
       const packUrl = `${basePath}bundled-playables/${packName}`;
-      const response = await fetch(packUrl, { cache: "no-cache" });
-      if (!response.ok) {
-        throw new Error(`Bundled playable pack could not be loaded: ${packName}`);
-      }
-      const zip = await JSZip.loadAsync(await response.arrayBuffer());
+      const packStart = 5 + (packIndex / totalPacks) * 85;
+      const packEnd = 5 + ((packIndex + 1) / totalPacks) * 85;
+      setLoadProgress({
+        active: true,
+        percent: packStart,
+        title: `Downloading pack ${packIndex + 1} of ${totalPacks}`,
+        message: prettifyPackName(packName),
+        detail: "These packs are large, so the first load can take a while on mobile."
+      });
+      const buffer = await fetchArrayBufferWithProgress(packUrl, (downloadPercent, loaded, total) => {
+        setLoadProgress({
+          active: true,
+          percent: packStart + ((packEnd - packStart) * 0.58 * downloadPercent) / 100,
+          title: `Downloading pack ${packIndex + 1} of ${totalPacks}`,
+          message: prettifyPackName(packName),
+          detail: total ? `${formatBytes(loaded)} of ${formatBytes(total)}` : `${formatBytes(loaded)} downloaded`
+        }, true);
+      });
+      setLoadProgress({
+        active: true,
+        percent: packStart + (packEnd - packStart) * 0.62,
+        title: `Opening pack ${packIndex + 1} of ${totalPacks}`,
+        message: prettifyPackName(packName),
+        detail: "Extracting HTML playable variants."
+      });
+      const zip = await JSZip.loadAsync(buffer);
       const htmlEntries = Object.values(zip.files)
         .filter((entry) => !entry.dir && /\.html?$/i.test(entry.name))
         .sort((a, b) => a.name.localeCompare(b.name));
 
-      for (const entry of htmlEntries) {
+      for (const [entryIndex, entry] of htmlEntries.entries()) {
+        setLoadProgress({
+          active: true,
+          percent: packStart + (packEnd - packStart) * (0.68 + 0.28 * (entryIndex / Math.max(1, htmlEntries.length))),
+          title: `Saving playable ${importedItems.length + 1}`,
+          message: `${prettifyPackName(packName)} · ${entry.name.split("/").pop()}`,
+          detail: "Saving to this device so it opens quickly next time."
+        }, true);
         const sourceName = entry.name.split("/").pop();
         const sourceKey = `${packName}/${sourceName}`;
         const existing = existingBySource.get(sourceKey);
@@ -803,15 +878,101 @@ async function loadDemoPlayables() {
     }
 
     state.pendingMetadata = null;
+    setLoadProgress({
+      active: true,
+      percent: 95,
+      title: "Refreshing library",
+      message: "Finishing the local playable list.",
+      detail: `${importedItems.length} playable variants saved.`
+    });
     await refreshLibrary();
-    state.error = `Loaded ${importedItems.length} bundled playables.`;
+    setLoadProgress({
+      active: false,
+      percent: 100,
+      title: "Load complete",
+      message: `Loaded ${importedItems.length} bundled playables.`,
+      detail: "You can now filter by game and language."
+    });
   } catch (error) {
-    state.error = error.message || "Bundled playables could not be loaded.";
+    state.error = getLoadErrorMessage(error);
+    setLoadProgress({
+      active: false,
+      percent: state.loadProgress?.percent || 0,
+      title: "Load interrupted",
+      message: state.error,
+      detail: "Check your connection, keep the screen awake, then tap Load Playable again."
+    });
     render();
   } finally {
     state.isImporting = false;
     render();
   }
+}
+
+let lastLoadProgressRender = 0;
+
+function setLoadProgress(progress, throttle = false) {
+  state.loadProgress = progress;
+  if (!throttle) {
+    lastLoadProgressRender = Date.now();
+    render();
+    return;
+  }
+  const now = Date.now();
+  if (now - lastLoadProgressRender > 400) {
+    lastLoadProgressRender = now;
+    render();
+  }
+}
+
+async function fetchArrayBufferWithProgress(url, onProgress) {
+  const response = await fetch(url, { cache: "reload" });
+  if (!response.ok) {
+    throw new Error(`Bundled playable pack could not be loaded (${response.status}).`);
+  }
+  if (!response.body?.getReader) {
+    const buffer = await response.arrayBuffer();
+    onProgress(100, buffer.byteLength, buffer.byteLength);
+    return buffer;
+  }
+  const total = Number(response.headers.get("content-length")) || 0;
+  const reader = response.body.getReader();
+  const chunks = [];
+  let loaded = 0;
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    chunks.push(value);
+    loaded += value.byteLength;
+    onProgress(total ? (loaded / total) * 100 : 0, loaded, total);
+  }
+  const buffer = new Uint8Array(loaded);
+  let offset = 0;
+  for (const chunk of chunks) {
+    buffer.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  onProgress(100, loaded, total || loaded);
+  return buffer.buffer;
+}
+
+function prettifyPackName(packName) {
+  return packName
+    .replace(/-2026-07-17\.zip$/i, "")
+    .replace(/^RK_PL_/i, "Royal Kingdom ")
+    .replace(/^RM_PL_/i, "Royal Match ")
+    .replace(/_/g, " ");
+}
+
+function getLoadErrorMessage(error) {
+  const message = String(error?.message || error || "");
+  if (/load failed|failed to fetch|network/i.test(message)) {
+    return "Playable packs could not be downloaded. Keep the app open and try again on a stable connection.";
+  }
+  if (/quota|storage|indexeddb/i.test(message)) {
+    return "This device does not have enough browser storage for the bundled playable packs.";
+  }
+  return message || "Bundled playables could not be loaded.";
 }
 
 async function removeLegacyDemoPlayables() {
