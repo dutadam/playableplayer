@@ -68,7 +68,7 @@ const state = {
   editingPlayableId: null,
   settingsOpen: false,
   audioUnlocked: false,
-  gameFilter: localStorage.getItem("game-filter") || "All",
+  gameFilter: "",
   languageFilter: localStorage.getItem("language-filter") || "English",
   error: "",
   fullscreenState: "idle",
@@ -211,10 +211,6 @@ function renderLibrary() {
       ${bootNotice}
 
       <section class="library-summary">
-        <button class="summary-card ${state.gameFilter === "All" ? "active" : ""}" data-action="set-game-filter" data-game="All">
-          <strong>${state.playables.length}</strong>
-          <span>Total</span>
-        </button>
         <button class="summary-card ${state.gameFilter === "Royal Match" ? "active" : ""}" style="--game-color: ${royalMatchTheme.primary}; --game-soft: ${royalMatchTheme.soft}" data-action="set-game-filter" data-game="Royal Match">
           <strong>${countByGame("Royal Match")}</strong>
           <span>Royal Match</span>
@@ -229,7 +225,7 @@ function renderLibrary() {
         <div class="section-heading">
           <div>
             <p class="eyebrow">Library</p>
-            <h2>${state.gameFilter === "All" ? "All playables" : state.gameFilter}</h2>
+            <h2>${state.gameFilter || "Choose a game"}</h2>
           </div>
           <div class="filter-group">
             <select class="filter-select" data-action="filter-language" aria-label="Filter by language">
@@ -238,7 +234,9 @@ function renderLibrary() {
           </div>
         </div>
         ${
-          rows ||
+          state.playables.length && !state.gameFilter
+            ? `<div class="empty-state subtle-empty">Choose Royal Match or Royal Kingdom to show playables.</div>`
+            : rows ||
           `<div class="empty-state">
             ${renderLoadPlayableButton()}
             ${renderLoadProgress()}
@@ -577,12 +575,10 @@ async function handleLibraryAction(event) {
   if (action === "open-share") await openShareSheet();
   if (action === "filter-game") {
     state.gameFilter = event.currentTarget.value;
-    localStorage.setItem("game-filter", state.gameFilter);
     render();
   }
   if (action === "set-game-filter") {
-    state.gameFilter = event.currentTarget.dataset.game || "All";
-    localStorage.setItem("game-filter", state.gameFilter);
+    state.gameFilter = event.currentTarget.dataset.game || "";
     render();
   }
   if (action === "filter-language") {
@@ -1266,14 +1262,18 @@ function normalizePlayable(item) {
 
 function getFilteredPlayables() {
   return state.playables.filter((item) => {
-    const gameMatches = state.gameFilter === "All" || (item.game || "Unassigned") === state.gameFilter;
+    const gameMatches = state.gameFilter && (item.game || "Unassigned") === state.gameFilter;
     const languageMatches = state.languageFilter === "All" || (item.language || "Unknown") === state.languageFilter;
     return gameMatches && languageMatches;
   });
 }
 
 function countByGame(game) {
-  return state.playables.filter((item) => item.game === game).length;
+  return state.playables.filter((item) => {
+    const gameMatches = item.game === game;
+    const languageMatches = state.languageFilter === "All" || (item.language || "Unknown") === state.languageFilter;
+    return gameMatches && languageMatches;
+  }).length;
 }
 
 function getPlayableTags(item) {
@@ -1444,8 +1444,15 @@ function registerSecretTap() {
   if (tripleTapTimes.length >= 3) {
     state.controlsOpen = true;
     tripleTapTimes = [];
-    render();
+    showControlPanel();
   }
+}
+
+function showControlPanel() {
+  const panel = app.querySelector(".control-panel");
+  if (!panel) return;
+  panel.classList.add("open");
+  panel.setAttribute("aria-hidden", "false");
 }
 
 function requestFullscreenSoon() {
