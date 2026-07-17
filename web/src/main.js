@@ -12,12 +12,9 @@ const QUICK_TAGS = ["cta", "tutorial", "booster", "fail-state", "win-state", "se
 const INSTALL_DISMISSED_KEY = "install-onboarding-dismissed-v2";
 const LANGUAGE_FILTER_MIGRATION_KEY = "language-filter-default-english-v1";
 const BUNDLED_PLAYABLE_PACKS = [
-  "RK_PL_Rep_14349_Improved-2026-07-17.zip",
-  "RK_PL_STK_RichardsJourney_10-2026-07-17.zip",
-  "RM_PL_Rep_2865_Improved-2026-07-17.zip",
-  "RM_PL_Rep_14349_Improved-2026-07-17.zip"
+  "RK_PL_Rep_14349_Improved-2026-07-17.zip"
 ];
-const EXPECTED_BUNDLED_PLAYABLE_COUNT = 31;
+const EXPECTED_BUNDLED_PLAYABLE_COUNT = 4;
 const ONBOARDING_SHARED_STEPS = [
   {
     image: "onboarding/step-2.png",
