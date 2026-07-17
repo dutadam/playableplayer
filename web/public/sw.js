@@ -2,7 +2,7 @@ const DB_NAME = "playable-player-db";
 const DB_VERSION = 1;
 const PLAYABLE_STORE = "playables";
 const FILE_STORE = "files";
-const APP_CACHE = "playable-player-shell-v17";
+const APP_CACHE = "playable-player-shell-v18";
 
 const STORE_HOSTS = [
   "apps.apple.com",
@@ -163,6 +163,12 @@ canvas, video {
   const report = (raw) => {
     parent.postMessage({ type: "playable-store-intent", url: String(raw) }, "*");
   };
+  let interactionReported = false;
+  const reportInteraction = () => {
+    if (interactionReported) return;
+    interactionReported = true;
+    parent.postMessage({ type: "playable-user-interaction" }, "*");
+  };
   const audioContexts = new Set();
   const NativeAudioContext = window.AudioContext || window.webkitAudioContext;
   if (NativeAudioContext) {
@@ -202,8 +208,12 @@ canvas, video {
   };
   window.__playablePlayerUnlockAudio = unlockAudio;
   ["pointerdown", "touchend", "keydown", "click"].forEach((eventName) => {
-    document.addEventListener(eventName, unlockAudio, { capture: true, passive: true });
+    document.addEventListener(eventName, () => {
+      reportInteraction();
+      unlockAudio();
+    }, { capture: true, passive: true });
   });
+  window.addEventListener("blur", () => setTimeout(reportInteraction, 80));
   window.addEventListener("message", (event) => {
     if (event.data?.type === "playable-audio-unlock") unlockAudio();
   });

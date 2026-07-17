@@ -405,7 +405,7 @@ function renderPlayer() {
       <button class="secret-zone secret-top-right" data-action="secret-tap" aria-label="Open controls"></button>
       <button class="secret-zone secret-bottom-left" data-action="secret-tap" aria-label="Open controls"></button>
       <button class="secret-zone secret-bottom-right" data-action="secret-tap" aria-label="Open controls"></button>
-      <div class="player-audio-note">If audio does not start, tap once inside the playable.</div>
+      ${state.audioUnlocked ? "" : `<div class="player-audio-note">If audio does not start, tap once inside the playable.</div>`}
 
       <aside class="control-panel ${state.controlsOpen ? "open" : ""}" aria-hidden="${state.controlsOpen ? "false" : "true"}">
         <div>
@@ -1065,10 +1065,18 @@ function parseTags(value) {
 
 function handleFrameMessage(event) {
   const data = parseFrameMessage(event.data);
-  if (data?.type !== "playable-store-intent") return;
-  state.storeIntent = { url: data.url };
-  state.controlsOpen = false;
-  render();
+  if (data?.type === "playable-user-interaction") {
+    if (!state.audioUnlocked) {
+      state.audioUnlocked = true;
+      app.querySelector(".player-audio-note")?.remove();
+    }
+    return;
+  }
+  if (data?.type === "playable-store-intent") {
+    state.storeIntent = { url: data.url };
+    state.controlsOpen = false;
+    render();
+  }
 }
 
 function parseFrameMessage(data) {
