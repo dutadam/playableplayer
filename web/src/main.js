@@ -11,6 +11,7 @@ const LANGUAGE_OPTIONS = ["English", "Turkish", "German", "French", "Spanish", "
 const QUICK_TAGS = ["cta", "tutorial", "booster", "fail-state", "win-state", "seasonal", "character", "level", "offer", "luna"];
 const INSTALL_DISMISSED_KEY = "install-onboarding-dismissed-v2";
 const LANGUAGE_FILTER_MIGRATION_KEY = "language-filter-default-english-v1";
+const AUTO_UPDATE_KEY = "auto-update-on-launch";
 const BUNDLED_PLAYABLE_PACKS = [
   "RK_PL_Rep_14349_Improved-2026-07-17.zip"
 ];
@@ -65,6 +66,8 @@ const state = {
   editingPlayableId: null,
   settingsOpen: false,
   audioUnlocked: false,
+  autoUpdateOnLaunch: localStorage.getItem(AUTO_UPDATE_KEY) !== "0",
+  updateStatus: "",
   gameFilter: "",
   languageFilter: localStorage.getItem("language-filter") || "English",
   error: "",
@@ -76,6 +79,7 @@ let fileInput;
 let tripleTapTimes = [];
 const basePath = normalizeBasePath(import.meta.env.BASE_URL);
 let serviceWorkerPromise;
+let serviceWorkerRegistration;
 let deferredInstallPrompt;
 
 init();
@@ -127,6 +131,7 @@ function installDoubleTapZoomGuard() {
 async function registerServiceWorker() {
   if (!("serviceWorker" in navigator)) return;
   const registration = await navigator.serviceWorker.register(`${basePath}sw.js`, { scope: basePath });
+  serviceWorkerRegistration = registration;
   let refreshing = false;
   navigator.serviceWorker.addEventListener("controllerchange", () => {
     if (refreshing) return;
@@ -142,8 +147,58 @@ async function registerServiceWorker() {
       }
     });
   });
-  await registration.update().catch(() => {});
+  if (state.autoUpdateOnLaunch) {
+    await checkForUpdates({ silent: true });
+  }
   await navigator.serviceWorker.ready;
+}
+
+async function checkForUpdates({ silent = false } = {}) {
+  if (!("serviceWorker" in navigator)) {
+    if (!silent) {
+      state.updateStatus = "Updates are not available in this browser.";
+      render();
+    }
+    return;
+  }
+  const registration = serviceWorkerRegistration || await navigator.serviceWorker.getRegistration(basePath);
+  if (!registration) {
+    if (!silent) {
+      state.updateStatus = "Update engine is still starting. Try again in a moment.";
+      render();
+    }
+    return;
+  }
+
+  if (!silent) {
+    state.updateStatus = "Checking for updates...";
+    render();
+  }
+
+  try {
+    const beforeWorker = registration.installing || registration.waiting;
+    await registration.update();
+    const nextWorker = registration.installing || registration.waiting;
+    if (nextWorker && nextWorker !== beforeWorker) {
+      if (!silent) {
+        state.updateStatus = "Update found. Restarting...";
+        render();
+      }
+      if (nextWorker.state === "installed" && navigator.serviceWorker.controller) {
+        nextWorker.postMessage({ type: "SKIP_WAITING" });
+      }
+      return;
+    }
+    if (!silent) {
+      state.updateStatus = "App is up to date.";
+      render();
+    }
+  } catch {
+    if (!silent) {
+      state.updateStatus = "Update check failed. Check your connection and try again.";
+      render();
+    }
+  }
 }
 
 function syncRoute() {
@@ -385,6 +440,17 @@ function renderSettingsSheet() {
           <button class="icon-button" type="button" data-action="close-settings" aria-label="Close">×</button>
         </div>
         <div class="settings-actions">
+          <div class="settings-card">
+            <label class="settings-toggle">
+              <span>
+                <strong>Auto-update on launch</strong>
+                <small>Check for a new PWA version every time the app opens.</small>
+              </span>
+              <input type="checkbox" data-action="toggle-auto-update" ${state.autoUpdateOnLaunch ? "checked" : ""} />
+            </label>
+            <button class="secondary-button" data-action="check-updates">Check for updates</button>
+            ${state.updateStatus ? `<p class="settings-status">${escapeHtml(state.updateStatus)}</p>` : ""}
+          </div>
           ${renderLoadPlayableButton()}
           ${renderLoadProgress()}
           <button class="secondary-button" data-action="pick-file">Import HTML or ZIP</button>
@@ -557,10 +623,13 @@ function renderMetadataSheet() {
 
 function wireLibraryEvents() {
   app.querySelectorAll("[data-action]").forEach((element) => {
-    if (element.matches("select")) return;
+    if (element.matches("select") || element.matches("input")) return;
     element.addEventListener("click", handleLibraryAction);
   });
   app.querySelectorAll("select[data-action='filter-language']").forEach((element) => {
+    element.addEventListener("change", handleLibraryAction);
+  });
+  app.querySelectorAll("input[data-action='toggle-auto-update']").forEach((element) => {
     element.addEventListener("change", handleLibraryAction);
   });
   fileInput?.addEventListener("change", async () => {
@@ -576,6 +645,13 @@ async function handleLibraryAction(event) {
   if (action === "pick-file") fileInput.click();
   if (action === "refresh") await refreshLibrary();
   if (action === "load-demos") loadDemoPlayables();
+  if (action === "toggle-auto-update") {
+    state.autoUpdateOnLaunch = Boolean(event.currentTarget.checked);
+    localStorage.setItem(AUTO_UPDATE_KEY, state.autoUpdateOnLaunch ? "1" : "0");
+    state.updateStatus = state.autoUpdateOnLaunch ? "Auto-update is on." : "Auto-update is off.";
+    render();
+  }
+  if (action === "check-updates") await checkForUpdates();
   if (action === "open-share") await openShareSheet();
   if (action === "filter-game") {
     state.gameFilter = event.currentTarget.value;

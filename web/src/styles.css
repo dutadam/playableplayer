@@ -740,6 +740,47 @@ h2 {
   gap: 10px;
 }
 
+.settings-card {
+  display: grid;
+  gap: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 12px;
+  background: #f8faff;
+}
+
+.settings-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.settings-toggle span {
+  display: grid;
+  gap: 3px;
+}
+
+.settings-toggle strong {
+  color: var(--ink);
+  font-size: 14px;
+}
+
+.settings-toggle small,
+.settings-status {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.settings-toggle input {
+  width: 48px;
+  height: 28px;
+  flex: 0 0 48px;
+  accent-color: var(--dream-blue);
+}
+
 .danger-action {
   color: #9f1d2f;
   background: #fff0f2;
