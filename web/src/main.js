@@ -11,9 +11,9 @@ const QUICK_TAGS = ["cta", "tutorial", "booster", "fail-state", "win-state", "se
 const INSTALL_DISMISSED_KEY = "install-onboarding-dismissed-v2";
 const ONBOARDING_STEPS = [
   {
-    image: "onboarding/step-1.png",
-    title: "Open the share menu",
-    body: "Add Playable Player to your Home Screen first, so it can run without browser chrome."
+    image: "onboarding/step-1-browser-menu.png",
+    title: "Open the browser menu",
+    body: "Tap the ... button in the bottom-right corner, then choose Share to start adding Playable Player."
   },
   {
     image: "onboarding/step-2.png",
