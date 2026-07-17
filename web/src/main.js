@@ -127,17 +127,23 @@ function installDoubleTapZoomGuard() {
 async function registerServiceWorker() {
   if (!("serviceWorker" in navigator)) return;
   const registration = await navigator.serviceWorker.register(`${basePath}sw.js`, { scope: basePath });
-  await navigator.serviceWorker.ready;
-  if (!navigator.serviceWorker.controller) {
-    registration.update();
-    await new Promise((resolve) => {
-      const timeout = setTimeout(resolve, 1500);
-      navigator.serviceWorker.addEventListener("controllerchange", () => {
-        clearTimeout(timeout);
-        resolve();
-      }, { once: true });
+  let refreshing = false;
+  navigator.serviceWorker.addEventListener("controllerchange", () => {
+    if (refreshing) return;
+    refreshing = true;
+    location.reload();
+  });
+  registration.addEventListener("updatefound", () => {
+    const worker = registration.installing;
+    if (!worker) return;
+    worker.addEventListener("statechange", () => {
+      if (worker.state === "installed" && navigator.serviceWorker.controller) {
+        worker.postMessage({ type: "SKIP_WAITING" });
+      }
     });
-  }
+  });
+  await registration.update().catch(() => {});
+  await navigator.serviceWorker.ready;
 }
 
 function syncRoute() {

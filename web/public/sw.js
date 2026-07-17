@@ -2,7 +2,7 @@ const DB_NAME = "playable-player-db";
 const DB_VERSION = 1;
 const PLAYABLE_STORE = "playables";
 const FILE_STORE = "files";
-const APP_CACHE = "playable-player-shell-v21";
+const APP_CACHE = "playable-player-shell-v22";
 
 const STORE_HOSTS = [
   "apps.apple.com",
@@ -24,6 +24,12 @@ self.addEventListener("activate", (event) => {
       self.clients.claim()
     ])
   );
+});
+
+self.addEventListener("message", (event) => {
+  if (event.data?.type === "SKIP_WAITING") {
+    self.skipWaiting();
+  }
 });
 
 self.addEventListener("fetch", (event) => {
