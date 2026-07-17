@@ -248,6 +248,7 @@ h2 {
 }
 
 .onboarding-visual {
+  position: relative;
   display: grid;
   min-height: 0;
   place-items: center;
@@ -265,6 +266,38 @@ h2 {
   object-fit: contain;
   border-radius: 6px;
   background: #ffffff;
+}
+
+.onboarding-nav {
+  position: absolute;
+  top: 50%;
+  z-index: 2;
+  display: grid;
+  width: 44px;
+  height: 56px;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0;
+  color: var(--ink);
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 8px 24px rgba(16, 19, 27, 0.12);
+  font-size: 34px;
+  font-weight: 650;
+  line-height: 1;
+  transform: translateY(-50%);
+}
+
+.onboarding-nav.previous {
+  left: 8px;
+}
+
+.onboarding-nav.next {
+  right: 8px;
+}
+
+.onboarding-nav:active {
+  transform: translateY(-50%) scale(0.96);
 }
 
 .onboarding-copy {
@@ -927,6 +960,12 @@ h2 {
 
   .onboarding-hero {
     min-height: calc(100svh - 36px);
+  }
+
+  .onboarding-nav {
+    width: 38px;
+    height: 50px;
+    font-size: 30px;
   }
 
   .onboarding-actions {

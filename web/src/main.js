@@ -159,6 +159,7 @@ function syncRoute() {
 
 async function refreshLibrary() {
   state.playables = await loadSortedPlayables();
+  reconcileLanguageFilter();
   if (state.activePlayable) {
     state.activePlayable = state.playables.find((item) => item.id === state.activePlayable.id) || null;
   }
@@ -184,6 +185,7 @@ function render() {
 function renderLibrary() {
   document.body.classList.remove("player-active");
   app.className = "app library-shell";
+  const languageOptions = getAvailableLanguages();
   const filteredItems = getFilteredPlayables();
   const rows = filteredItems.map(renderPlayableRow).join("");
   const bootNotice = state.isBooting ? `<section class="status-strip">Opening library...</section>` : "";
@@ -226,7 +228,7 @@ function renderLibrary() {
           </div>
           <div class="filter-group">
             <select class="filter-select" data-action="filter-language" aria-label="Filter by language">
-              ${["All", ...LANGUAGE_OPTIONS].map((language) => `<option value="${language}" ${state.languageFilter === language ? "selected" : ""}>${language === "All" ? "All languages" : language}</option>`).join("")}
+              ${languageOptions.map((language) => `<option value="${language}" ${state.languageFilter === language ? "selected" : ""}>${language}</option>`).join("")}
             </select>
           </div>
         </div>
@@ -269,7 +271,9 @@ function renderInstallOnboarding() {
           <span>${stepIndex + 1}/${steps.length}</span>
         </div>
         <div class="onboarding-visual">
+          ${stepIndex > 0 ? `<button class="onboarding-nav previous" data-action="prev-onboarding" aria-label="Back">‹</button>` : ""}
           <img src="${basePath}${step.image}" alt="${escapeHtml(step.title)}" />
+          ${!isLastStep ? `<button class="onboarding-nav next" data-action="next-onboarding" aria-label="Next">›</button>` : ""}
         </div>
         <div class="onboarding-copy">
           <p class="eyebrow">Setup</p>
@@ -279,10 +283,7 @@ function renderInstallOnboarding() {
         <div class="onboarding-dots" aria-label="Onboarding progress">
           ${steps.map((_, index) => `<button class="${index === stepIndex ? "active" : ""}" data-action="set-onboarding-step" data-step="${index}" aria-label="Go to step ${index + 1}"></button>`).join("")}
         </div>
-        <div class="onboarding-actions">
-          ${stepIndex > 0 ? `<button class="secondary-button" data-action="prev-onboarding">Back</button>` : ""}
-          <button class="primary-button" data-action="${isLastStep ? "finish-onboarding" : "next-onboarding"}">${isLastStep ? "Start" : "Next"}</button>
-        </div>
+        ${isLastStep ? `<div class="onboarding-actions"><button class="primary-button" data-action="finish-onboarding">Start</button></div>` : ""}
       </section>
       ${state.error ? `<div class="toast" role="alert">${escapeHtml(state.error)}</div>` : ""}
     </main>
@@ -1293,6 +1294,18 @@ function getFilteredPlayables() {
     const languageMatches = state.languageFilter === "All" || (item.language || "Unknown") === state.languageFilter;
     return gameMatches && languageMatches;
   });
+}
+
+function getAvailableLanguages() {
+  const available = new Set(state.playables.map((item) => item.language || "Unknown"));
+  return LANGUAGE_OPTIONS.filter((language) => available.has(language));
+}
+
+function reconcileLanguageFilter() {
+  const available = getAvailableLanguages();
+  if (!available.length || available.includes(state.languageFilter)) return;
+  state.languageFilter = available.includes("English") ? "English" : available[0];
+  localStorage.setItem("language-filter", state.languageFilter);
 }
 
 function countByGame(game) {
