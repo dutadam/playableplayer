@@ -1,5 +1,6 @@
 import { clearLibrary, deletePlayable, listPlayables, savePlayable, updatePlayable } from "./db.js";
 import { importFile } from "./importer.js";
+import JSZip from "jszip";
 import "./styles.css";
 
 const app = document.querySelector("#app");
@@ -9,6 +10,12 @@ const CREATIVE_TYPES = ["Gameplay", "Meta", "Rewarded", "Minigame", "Storefront"
 const LANGUAGE_OPTIONS = ["English", "Turkish", "German", "French", "Spanish", "Italian", "Portuguese", "Arabic", "Japanese", "Korean", "Chinese", "Unknown"];
 const QUICK_TAGS = ["cta", "tutorial", "booster", "fail-state", "win-state", "seasonal", "character", "level", "offer", "luna"];
 const INSTALL_DISMISSED_KEY = "install-onboarding-dismissed-v2";
+const BUNDLED_PLAYABLE_PACKS = [
+  "RK_PL_Rep_14349_Improved-2026-07-17.zip",
+  "RK_PL_STK_RichardsJourney_10-2026-07-17.zip",
+  "RM_PL_Rep_2865_Improved-2026-07-17.zip",
+  "RM_PL_Rep_14349_Improved-2026-07-17.zip"
+];
 const ONBOARDING_SHARED_STEPS = [
   {
     image: "onboarding/step-2.png",
@@ -735,70 +742,156 @@ async function openShareSheet() {
 
 async function loadDemoPlayables() {
   state.error = "";
-  const demos = [
-    {
-      sourceUrl: "https://playground.lunalabs.io/preview/396546/534036/ccb49094d9f6f247f0a2b158f4de579c87284b474f570fab22d07874c72a0504",
-      sourceName: "luna-royal-kingdom-preview.html",
-      game: "Royal Kingdom",
-      creativeType: "Gameplay",
-      language: "English",
-      htmlPath: `${basePath}luna/royal-kingdom-luna-preview.html`
-    },
-    {
-      sourceUrl: "https://playground.lunalabs.io/preview/414475/563577/ccb49094d9f6f247f0a2b158f4de579c87284b474f570fab22d07874c72a0504",
-      sourceName: "luna-royal-match-preview.html",
-      game: "Royal Match",
-      creativeType: "Gameplay",
-      language: "English",
-      htmlPath: `${basePath}luna/royal-match-luna-preview.html`
+  state.isImporting = true;
+  render();
+
+  try {
+    await removeLegacyDemoPlayables();
+    const existingBySource = new Map(state.playables.map((item) => [item.sourceName, item]));
+    const importedItems = [];
+
+    for (const packName of BUNDLED_PLAYABLE_PACKS) {
+      const packUrl = `${basePath}bundled-playables/${packName}`;
+      const response = await fetch(packUrl, { cache: "no-cache" });
+      if (!response.ok) {
+        throw new Error(`Bundled playable pack could not be loaded: ${packName}`);
+      }
+      const zip = await JSZip.loadAsync(await response.arrayBuffer());
+      const htmlEntries = Object.values(zip.files)
+        .filter((entry) => !entry.dir && /\.html?$/i.test(entry.name))
+        .sort((a, b) => a.name.localeCompare(b.name));
+
+      for (const entry of htmlEntries) {
+        const sourceName = entry.name.split("/").pop();
+        const sourceKey = `${packName}/${sourceName}`;
+        const existing = existingBySource.get(sourceKey);
+        const id = existing?.id || crypto.randomUUID();
+        const createdAt = existing?.createdAt || new Date().toISOString();
+        const html = await entry.async("string");
+        const blob = new Blob([html], { type: "text/html; charset=utf-8" });
+        const info = getBundledPlayableInfo(sourceName, packName);
+        const inferred = inferPlayableMetadata([sourceName, packName, html.slice(0, 120000)].join("\n"));
+        const tags = new Set([...(inferred.tags || []), ...info.tags]);
+        if (info.language && info.language !== "Unknown") tags.add(`lang-${info.language.toLowerCase()}`);
+
+        const playable = {
+          ...existing,
+          id,
+          name: info.name,
+          entryPath: "index.html",
+          sourceName: sourceKey,
+          sourceUrl: packUrl,
+          fileCount: 1,
+          byteSize: blob.size,
+          createdAt,
+          game: info.game,
+          creativeType: info.creativeType,
+          language: info.language,
+          tags: [...tags]
+        };
+
+        await savePlayable(playable, [{
+          key: `${id}/index.html`,
+          playableId: id,
+          path: "index.html",
+          type: "text/html; charset=utf-8",
+          blob
+        }]);
+        importedItems.push(playable);
+        existingBySource.set(sourceKey, playable);
+      }
     }
-  ];
 
-  const existingBySource = new Map(state.playables.map((item) => [item.sourceName, item]));
-  for (const demo of demos) {
-    const existing = existingBySource.get(demo.sourceName);
-    const id = existing?.id || crypto.randomUUID();
-    const createdAt = existing?.createdAt || new Date().toISOString();
-    const html = demo.html || await loadBundledHtml(demo.htmlPath);
-    const inferred = inferPlayableMetadata([demo.sourceUrl, demo.sourceName, html].filter(Boolean).join("\n"));
-    const name = createSmartPlayableName(
-      { sourceName: demo.sourceName, name: inferred.suggestedName || demo.sourceName },
-      inferred,
-      state.playables.filter((item) => item.id !== id)
-    );
-    const blob = new Blob([html], { type: "text/html; charset=utf-8" });
-    await savePlayable({
-      ...existing,
-      id,
-      name,
-      entryPath: "index.html",
-      sourceName: demo.sourceName,
-      sourceUrl: demo.sourceUrl,
-      fileCount: 1,
-      byteSize: blob.size,
-      createdAt,
-      game: inferred.game !== "Other" ? inferred.game : demo.game,
-      creativeType: inferred.creativeType || demo.creativeType,
-      language: inferred.language !== "Unknown" ? inferred.language : demo.language,
-      tags: inferred.tags
-    }, [{
-      key: `${id}/index.html`,
-      playableId: id,
-      path: "index.html",
-      type: "text/html; charset=utf-8",
-      blob
-    }]);
+    state.pendingMetadata = null;
+    await refreshLibrary();
+    state.error = `Loaded ${importedItems.length} bundled playables.`;
+  } catch (error) {
+    state.error = error.message || "Bundled playables could not be loaded.";
+    render();
+  } finally {
+    state.isImporting = false;
+    render();
   }
-
-  await refreshLibrary();
 }
 
-async function loadBundledHtml(path) {
-  const response = await fetch(path, { cache: "no-cache" });
-  if (!response.ok) {
-    throw new Error("Bundled playable could not be loaded.");
+async function removeLegacyDemoPlayables() {
+  const legacyItems = state.playables.filter((item) =>
+    /^luna-/i.test(item.sourceName || "") ||
+    /playground\.lunalabs\.io/i.test(item.sourceUrl || "") ||
+    /\/luna\//i.test(item.sourceUrl || "")
+  );
+  for (const item of legacyItems) {
+    await deletePlayable(item.id);
   }
-  return response.text();
+  if (legacyItems.length) {
+    state.playables = state.playables.filter((item) => !legacyItems.some((legacy) => legacy.id === item.id));
+  }
+}
+
+function getBundledPlayableInfo(sourceName, packName) {
+  const game = /^RK_/i.test(sourceName) ? "Royal Kingdom" : /^RM_/i.test(sourceName) ? "Royal Match" : "Other";
+  const language = inferLanguageFromFilename(sourceName);
+  const baseName = sourceName
+    .replace(/_applovin\.html?$/i, "")
+    .replace(/\.html?$/i, "");
+  const creativeType = /_STK_/i.test(baseName) ? "Storefront" : "Gameplay";
+  const tags = new Set(["bundled", "applovin"]);
+  if (/_Rep_/i.test(baseName)) tags.add("repair");
+  if (/_STK_/i.test(baseName)) tags.add("storefront");
+  if (/Improved/i.test(baseName)) tags.add("improved");
+  if (/NoIntro/i.test(baseName)) tags.add("no-intro");
+  if (/Text1/i.test(baseName)) tags.add("text-1");
+  if (/2ndGP/i.test(baseName)) tags.add("2nd-gp");
+  if (/RichardsJourney/i.test(baseName)) tags.add("richards-journey");
+
+  return {
+    game,
+    creativeType,
+    language,
+    tags: [...tags],
+    name: createBundledPlayableName(baseName, game, language, packName)
+  };
+}
+
+function createBundledPlayableName(baseName, game, language, packName) {
+  const withoutGame = baseName
+    .replace(/^RK_PL_/i, "")
+    .replace(/^RM_PL_/i, "")
+    .replace(/_(TR|FR|DE|IT|ES|PT|JP|KR|ZH_TW)$/i, "")
+    .replace(/_2ndGP\s*$/i, "_2ndGP");
+  const parts = withoutGame
+    .split("_")
+    .map((part) => {
+      if (/^Rep$/i.test(part)) return "Repair";
+      if (/^STK$/i.test(part)) return "Storefront";
+      if (/^RichardsJourney$/i.test(part)) return "Richard's Journey";
+      if (/^NoIntro$/i.test(part)) return "No Intro";
+      if (/^Text1$/i.test(part)) return "Text 1";
+      if (/^2ndGP$/i.test(part)) return "2nd GP";
+      return cleanupName(part);
+    })
+    .filter(Boolean);
+  const label = dedupeNameParts(parts).join(" ");
+  const languageSuffix = language && language !== "Unknown" ? ` - ${language}` : "";
+  return `${label || cleanupName(packName)}${languageSuffix}`;
+}
+
+function inferLanguageFromFilename(sourceName) {
+  const normalized = sourceName.replace(/\s+/g, "");
+  const match = normalized.match(/_((?:ZH_TW)|TR|FR|DE|IT|ES|PT|JP|KR)_applovin\.html?$/i);
+  const code = match?.[1]?.toUpperCase();
+  const languages = {
+    TR: "Turkish",
+    FR: "French",
+    DE: "German",
+    IT: "Italian",
+    ES: "Spanish",
+    PT: "Portuguese",
+    JP: "Japanese",
+    KR: "Korean",
+    ZH_TW: "Chinese"
+  };
+  return languages[code] || "English";
 }
 
 async function saveMetadataFromSheet() {
