@@ -248,26 +248,28 @@ function renderInstallOnboarding() {
   app.innerHTML = `
     <main class="onboarding-page">
       <section class="onboarding-hero">
-        <div class="onboarding-top">
-          ${renderDreamLogo()}
-          <span>${stepIndex + 1}/${ONBOARDING_STEPS.length}</span>
-        </div>
         <div class="onboarding-visual">
           <img src="${basePath}${step.image}" alt="${escapeHtml(step.title)}" />
+          <div class="onboarding-top">
+            ${renderDreamLogo()}
+            <span>${stepIndex + 1}/${ONBOARDING_STEPS.length}</span>
+          </div>
+          <div class="onboarding-copy">
+            <p class="eyebrow">Kurulum</p>
+            <h1>${escapeHtml(step.title)}</h1>
+            <p>${escapeHtml(step.body)}</p>
+          </div>
+          <div class="onboarding-footer">
+            <div class="onboarding-dots" aria-label="Onboarding progress">
+              ${ONBOARDING_STEPS.map((_, index) => `<button class="${index === stepIndex ? "active" : ""}" data-action="set-onboarding-step" data-step="${index}" aria-label="Go to step ${index + 1}"></button>`).join("")}
+            </div>
+            <div class="onboarding-actions">
+              ${stepIndex > 0 ? `<button class="secondary-button" data-action="prev-onboarding">Geri</button>` : ""}
+              <button class="primary-button" data-action="${isLastStep ? "mark-installed" : "next-onboarding"}">${isLastStep ? "Başla" : "İleri"}</button>
+            </div>
+            <p class="onboarding-note">Bu kurulum tamamlandıktan sonra aynı cihazda tekrar gösterilmez.</p>
+          </div>
         </div>
-        <div class="onboarding-copy">
-          <p class="eyebrow">Kurulum</p>
-          <h1>${escapeHtml(step.title)}</h1>
-          <p>${escapeHtml(step.body)}</p>
-        </div>
-        <div class="onboarding-dots" aria-label="Onboarding progress">
-          ${ONBOARDING_STEPS.map((_, index) => `<button class="${index === stepIndex ? "active" : ""}" data-action="set-onboarding-step" data-step="${index}" aria-label="Go to step ${index + 1}"></button>`).join("")}
-        </div>
-        <div class="onboarding-actions">
-          ${stepIndex > 0 ? `<button class="secondary-button" data-action="prev-onboarding">Geri</button>` : ""}
-          <button class="primary-button" data-action="${isLastStep ? "mark-installed" : "next-onboarding"}">${isLastStep ? "Başla" : "İleri"}</button>
-        </div>
-        <p class="onboarding-note">Bu kurulum tamamlandıktan sonra aynı cihazda tekrar gösterilmez.</p>
       </section>
       ${state.error ? `<div class="toast" role="alert">${escapeHtml(state.error)}</div>` : ""}
     </main>
