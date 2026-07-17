@@ -8,36 +8,37 @@ const GAME_OPTIONS = ["Royal Match", "Royal Kingdom", "Other"];
 const CREATIVE_TYPES = ["Gameplay", "Meta", "Rewarded", "Minigame", "Storefront", "Other"];
 const LANGUAGE_OPTIONS = ["English", "Turkish", "German", "French", "Spanish", "Italian", "Portuguese", "Arabic", "Japanese", "Korean", "Chinese", "Unknown"];
 const QUICK_TAGS = ["cta", "tutorial", "booster", "fail-state", "win-state", "seasonal", "character", "level", "offer", "luna"];
+const INSTALL_DISMISSED_KEY = "install-onboarding-dismissed-v2";
 const ONBOARDING_STEPS = [
   {
     image: "onboarding/step-1.png",
-    title: "Paylaş menüsünü aç",
-    body: "Playable Player’ı tam ekran kullanmak için önce tarayıcının paylaş menüsünden ana ekrana ekle."
+    title: "Open the share menu",
+    body: "Add Playable Player to your Home Screen first, so it can run without browser chrome."
   },
   {
     image: "onboarding/step-2.png",
-    title: "Tüm seçenekleri göster",
-    body: "Add to Home Screen görünmüyorsa paylaş ekranındaki View More seçeneğiyle listeyi genişlet."
+    title: "Show all actions",
+    body: "If Add to Home Screen is not visible, expand the share sheet with View More."
   },
   {
     image: "onboarding/step-3.png",
-    title: "Ana ekrana ekle",
-    body: "Listeden Add to Home Screen seçeneğini seç. Böylece Player tarayıcı UI olmadan açılır."
+    title: "Choose Add to Home Screen",
+    body: "Select Add to Home Screen from the list. This lets the player open like an app."
   },
   {
     image: "onboarding/step-4-add.png",
-    title: "Kurulumu onayla",
-    body: "İsim Playable Player kalsın, Open as Web App açık olsun ve Add ile onayla."
+    title: "Confirm the setup",
+    body: "Keep the name as Playable Player, leave Open as Web App enabled, then tap Add."
   },
   {
     image: "onboarding/step-4.png",
-    title: "Ana ekrandan başlat",
-    body: "Kurulumdan sonra Playable Player ikonundan aç. En temiz fullscreen deneyim burada çalışır."
+    title: "Launch from Home Screen",
+    body: "After setup, open Playable Player from its Home Screen icon for the clean fullscreen experience."
   },
   {
     image: "onboarding/step-5.png",
-    title: "Playable’ları yükle",
-    body: "Load Playable ile hazır playable’ları yükle. Kendi dosyaların için Settings içinden import kullan."
+    title: "Load playables",
+    body: "Use Load Playable for bundled demos. Import your own files from Settings when needed."
   }
 ];
 
@@ -47,8 +48,9 @@ const state = {
   isBooting: true,
   serviceWorkerReady: false,
   isImporting: false,
-  installDismissed: localStorage.getItem("install-onboarding-dismissed") === "1",
+  installDismissed: localStorage.getItem(INSTALL_DISMISSED_KEY) === "1",
   onboardingStep: 0,
+  installGuideOpen: false,
   controlsOpen: false,
   storeIntent: null,
   pendingMetadata: null,
@@ -164,7 +166,7 @@ function render() {
   if (state.activePlayable) {
     renderPlayer();
   } else if (shouldShowInstallOnboarding()) {
-    renderInstallOnboarding();
+    state.installGuideOpen ? renderInstallGuide() : renderInstallOnboarding();
   } else {
     renderLibrary();
   }
@@ -261,7 +263,7 @@ function renderInstallOnboarding() {
           <img src="${basePath}${step.image}" alt="${escapeHtml(step.title)}" />
         </div>
         <div class="onboarding-copy">
-          <p class="eyebrow">Kurulum</p>
+          <p class="eyebrow">Setup</p>
           <h1>${escapeHtml(step.title)}</h1>
           <p>${escapeHtml(step.body)}</p>
         </div>
@@ -269,9 +271,44 @@ function renderInstallOnboarding() {
           ${ONBOARDING_STEPS.map((_, index) => `<button class="${index === stepIndex ? "active" : ""}" data-action="set-onboarding-step" data-step="${index}" aria-label="Go to step ${index + 1}"></button>`).join("")}
         </div>
         <div class="onboarding-actions">
-          ${stepIndex > 0 ? `<button class="secondary-button" data-action="prev-onboarding">Geri</button>` : ""}
-          <button class="primary-button" data-action="${isLastStep ? "mark-installed" : "next-onboarding"}">${isLastStep ? "Başla" : "İleri"}</button>
+          ${stepIndex > 0 ? `<button class="secondary-button" data-action="prev-onboarding">Back</button>` : ""}
+          <button class="primary-button" data-action="${isLastStep ? "finish-onboarding" : "next-onboarding"}">${isLastStep ? "Start" : "Next"}</button>
         </div>
+      </section>
+      ${state.error ? `<div class="toast" role="alert">${escapeHtml(state.error)}</div>` : ""}
+    </main>
+  `;
+  wireLibraryEvents();
+}
+
+function renderInstallGuide() {
+  const platform = detectPlatform();
+  const canShare = platform !== "ios" && typeof navigator.share === "function";
+  const hasInstallPrompt = Boolean(deferredInstallPrompt);
+  const installLine = platform === "ios"
+    ? "Open the browser share menu, choose Add to Home Screen, then launch from the new icon."
+    : "Install the app or choose Add to Home Screen, then launch from the new icon.";
+
+  document.body.classList.remove("player-active");
+  app.className = "app onboarding-shell";
+  fileInput = null;
+  app.innerHTML = `
+    <main class="onboarding-page">
+      <section class="onboarding-hero setup-guide">
+        <div class="brand-row">
+          ${renderDreamLogo()}
+        </div>
+        <div class="onboarding-copy">
+          <p class="eyebrow">One-time setup</p>
+          <h1>Open as a fullscreen app.</h1>
+          <p>${installLine}</p>
+        </div>
+        <div class="install-card">
+          ${renderShareHint()}
+          <strong>Use the browser share button</strong>
+          <span>Websites cannot directly add themselves to the Home Screen. Finish setup from the browser menu, then open Playable Player from the Home Screen icon.</span>
+        </div>
+        ${canShare || hasInstallPrompt ? `<button class="primary-button" data-action="open-share">${hasInstallPrompt ? "Install app" : "Open share sheet"}</button>` : ""}
       </section>
       ${state.error ? `<div class="toast" role="alert">${escapeHtml(state.error)}</div>` : ""}
     </main>
@@ -374,7 +411,7 @@ function renderPlayer() {
       <button class="secret-zone secret-top-right" data-action="secret-tap" aria-label="Open controls"></button>
       <button class="secret-zone secret-bottom-left" data-action="secret-tap" aria-label="Open controls"></button>
       <button class="secret-zone secret-bottom-right" data-action="secret-tap" aria-label="Open controls"></button>
-      <div class="player-audio-note">Ses başlamazsa playable içinde bir kez dokun.</div>
+      <div class="player-audio-note">If audio does not start, tap once inside the playable.</div>
 
       <aside class="control-panel ${state.controlsOpen ? "open" : ""}" aria-hidden="${state.controlsOpen ? "false" : "true"}">
         <div>
@@ -515,8 +552,17 @@ async function handleLibraryAction(event) {
     render();
   }
   if (action === "mark-installed") {
-    localStorage.setItem("install-onboarding-dismissed", "1");
+    localStorage.setItem(INSTALL_DISMISSED_KEY, "1");
     state.installDismissed = true;
+    render();
+  }
+  if (action === "finish-onboarding") {
+    if (isStandaloneMode()) {
+      localStorage.setItem(INSTALL_DISMISSED_KEY, "1");
+      state.installDismissed = true;
+    } else {
+      state.installGuideOpen = true;
+    }
     render();
   }
   if (action === "next-onboarding") {
@@ -643,7 +689,7 @@ async function openShareSheet() {
     const choice = await deferredInstallPrompt.userChoice;
     deferredInstallPrompt = null;
     if (choice?.outcome === "accepted") {
-      localStorage.setItem("install-onboarding-dismissed", "1");
+      localStorage.setItem(INSTALL_DISMISSED_KEY, "1");
       state.installDismissed = true;
     }
     render();
