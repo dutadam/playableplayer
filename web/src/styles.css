@@ -109,21 +109,16 @@ button {
   min-height: 56px;
   font-size: 18px;
   overflow: hidden;
-  isolation: isolate;
-}
-
-.load-button::before {
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  width: var(--load-percent, 0%);
-  background: linear-gradient(90deg, #ffb629, #ffe27a);
-  content: "";
-  transition: width 180ms ease;
+  background:
+    linear-gradient(90deg, #ffb629, #ffe27a) 0 0 / var(--load-percent, 0%) 100% no-repeat,
+    var(--gold);
+  transition: background-size 180ms ease;
 }
 
 .load-button.loading {
-  background: #fff4cf;
+  background:
+    linear-gradient(90deg, #ffb629, #ffe27a) 0 0 / var(--load-percent, 0%) 100% no-repeat,
+    #fff4cf;
 }
 
 .load-button:disabled {
@@ -529,8 +524,23 @@ h2 {
 }
 
 .row-main small {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 5px;
   color: var(--muted);
   font-size: 13px;
+}
+
+.row-main small b {
+  flex: 0 0 auto;
+  border: 1px solid color-mix(in srgb, var(--game-color), white 55%);
+  border-radius: 5px;
+  padding: 1px 5px;
+  color: var(--game-ink);
+  background: var(--game-soft);
+  font-size: 11px;
+  line-height: 1.35;
 }
 
 .row-tags {

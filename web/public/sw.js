@@ -2,7 +2,7 @@ const DB_NAME = "playable-player-db";
 const DB_VERSION = 1;
 const PLAYABLE_STORE = "playables";
 const FILE_STORE = "files";
-const APP_CACHE = "playable-player-shell-v20";
+const APP_CACHE = "playable-player-shell-v21";
 
 const STORE_HOSTS = [
   "apps.apple.com",
@@ -140,16 +140,6 @@ html, body {
   overscroll-behavior: none !important;
   touch-action: manipulation;
   background: #000;
-}
-#playable-player-stage {
-  position: absolute !important;
-  top: 50% !important;
-  left: 50% !important;
-  transform-origin: center center !important;
-}
-canvas, video {
-  max-width: 100vw !important;
-  max-height: 100dvh !important;
 }
 </style>`;
   const bridge = `<script>
@@ -296,79 +286,11 @@ canvas, video {
     event.stopImmediatePropagation();
     report(action);
   }, true);
-  const ensureStage = () => {
-    const body = document.body;
-    if (!body || body.dataset.playablePlayerFit === "manual") return null;
-    let stage = document.getElementById("playable-player-stage");
-    if (!stage) {
-      stage = document.createElement("div");
-      stage.id = "playable-player-stage";
-      body.appendChild(stage);
-    }
-    absorbBodyChildren(stage);
-    return stage;
-  };
-  const absorbBodyChildren = (stage) => {
-    const body = document.body;
-    if (!body) return;
-    [...body.childNodes].forEach((node) => {
-      if (node !== stage) stage.appendChild(node);
-    });
-  };
-  const observeStage = () => {
-    const body = document.body;
-    const stage = ensureStage();
-    if (!body || !stage || body.dataset.playablePlayerObserver === "1") return;
-    body.dataset.playablePlayerObserver = "1";
-    new MutationObserver(() => {
-      absorbBodyChildren(stage);
-      unlockAudio();
-      requestAnimationFrame(fitPlayable);
-    }).observe(body, { childList: true, subtree: true });
-  };
-  const measureStage = (stage) => {
-    stage.style.transform = "translate(-50%, -50%) scale(1)";
-    stage.style.width = "";
-    stage.style.height = "";
-    const previousOverflow = stage.style.overflow;
-    stage.style.overflow = "visible";
-    const rect = stage.getBoundingClientRect();
-    const width = Math.max(stage.scrollWidth, stage.offsetWidth, Math.ceil(rect.width));
-    const height = Math.max(stage.scrollHeight, stage.offsetHeight, Math.ceil(rect.height));
-    stage.style.overflow = previousOverflow;
-    return { width, height };
-  };
-  const fitPlayable = () => {
-    const stage = ensureStage();
-    if (!stage) return;
-    const viewportWidth = window.innerWidth || document.documentElement.clientWidth;
-    const viewportHeight = window.innerHeight || document.documentElement.clientHeight;
-    const measured = measureStage(stage);
-    const contentWidth = measured.width;
-    const contentHeight = measured.height;
-    if (!viewportWidth || !viewportHeight || !contentWidth || !contentHeight) return;
-    const scale = Math.min(1, viewportWidth / contentWidth, viewportHeight / contentHeight);
-    stage.style.width = contentWidth + "px";
-    stage.style.height = contentHeight + "px";
-    stage.style.transform = "translate(-50%, -50%) scale(" + scale + ")";
-  };
   if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", () => {
-      observeStage();
-      fitPlayable();
-    }, { once: true });
+    document.addEventListener("DOMContentLoaded", unlockAudio, { once: true });
   } else {
-    observeStage();
-    fitPlayable();
+    unlockAudio();
   }
-  window.addEventListener("load", () => {
-    observeStage();
-    fitPlayable();
-  });
-  window.addEventListener("resize", fitPlayable);
-  window.addEventListener("orientationchange", () => setTimeout(fitPlayable, 250));
-  setTimeout(fitPlayable, 50);
-  setTimeout(fitPlayable, 500);
 })();
 </script>`;
 

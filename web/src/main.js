@@ -17,6 +17,7 @@ const BUNDLED_PLAYABLE_PACKS = [
   "RM_PL_Rep_2865_Improved-2026-07-17.zip",
   "RM_PL_Rep_14349_Improved-2026-07-17.zip"
 ];
+const EXPECTED_BUNDLED_PLAYABLE_COUNT = 37;
 const ONBOARDING_SHARED_STEPS = [
   {
     image: "onboarding/step-2.png",
@@ -344,6 +345,8 @@ function renderPlayableRow(item) {
   const game = item.game || "Unassigned";
   const creativeType = item.creativeType || "Uncategorized";
   const language = item.language || "Unknown";
+  const gameCode = getGameCode(game);
+  const languageCode = getLanguageCode(language);
   const theme = gameTheme(game);
   return `
     <article class="playable-row" style="--game-color: ${theme.primary}; --game-accent: ${theme.accent}; --game-soft: ${theme.soft}; --game-ink: ${theme.ink}">
@@ -351,7 +354,11 @@ function renderPlayableRow(item) {
         <span class="play-icon">▶</span>
         <span class="playable-copy">
           <strong>${escapeHtml(getDisplayName(item))}</strong>
-          <small>${escapeHtml(game)} · ${escapeHtml(creativeType)} · ${escapeHtml(language)} · ${item.fileCount} files · ${formatBytes(item.byteSize)}</small>
+          <small>
+            <b>${escapeHtml(gameCode)}</b>
+            <b>${escapeHtml(languageCode)}</b>
+            ${escapeHtml(game)} · ${escapeHtml(creativeType)} · ${escapeHtml(language)}
+          </small>
           <span class="row-tags">${tags.slice(0, 4).map((tag) => `<em>${escapeHtml(tag)}</em>`).join("")}</span>
         </span>
       </button>
@@ -897,8 +904,10 @@ async function loadDemoPlayables() {
       active: false,
       percent: 100,
       title: "Load complete",
-      message: `Loaded ${importedItems.length} bundled playables.`,
-      detail: "You can now filter by game and language."
+      message: `Loaded ${importedItems.length} of ${EXPECTED_BUNDLED_PLAYABLE_COUNT} bundled playables.`,
+      detail: importedItems.length === EXPECTED_BUNDLED_PLAYABLE_COUNT
+        ? "You can now filter by game and language."
+        : "Some variants did not finish. Tap Load Playable again to continue."
     });
   } catch (error) {
     state.error = getLoadErrorMessage(error);
@@ -1333,6 +1342,30 @@ function getDisplayName(item) {
     .replace(/\s+/g, " ")
     .trim();
   return name || "Playable Variant";
+}
+
+function getGameCode(game) {
+  if (game === "Royal Match") return "RM";
+  if (game === "Royal Kingdom") return "RK";
+  return "OT";
+}
+
+function getLanguageCode(language) {
+  const codes = {
+    English: "EN",
+    Turkish: "TR",
+    German: "DE",
+    French: "FR",
+    Spanish: "ES",
+    Italian: "IT",
+    Portuguese: "PT",
+    Arabic: "AR",
+    Japanese: "JP",
+    Korean: "KR",
+    Chinese: "ZH",
+    Unknown: "UN"
+  };
+  return codes[language] || "UN";
 }
 
 function titleCaseTag(tag) {
