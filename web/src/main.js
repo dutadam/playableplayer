@@ -9,12 +9,7 @@ const CREATIVE_TYPES = ["Gameplay", "Meta", "Rewarded", "Minigame", "Storefront"
 const LANGUAGE_OPTIONS = ["English", "Turkish", "German", "French", "Spanish", "Italian", "Portuguese", "Arabic", "Japanese", "Korean", "Chinese", "Unknown"];
 const QUICK_TAGS = ["cta", "tutorial", "booster", "fail-state", "win-state", "seasonal", "character", "level", "offer", "luna"];
 const INSTALL_DISMISSED_KEY = "install-onboarding-dismissed-v2";
-const ONBOARDING_STEPS = [
-  {
-    image: "onboarding/step-1-browser-menu.png",
-    title: "Open the browser menu",
-    body: "Tap the ... button in the bottom-right corner, then choose Share to start adding Playable Player."
-  },
+const ONBOARDING_SHARED_STEPS = [
   {
     image: "onboarding/step-2.png",
     title: "Show all actions",
@@ -245,9 +240,10 @@ function renderLibrary() {
 }
 
 function renderInstallOnboarding() {
-  const stepIndex = Math.min(Math.max(state.onboardingStep, 0), ONBOARDING_STEPS.length - 1);
-  const step = ONBOARDING_STEPS[stepIndex];
-  const isLastStep = stepIndex === ONBOARDING_STEPS.length - 1;
+  const steps = getOnboardingSteps();
+  const stepIndex = Math.min(Math.max(state.onboardingStep, 0), steps.length - 1);
+  const step = steps[stepIndex];
+  const isLastStep = stepIndex === steps.length - 1;
 
   document.body.classList.remove("player-active");
   app.className = "app onboarding-shell";
@@ -257,7 +253,7 @@ function renderInstallOnboarding() {
       <section class="onboarding-hero">
         <div class="onboarding-top">
           ${renderDreamLogo()}
-          <span>${stepIndex + 1}/${ONBOARDING_STEPS.length}</span>
+          <span>${stepIndex + 1}/${steps.length}</span>
         </div>
         <div class="onboarding-visual">
           <img src="${basePath}${step.image}" alt="${escapeHtml(step.title)}" />
@@ -268,7 +264,7 @@ function renderInstallOnboarding() {
           <p>${escapeHtml(step.body)}</p>
         </div>
         <div class="onboarding-dots" aria-label="Onboarding progress">
-          ${ONBOARDING_STEPS.map((_, index) => `<button class="${index === stepIndex ? "active" : ""}" data-action="set-onboarding-step" data-step="${index}" aria-label="Go to step ${index + 1}"></button>`).join("")}
+          ${steps.map((_, index) => `<button class="${index === stepIndex ? "active" : ""}" data-action="set-onboarding-step" data-step="${index}" aria-label="Go to step ${index + 1}"></button>`).join("")}
         </div>
         <div class="onboarding-actions">
           ${stepIndex > 0 ? `<button class="secondary-button" data-action="prev-onboarding">Back</button>` : ""}
@@ -283,10 +279,13 @@ function renderInstallOnboarding() {
 
 function renderInstallGuide() {
   const platform = detectPlatform();
+  const browser = detectBrowser();
   const canShare = platform !== "ios" && typeof navigator.share === "function";
   const hasInstallPrompt = Boolean(deferredInstallPrompt);
-  const installLine = platform === "ios"
-    ? "Open the browser share menu, choose Add to Home Screen, then launch from the new icon."
+  const installLine = platform === "ios" && browser === "chrome-ios"
+    ? "Tap the ... button in the bottom-right corner, choose Share, then Add to Home Screen."
+    : platform === "ios"
+      ? "Tap the Safari share button, choose Add to Home Screen, then launch from the new icon."
     : "Install the app or choose Add to Home Screen, then launch from the new icon.";
 
   document.body.classList.remove("player-active");
@@ -566,7 +565,7 @@ async function handleLibraryAction(event) {
     render();
   }
   if (action === "next-onboarding") {
-    state.onboardingStep = Math.min(state.onboardingStep + 1, ONBOARDING_STEPS.length - 1);
+    state.onboardingStep = Math.min(state.onboardingStep + 1, getOnboardingSteps().length - 1);
     render();
   }
   if (action === "prev-onboarding") {
@@ -1129,6 +1128,34 @@ function shouldShowInstallOnboarding() {
   return !state.installDismissed && !isStandaloneMode();
 }
 
+function getOnboardingSteps() {
+  return [getFirstOnboardingStep(), ...ONBOARDING_SHARED_STEPS];
+}
+
+function getFirstOnboardingStep() {
+  const platform = detectPlatform();
+  const browser = detectBrowser();
+  if (platform === "ios" && browser === "safari") {
+    return {
+      image: "onboarding/step-1.png",
+      title: "Tap the Safari share button",
+      body: "Use Safari's share button to start adding Playable Player to your Home Screen."
+    };
+  }
+  if (platform === "ios" && browser === "chrome-ios") {
+    return {
+      image: "onboarding/step-1-browser-menu.png",
+      title: "Open the Chrome menu",
+      body: "Tap the ... button in the bottom-right corner, then choose Share."
+    };
+  }
+  return {
+    image: "onboarding/step-1-browser-menu.png",
+    title: "Open the browser menu",
+    body: "Open your browser menu, choose Share, then add Playable Player to your Home Screen."
+  };
+}
+
 function isStandaloneMode() {
   return window.matchMedia("(display-mode: standalone)").matches ||
     window.matchMedia("(display-mode: fullscreen)").matches ||
@@ -1142,6 +1169,16 @@ function detectPlatform() {
   }
   if (/Android/.test(ua)) return "android";
   return "desktop";
+}
+
+function detectBrowser() {
+  const ua = navigator.userAgent || "";
+  if (/CriOS/i.test(ua)) return "chrome-ios";
+  if (/FxiOS/i.test(ua)) return "firefox-ios";
+  if (/EdgiOS/i.test(ua)) return "edge-ios";
+  if (/Safari/i.test(ua) && !/Chrome|CriOS|FxiOS|EdgiOS|OPiOS/i.test(ua)) return "safari";
+  if (/Chrome/i.test(ua)) return "chrome";
+  return "other";
 }
 
 function encodePath(path) {
