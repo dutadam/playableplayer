@@ -272,21 +272,21 @@ h2 {
 .guide-video {
   position: relative;
   display: grid;
-  place-items: center;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  padding: 10px;
-  background: #ffffff;
-  overflow: hidden;
+  justify-self: center;
+  max-width: 100%;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
 }
 
 .guide-video video {
   display: block;
+  width: auto;
+  height: auto;
   max-width: 100%;
-  height: min(44svh, 420px);
-  border-radius: 6px;
+  max-height: 78svh;
+  aspect-ratio: 540 / 1170;
+  border: 1px solid var(--line);
+  border-radius: 14px;
   background: #000;
   object-fit: contain;
 }
@@ -313,6 +313,49 @@ h2 {
 
 .guide-video.paused .guide-video-badge {
   opacity: 1;
+}
+
+@media (min-width: 768px) {
+  .onboarding-hero.setup-guide {
+    width: min(1040px, 100%);
+    min-height: 0;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-areas:
+      "top top"
+      "video copy"
+      "video steps"
+      "video actions";
+    column-gap: 28px;
+    align-content: start;
+  }
+
+  .setup-guide .onboarding-top {
+    grid-area: top;
+  }
+
+  .setup-guide .guide-video {
+    grid-area: video;
+    position: sticky;
+    top: 16px;
+    align-self: start;
+  }
+
+  .setup-guide .guide-video video {
+    max-height: calc(100svh - 72px);
+  }
+
+  .setup-guide .onboarding-copy {
+    grid-area: copy;
+  }
+
+  .setup-guide .guide-steps {
+    grid-area: steps;
+  }
+
+  .setup-guide .onboarding-actions {
+    grid-area: actions;
+    align-self: end;
+  }
 }
 
 .guide-steps {
@@ -989,6 +1032,19 @@ h2 {
 }
 
 @media (max-width: 620px) {
+  .onboarding-page:has(.setup-guide) {
+    padding-left: 0;
+    padding-right: 0;
+  }
+
+  .onboarding-hero.setup-guide {
+    border-left: 0;
+    border-right: 0;
+    border-radius: 0;
+    padding: 14px;
+    box-shadow: none;
+  }
+
   .library-page {
     width: min(100%, calc(100vw - 24px));
   }
