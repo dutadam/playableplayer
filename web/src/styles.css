@@ -1090,65 +1090,171 @@ h2 {
 
 .reference-skip {
   position: fixed;
-  right: 16px;
-  bottom: calc(16px + env(safe-area-inset-bottom));
+  bottom: calc(24px + env(safe-area-inset-bottom));
+  left: 50%;
   z-index: 6;
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  display: inline-flex;
+  min-height: 56px;
+  align-items: center;
+  gap: 8px;
+  border: 0;
   border-radius: 999px;
-  padding: 10px 16px;
-  color: #ffffff;
-  background: rgba(0, 0, 0, 0.5);
-  font-size: 14px;
-  font-weight: 750;
+  padding: 0 30px;
+  color: var(--ink);
+  background: var(--gold);
+  font-size: 17px;
+  font-weight: 800;
+  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.45), 0 0 0 4px rgba(255, 210, 71, 0.25);
+  transform: translateX(-50%);
 }
 
-.howto-section {
-  margin-top: 24px;
+.reference-skip span {
+  font-size: 22px;
+  line-height: 1;
 }
 
-.howto-grid {
-  display: grid;
-  gap: 14px;
+.reference-skip:active {
+  transform: translateX(-50%) scale(0.96);
 }
 
-.howto-video video {
-  max-height: 60svh;
-  aspect-ratio: 9 / 16;
+@keyframes breathe {
+  0%,
+  100% {
+    transform: scale(1);
+    box-shadow: 0 18px 50px rgba(0, 0, 0, 0.4), 0 0 0 0 rgba(255, 210, 71, 0.6);
+  }
+  50% {
+    transform: scale(1.1);
+    box-shadow: 0 22px 60px rgba(0, 0, 0, 0.45), 0 0 0 26px rgba(255, 210, 71, 0);
+  }
 }
 
-.howto-video {
-  width: fit-content;
-  justify-self: center;
+@keyframes breathe-text {
+  0%,
+  100% {
+    opacity: 0.72;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.reference-overlay[data-action="start-playable"] .reference-overlay-badge {
+  animation: breathe 1.9s ease-in-out infinite;
+}
+
+.reference-overlay[data-action="start-playable"] strong {
+  animation: breathe-text 1.9s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reference-overlay[data-action="start-playable"] .reference-overlay-badge,
+  .reference-overlay[data-action="start-playable"] strong {
+    animation: none;
+  }
 }
 
 .gameplay-notes {
   display: grid;
-  gap: 8px;
+  gap: 10px;
   margin: 0;
   padding: 0;
   list-style: none;
+  counter-reset: note;
 }
 
 .gameplay-notes li {
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  padding: 10px 12px;
-  color: var(--muted);
-  background: #ffffff;
+  display: grid;
+  grid-template-columns: 26px 1fr;
+  column-gap: 10px;
+  row-gap: 3px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 10px;
+  padding: 12px 14px;
+  background: rgba(255, 255, 255, 0.06);
+  counter-increment: note;
+}
+
+.gameplay-notes li::before {
+  content: counter(note);
+  grid-row: 1 / span 2;
+  display: grid;
+  width: 26px;
+  height: 26px;
+  place-items: center;
+  border-radius: 999px;
+  color: var(--ink);
+  background: var(--gold);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.gameplay-notes b {
+  color: #ffffff;
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.gameplay-notes span {
+  color: rgba(255, 255, 255, 0.78);
   font-size: 14px;
   line-height: 1.45;
 }
 
-.gameplay-notes li b {
-  color: var(--ink);
-  font-weight: 800;
+.reference-notes {
+  display: block;
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+  background: #0b0d12;
+  color: #ffffff;
 }
 
-@media (min-width: 768px) {
-  .howto-grid {
-    grid-template-columns: minmax(0, 320px) minmax(0, 1fr);
-    align-items: start;
-  }
+.notes-sheet {
+  display: grid;
+  width: min(560px, 100%);
+  min-height: 100%;
+  margin: 0 auto;
+  align-content: center;
+  gap: 12px;
+  padding: calc(28px + env(safe-area-inset-top)) 20px calc(28px + env(safe-area-inset-bottom));
+}
+
+.notes-sheet .eyebrow {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.notes-sheet h1 {
+  margin: 0;
+  color: #ffffff;
+  font-size: clamp(26px, 7vw, 36px);
+  line-height: 1.05;
+}
+
+.notes-sub {
+  margin: 0 0 6px;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 14px;
+}
+
+.notes-actions {
+  display: grid;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.notes-watch {
+  min-height: 56px;
+  font-size: 17px;
+}
+
+.notes-skip {
+  min-height: 48px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 8px;
+  color: rgba(255, 255, 255, 0.85);
+  background: transparent;
+  font-size: 15px;
+  font-weight: 750;
 }
 
 @media (max-width: 620px) {

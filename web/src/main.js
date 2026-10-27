@@ -59,7 +59,7 @@ const state = {
   error: "",
   fullscreenState: "idle",
   reloadNonce: 0,
-  playerPhase: "video"
+  playerPhase: "notes"
 };
 
 let fileInput;
@@ -195,7 +195,7 @@ function syncRoute() {
     // open-playable already rendered this playable inside the tap; a re-render here would restart its intro video.
     if (nextPlayable && nextPlayable.id === state.activePlayable?.id) return;
     state.audioUnlocked = false;
-    state.playerPhase = getReferenceVideo(nextPlayable) ? "video" : "playable";
+    state.playerPhase = getReferenceVideo(nextPlayable) ? "notes" : "playable";
     state.activePlayable = nextPlayable;
   } else {
     state.activePlayable = null;
@@ -236,8 +236,6 @@ function renderLibrary() {
   app.className = "app library-shell";
   const rows = getFilteredPlayables().map(renderPlayableRow).join("");
   const bootNotice = state.isBooting ? `<section class="status-strip">Opening library...</section>` : "";
-  const reference = REFERENCE_VIDEOS["Royal Match"];
-
   app.innerHTML = `
     <main class="library-page">
       <section class="library-hero">
@@ -271,23 +269,6 @@ function renderLibrary() {
         }
       </section>
 
-      <section class="list-section howto-section">
-        <div class="section-heading">
-          <div>
-            <p class="eyebrow">How to play</p>
-            <h2>Suggested matching flow</h2>
-          </div>
-        </div>
-        <div class="howto-grid">
-          <div class="guide-video howto-video" role="button" tabindex="0" aria-label="Play or pause the reference video">
-            <video src="${basePath}${reference.src}" poster="${basePath}${reference.poster}" playsinline preload="metadata" aria-hidden="true"></video>
-            <div class="guide-video-badge" aria-hidden="true">▶</div>
-          </div>
-          <ul class="gameplay-notes">
-            ${GAMEPLAY_NOTES.map((note) => `<li><b>${escapeHtml(note.label)}:</b> ${escapeHtml(note.body)}</li>`).join("")}
-          </ul>
-        </div>
-      </section>
 
       ${state.error ? `<div class="toast" role="alert">${escapeHtml(state.error)}</div>` : ""}
       ${state.settingsOpen ? renderSettingsSheet() : ""}
@@ -298,7 +279,6 @@ function renderLibrary() {
 
   fileInput = app.querySelector(".file-input");
   wireLibraryEvents();
-  wireTapVideos();
 }
 
 function renderSetupGuide() {
@@ -510,7 +490,7 @@ function renderPlayer() {
   document.body.classList.add("player-active");
   const item = state.activePlayable;
   const reference = getReferenceVideo(item);
-  if (reference && state.playerPhase === "video") {
+  if (reference && state.playerPhase !== "playable") {
     renderReferenceIntro(item, reference);
     return;
   }
@@ -533,7 +513,6 @@ function renderPlayer() {
       <button class="secret-zone secret-bottom-left" data-action="secret-tap" aria-label="Open controls"></button>
       <button class="secret-zone secret-bottom-right" data-action="secret-tap" aria-label="Open controls"></button>
       <button class="cta-retry-zone" data-action="cta-retry" aria-label="Retry playable"></button>
-      ${state.audioUnlocked ? "" : `<div class="player-audio-note">If audio does not start, tap once inside the playable.</div>`}
 
       <aside class="control-panel ${state.controlsOpen ? "open" : ""}" aria-hidden="${state.controlsOpen ? "false" : "true"}">
         <div>
@@ -555,6 +534,29 @@ function renderPlayer() {
 
 function renderReferenceIntro(item, reference) {
   app.className = "app player-shell";
+
+  if (state.playerPhase === "notes") {
+    app.innerHTML = `
+      <main class="player-page reference-notes">
+        <section class="notes-sheet">
+          <p class="eyebrow">How to play</p>
+          <h1>Suggested Matching Flow</h1>
+          <p class="notes-sub">Gameplay notes · ${escapeHtml(getDisplayName(item))}</p>
+          <ol class="gameplay-notes">
+            ${GAMEPLAY_NOTES.map((note) => `<li><b>${escapeHtml(note.label)}</b><span>${escapeHtml(note.body)}</span></li>`).join("")}
+          </ol>
+          <div class="notes-actions">
+            <button class="primary-button notes-watch" data-action="watch-reference">Watch the reference video</button>
+            <button class="notes-skip" data-action="start-playable">Skip to playable</button>
+          </div>
+        </section>
+        ${renderIntroChrome(item, "Gameplay notes")}
+      </main>
+    `;
+    wirePlayerEvents();
+    return;
+  }
+
   app.innerHTML = `
     <main class="player-page reference-intro">
       <video class="reference-video" src="${basePath}${reference.src}" poster="${basePath}${reference.poster}" playsinline preload="auto"></video>
@@ -568,22 +570,8 @@ function renderReferenceIntro(item, reference) {
         <strong>Tap to play the playable</strong>
         <small>${escapeHtml(getDisplayName(item))}</small>
       </button>
-      <button class="reference-skip" data-action="start-playable">Skip video</button>
-      <button class="secret-zone secret-top-left" data-action="secret-tap" aria-label="Open controls"></button>
-      <button class="secret-zone secret-top-right" data-action="secret-tap" aria-label="Open controls"></button>
-      <button class="secret-zone secret-bottom-left" data-action="secret-tap" aria-label="Open controls"></button>
-      <button class="secret-zone secret-bottom-right" data-action="secret-tap" aria-label="Open controls"></button>
-
-      <aside class="control-panel ${state.controlsOpen ? "open" : ""}" aria-hidden="${state.controlsOpen ? "false" : "true"}">
-        <div>
-          <p class="eyebrow">Reference video</p>
-          <h2>${escapeHtml(item.name)}</h2>
-        </div>
-        <div class="panel-actions">
-          <button class="primary-button" data-action="start-playable">Play now</button>
-          <button class="secondary-button" data-action="go-home">Home</button>
-        </div>
-      </aside>
+      <button class="reference-skip" data-action="start-playable">Skip video <span aria-hidden="true">›</span></button>
+      ${renderIntroChrome(item, "Reference video")}
     </main>
   `;
 
@@ -599,10 +587,29 @@ function renderReferenceIntro(item, reference) {
     skip.hidden = true;
   });
   wirePlayerEvents();
-  // Called inside the library tap, so sound is allowed; otherwise fall back to a tap-to-watch overlay.
+  // Started inside the "Watch" tap, so sound is allowed; otherwise fall back to a tap-to-watch overlay.
   video.play().catch(() => {
     watchOverlay.hidden = false;
   });
+}
+
+function renderIntroChrome(item, eyebrow) {
+  return `
+    <button class="secret-zone secret-top-left" data-action="secret-tap" aria-label="Open controls"></button>
+    <button class="secret-zone secret-top-right" data-action="secret-tap" aria-label="Open controls"></button>
+    <button class="secret-zone secret-bottom-left" data-action="secret-tap" aria-label="Open controls"></button>
+    <button class="secret-zone secret-bottom-right" data-action="secret-tap" aria-label="Open controls"></button>
+    <aside class="control-panel ${state.controlsOpen ? "open" : ""}" aria-hidden="${state.controlsOpen ? "false" : "true"}">
+      <div>
+        <p class="eyebrow">${escapeHtml(eyebrow)}</p>
+        <h2>${escapeHtml(item.name)}</h2>
+      </div>
+      <div class="panel-actions">
+        <button class="primary-button" data-action="start-playable">Play now</button>
+        <button class="secondary-button" data-action="go-home">Home</button>
+      </div>
+    </aside>
+  `;
 }
 
 function getReferenceVideo(item) {
@@ -753,7 +760,7 @@ async function handleLibraryAction(event) {
     state.activePlayable = item;
     state.audioUnlocked = false;
     state.controlsOpen = false;
-    state.playerPhase = getReferenceVideo(item) ? "video" : "playable";
+    state.playerPhase = getReferenceVideo(item) ? "notes" : "playable";
     if (state.playerPhase === "playable") requestFullscreen();
     location.hash = `#/player/${id}`;
     // Render inside the tap so the intro video may start with sound.
@@ -826,6 +833,11 @@ function handlePlayerAction(event) {
   }
   if (action === "request-fullscreen") {
     requestFullscreen();
+  }
+  if (action === "watch-reference") {
+    state.playerPhase = "video";
+    state.controlsOpen = false;
+    render();
   }
   if (action === "play-reference") {
     app.querySelector(".reference-video")?.play().catch(() => {});
