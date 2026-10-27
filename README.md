@@ -27,14 +27,14 @@ Then open the Network URL shown by Vite. Mobile PWA install works best from a se
 - Store the library on-device with IndexedDB.
 - Serve imported playable assets through a service worker virtual filesystem.
 - Launch playables in a full-viewport iframe.
-- Triple tap the top-left corner to reveal hidden controls.
+- Single-page setup guide with a looping video (tap to pause/resume), identical on every platform.
+- Tap any screen corner twice to reveal hidden controls.
 - Retry/reload, fullscreen, or return home from the control panel.
 - Detect App Store / Play Store link attempts and show a Retry / Home modal.
 - Load a built-in sample playable to test the store warning flow.
 
 ## Next Useful Additions
 
-- MRAID mock.
 - URL import and QR import flow.
 - Console/debug log panel.
 - Per-playable orientation notes.

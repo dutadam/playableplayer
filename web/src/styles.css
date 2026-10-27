@@ -247,59 +247,6 @@ h2 {
   font-weight: 800;
 }
 
-.onboarding-visual {
-  position: relative;
-  display: grid;
-  min-height: 0;
-  place-items: center;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  padding: 10px;
-  background: #ffffff;
-  overflow: hidden;
-}
-
-.onboarding-visual img {
-  display: block;
-  width: 100%;
-  height: min(46svh, 430px);
-  object-fit: contain;
-  border-radius: 6px;
-  background: #ffffff;
-}
-
-.onboarding-nav {
-  position: absolute;
-  top: 50%;
-  z-index: 2;
-  display: grid;
-  width: 44px;
-  height: 56px;
-  place-items: center;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  padding: 0;
-  color: var(--ink);
-  background: rgba(255, 255, 255, 0.92);
-  box-shadow: 0 8px 24px rgba(16, 19, 27, 0.12);
-  font-size: 34px;
-  font-weight: 650;
-  line-height: 1;
-  transform: translateY(-50%);
-}
-
-.onboarding-nav.previous {
-  left: 8px;
-}
-
-.onboarding-nav.next {
-  right: 8px;
-}
-
-.onboarding-nav:active {
-  transform: translateY(-50%) scale(0.96);
-}
-
 .onboarding-copy {
   display: grid;
   gap: 8px;
@@ -322,76 +269,102 @@ h2 {
   line-height: 1.45;
 }
 
-.onboarding-dots {
-  display: flex;
-  justify-content: center;
-  gap: 8px;
-}
-
-.onboarding-dots button {
-  width: 9px;
-  height: 9px;
-  border: 0;
-  border-radius: 999px;
-  padding: 0;
-  background: #c5cad6;
-}
-
-.onboarding-dots button.active {
-  width: 28px;
-  background: var(--dream-blue);
-}
-
-.share-hint {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 0;
-  color: var(--dream-blue);
-  font-weight: 800;
-}
-
-.share-hint svg {
-  width: 72px;
-  height: 44px;
-  flex: 0 0 72px;
-  stroke: currentColor;
-  stroke-width: 4;
-  fill: none;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-
-.install-card {
+.guide-video {
+  position: relative;
   display: grid;
-  gap: 8px;
+  place-items: center;
   border: 1px solid var(--line);
   border-radius: 8px;
-  padding: 14px;
+  padding: 10px;
   background: #ffffff;
+  overflow: hidden;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
 }
 
-.install-card strong,
-.install-card span {
+.guide-video video {
   display: block;
+  max-width: 100%;
+  height: min(44svh, 420px);
+  border-radius: 6px;
+  background: #000;
+  object-fit: contain;
 }
 
-.install-card strong {
-  color: var(--ink);
-  font-size: 16px;
+.guide-video-badge {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  display: grid;
+  width: 64px;
+  height: 64px;
+  place-items: center;
+  border-radius: 999px;
+  padding-left: 5px;
+  color: #ffffff;
+  background: rgba(16, 19, 27, 0.72);
+  font-size: 26px;
+  line-height: 1;
+  transform: translate(-50%, -50%);
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  pointer-events: none;
+}
+
+.guide-video.paused .guide-video-badge {
+  opacity: 1;
+}
+
+.guide-steps {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: step;
+}
+
+.guide-steps li {
+  display: grid;
+  grid-template-columns: 28px 1fr;
+  column-gap: 10px;
+  row-gap: 2px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px 12px;
+  background: #ffffff;
+  counter-increment: step;
+}
+
+.guide-steps li::before {
+  content: counter(step);
+  grid-row: 1 / span 2;
+  display: grid;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  border-radius: 999px;
+  color: #ffffff;
+  background: var(--dream-blue);
+  font-size: 13px;
   font-weight: 800;
 }
 
-.install-card span {
+.guide-steps strong {
+  color: var(--ink);
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.guide-steps span {
   color: var(--muted);
+  font-size: 14px;
   line-height: 1.4;
 }
 
-.install-arrow {
-  color: var(--dream-blue);
-  font-size: 34px;
-  font-weight: 900;
-  line-height: 1;
+.guide-steps b {
+  color: var(--ink);
+  font-weight: 700;
 }
 
 .onboarding-actions {
@@ -1048,12 +1021,6 @@ h2 {
 
   .onboarding-hero {
     min-height: calc(100svh - 36px);
-  }
-
-  .onboarding-nav {
-    width: 38px;
-    height: 50px;
-    font-size: 30px;
   }
 
   .onboarding-actions {

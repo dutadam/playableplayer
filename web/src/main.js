@@ -16,34 +16,6 @@ const BUNDLED_PLAYABLE_PACKS = [
   "RK_PL_Rep_14349_Improved-2026-07-17.zip"
 ];
 const EXPECTED_BUNDLED_PLAYABLE_COUNT = 4;
-const ONBOARDING_SHARED_STEPS = [
-  {
-    image: "onboarding/step-2.png",
-    title: "Show all actions",
-    body: "If Add to Home Screen is not visible, expand the share sheet with View More."
-  },
-  {
-    image: "onboarding/step-3.png",
-    title: "Choose Add to Home Screen",
-    body: "Select Add to Home Screen from the list. This lets the player open like an app."
-  },
-  {
-    image: "onboarding/step-4-add.png",
-    title: "Confirm the setup",
-    body: "Keep the name as Playable Player, leave Open as Web App enabled, then tap Add."
-  },
-  {
-    image: "onboarding/step-4.png",
-    title: "Launch from Home Screen",
-    body: "After setup, open Playable Player from its Home Screen icon for the clean fullscreen experience."
-  },
-  {
-    image: "onboarding/step-5.png",
-    title: "Load playables",
-    body: "Use Load Playable for bundled demos. Import your own files from Settings when needed."
-  }
-];
-
 const storedLanguageFilter = localStorage.getItem("language-filter");
 if (!localStorage.getItem(LANGUAGE_FILTER_MIGRATION_KEY) && (!storedLanguageFilter || storedLanguageFilter === "All")) {
   localStorage.setItem("language-filter", "English");
@@ -58,8 +30,7 @@ const state = {
   isImporting: false,
   loadProgress: null,
   installDismissed: localStorage.getItem(INSTALL_DISMISSED_KEY) === "1",
-  onboardingStep: 0,
-  installGuideOpen: false,
+  guideOpen: false,
   controlsOpen: false,
   storeIntent: null,
   pendingMetadata: null,
@@ -236,8 +207,8 @@ async function loadSortedPlayables() {
 function render() {
   if (state.activePlayable) {
     renderPlayer();
-  } else if (shouldShowInstallOnboarding()) {
-    state.installGuideOpen ? renderInstallGuide() : renderInstallOnboarding();
+  } else if (state.guideOpen || shouldShowInstallOnboarding()) {
+    renderSetupGuide();
   } else {
     renderLibrary();
   }
@@ -315,48 +286,10 @@ function renderLibrary() {
   wireLibraryEvents();
 }
 
-function renderInstallOnboarding() {
-  const steps = getOnboardingSteps();
-  const stepIndex = Math.min(Math.max(state.onboardingStep, 0), steps.length - 1);
-  const step = steps[stepIndex];
-  const isLastStep = stepIndex === steps.length - 1;
-
-  document.body.classList.remove("player-active");
-  app.className = "app onboarding-shell";
-  fileInput = null;
-  app.innerHTML = `
-    <main class="onboarding-page">
-      <section class="onboarding-hero">
-        <div class="onboarding-top">
-          ${renderDreamLogo()}
-          <span>${stepIndex + 1}/${steps.length}</span>
-        </div>
-        <div class="onboarding-visual">
-          ${stepIndex > 0 ? `<button class="onboarding-nav previous" data-action="prev-onboarding" aria-label="Back">‹</button>` : ""}
-          <img src="${basePath}${step.image}" alt="${escapeHtml(step.title)}" />
-          ${!isLastStep ? `<button class="onboarding-nav next" data-action="next-onboarding" aria-label="Next">›</button>` : ""}
-        </div>
-        <div class="onboarding-copy">
-          <p class="eyebrow">Setup</p>
-          <h1>${escapeHtml(step.title)}</h1>
-          <p>${escapeHtml(step.body)}</p>
-        </div>
-        <div class="onboarding-dots" aria-label="Onboarding progress">
-          ${steps.map((_, index) => `<button class="${index === stepIndex ? "active" : ""}" data-action="set-onboarding-step" data-step="${index}" aria-label="Go to step ${index + 1}"></button>`).join("")}
-        </div>
-        ${isLastStep ? `<div class="onboarding-actions"><button class="primary-button" data-action="finish-onboarding">Start</button></div>` : ""}
-      </section>
-      ${state.error ? `<div class="toast" role="alert">${escapeHtml(state.error)}</div>` : ""}
-    </main>
-  `;
-  wireLibraryEvents();
-}
-
-function renderInstallGuide() {
-  const platform = detectPlatform();
-  const canShare = platform !== "ios" && typeof navigator.share === "function";
-  const hasInstallPrompt = Boolean(deferredInstallPrompt);
-  const installLine = getInstallGuideShareText();
+function renderSetupGuide() {
+  const canInstall = Boolean(deferredInstallPrompt);
+  const canShare = typeof navigator.share === "function" && detectPlatform() !== "ios";
+  const hasInstallAction = canInstall || canShare;
 
   document.body.classList.remove("player-active");
   app.className = "app onboarding-shell";
@@ -364,37 +297,88 @@ function renderInstallGuide() {
   app.innerHTML = `
     <main class="onboarding-page">
       <section class="onboarding-hero setup-guide">
-        <div class="brand-row">
+        <div class="onboarding-top">
           ${renderDreamLogo()}
+          ${state.guideOpen ? `<button class="icon-button" data-action="finish-onboarding" aria-label="Close guide">×</button>` : `<span>Setup</span>`}
         </div>
+
+        <div class="guide-video" role="button" tabindex="0" aria-label="Play or pause the setup video">
+          <video
+            src="${basePath}onboarding/setup-guide.mp4"
+            poster="${basePath}onboarding/setup-guide-poster.jpg"
+            autoplay muted loop playsinline preload="auto"
+            aria-hidden="true"
+          ></video>
+          <div class="guide-video-badge" aria-hidden="true">▶</div>
+        </div>
+
         <div class="onboarding-copy">
           <p class="eyebrow">One-time setup</p>
-          <h1>Open as a fullscreen app.</h1>
-          <p>${installLine}</p>
+          <h1>Add Playable Player to your Home Screen.</h1>
+          <p>Browsers keep their own bars on screen. Opening the player from a Home Screen icon removes them so playables run fullscreen. The steps are the same on iPhone, Android and iPad.</p>
         </div>
-        <div class="install-card">
-          ${renderShareHint()}
-          <strong>${getInstallGuideCardTitle()}</strong>
-          <span>Websites cannot directly add themselves to the Home Screen. Finish setup from the browser menu, then open Playable Player from the Home Screen icon.</span>
+
+        <ol class="guide-steps">
+          <li>
+            <strong>Open the browser menu</strong>
+            <span>Tap the <b>···</b> or share button, then choose <b>Share</b>.</span>
+          </li>
+          <li>
+            <strong>Choose Add to Home Screen</strong>
+            <span>If it is not visible, tap <b>View More</b> to show every action.</span>
+          </li>
+          <li>
+            <strong>Confirm</strong>
+            <span>Keep the name, leave <b>Open as Web App</b> on, then tap <b>Add</b>.</span>
+          </li>
+          <li>
+            <strong>Launch from the icon</strong>
+            <span>Open Playable Player from the Home Screen, not from the browser.</span>
+          </li>
+          <li>
+            <strong>Play</strong>
+            <span>Pick a game, tap <b>Load Playable</b>, and the playable opens fullscreen.</span>
+          </li>
+        </ol>
+
+        <div class="onboarding-actions">
+          ${hasInstallAction ? `<button class="primary-button" data-action="open-share">${canInstall ? "Install app" : "Open share sheet"}</button>` : ""}
+          <button class="${hasInstallAction ? "secondary-button" : "primary-button"}" data-action="finish-onboarding">${isStandaloneMode() ? "Start" : "Continue in browser"}</button>
         </div>
-        ${canShare || hasInstallPrompt ? `<button class="primary-button" data-action="open-share">${hasInstallPrompt ? "Install app" : "Open share sheet"}</button>` : ""}
       </section>
       ${state.error ? `<div class="toast" role="alert">${escapeHtml(state.error)}</div>` : ""}
     </main>
   `;
   wireLibraryEvents();
+  wireGuideVideo();
 }
 
-function renderShareHint() {
-  return `
-    <div class="share-hint" aria-label="Safari share button">
-      <svg class="share-arrow" viewBox="0 0 72 44" aria-hidden="true">
-        <path d="M5 22h52" />
-        <path d="M45 10l12 12-12 12" />
-      </svg>
-      <span>Share → Add to Home Screen</span>
-    </div>
-  `;
+function wireGuideVideo() {
+  const wrapper = app.querySelector(".guide-video");
+  const video = wrapper?.querySelector("video");
+  if (!wrapper || !video) return;
+
+  const sync = () => wrapper.classList.toggle("paused", video.paused);
+  ["play", "playing", "pause"].forEach((name) => video.addEventListener(name, sync));
+
+  const toggle = () => {
+    if (video.paused) {
+      video.play().catch(sync);
+    } else {
+      video.pause();
+    }
+  };
+  wrapper.addEventListener("click", toggle);
+  wrapper.addEventListener("keydown", (event) => {
+    if (event.key === " " || event.key === "Enter") {
+      event.preventDefault();
+      toggle();
+    }
+  });
+
+  // Low Power Mode and some browsers block autoplay; fall back to the poster with a play badge.
+  video.play().catch(sync);
+  sync();
 }
 
 function renderPlayableRow(item) {
@@ -455,6 +439,7 @@ function renderSettingsSheet() {
           ${renderLoadProgress()}
           <button class="secondary-button" data-action="pick-file">Import HTML or ZIP</button>
           <button class="secondary-button" data-action="refresh">Refresh library</button>
+          <button class="secondary-button" data-action="open-guide">Setup guide</button>
           ${state.playables.length ? `<button class="secondary-button danger-action" data-action="clear-library">Clear library</button>` : ""}
         </div>
       </div>
@@ -674,30 +659,15 @@ async function handleLibraryAction(event) {
     state.settingsOpen = false;
     render();
   }
-  if (action === "mark-installed") {
+  if (action === "finish-onboarding") {
     localStorage.setItem(INSTALL_DISMISSED_KEY, "1");
     state.installDismissed = true;
+    state.guideOpen = false;
     render();
   }
-  if (action === "finish-onboarding") {
-    if (isStandaloneMode()) {
-      localStorage.setItem(INSTALL_DISMISSED_KEY, "1");
-      state.installDismissed = true;
-    } else {
-      state.installGuideOpen = true;
-    }
-    render();
-  }
-  if (action === "next-onboarding") {
-    state.onboardingStep = Math.min(state.onboardingStep + 1, getOnboardingSteps().length - 1);
-    render();
-  }
-  if (action === "prev-onboarding") {
-    state.onboardingStep = Math.max(state.onboardingStep - 1, 0);
-    render();
-  }
-  if (action === "set-onboarding-step") {
-    state.onboardingStep = Number(event.currentTarget.dataset.step || 0);
+  if (action === "open-guide") {
+    state.settingsOpen = false;
+    state.guideOpen = true;
     render();
   }
   if (action === "open-playable") {
@@ -1602,58 +1572,6 @@ async function requestFullscreen() {
 
 function shouldShowInstallOnboarding() {
   return !state.installDismissed && !isStandaloneMode();
-}
-
-function getOnboardingSteps() {
-  return [...getIntroOnboardingSteps(), ...ONBOARDING_SHARED_STEPS];
-}
-
-function getIntroOnboardingSteps() {
-  const platform = detectPlatform();
-  const browser = detectBrowser();
-  if (platform === "ios" && browser === "safari") {
-    return [{
-      image: "onboarding/safari-01.png",
-      title: "Open the Safari menu",
-      body: "Tap the ... button, then choose Share to start adding Playable Player."
-    }];
-  }
-  if (platform === "ios" && browser === "chrome-ios") {
-    return [{
-      image: "onboarding/chrome-01.png",
-      title: "Tap the Chrome share button",
-      body: "Use Chrome's share button to start adding Playable Player to your Home Screen."
-    }];
-  }
-  return [{
-    image: "onboarding/chrome-01.png",
-    title: "Open the browser menu",
-    body: "Open your browser menu, choose Share, then add Playable Player to your Home Screen."
-  }];
-}
-
-function getInstallGuideShareText() {
-  const platform = detectPlatform();
-  const browser = detectBrowser();
-  if (platform === "ios" && browser === "safari") {
-    return "Tap the ... button, choose Share, then Add to Home Screen.";
-  }
-  if (platform === "ios" && browser === "chrome-ios") {
-    return "Tap the Chrome share button, then choose Add to Home Screen.";
-  }
-  return "Install the app or choose Add to Home Screen, then launch from the new icon.";
-}
-
-function getInstallGuideCardTitle() {
-  const platform = detectPlatform();
-  const browser = detectBrowser();
-  if (platform === "ios" && browser === "chrome-ios") {
-    return "Use Chrome's share button";
-  }
-  if (platform === "ios" && browser === "safari") {
-    return "Use Safari's menu button";
-  }
-  return "Use the browser share button";
 }
 
 function isStandaloneMode() {
