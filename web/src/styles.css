@@ -1236,6 +1236,38 @@ h2 {
   font-size: 14px;
 }
 
+.notes-tip {
+  display: grid;
+  grid-template-columns: 34px 1fr;
+  align-items: center;
+  column-gap: 10px;
+  border: 1px dashed rgba(255, 210, 71, 0.55);
+  border-radius: 10px;
+  padding: 11px 14px;
+  color: rgba(255, 255, 255, 0.82);
+  background: rgba(255, 210, 71, 0.08);
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.notes-tip b {
+  color: #ffffff;
+  font-weight: 800;
+}
+
+.notes-tip-icon {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  border-radius: 999px;
+  color: var(--ink);
+  background: var(--gold);
+  font-size: 20px;
+  font-weight: 800;
+  line-height: 1;
+}
+
 .notes-actions {
   display: grid;
   gap: 10px;

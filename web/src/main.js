@@ -545,6 +545,10 @@ function renderReferenceIntro(item, reference) {
           <ol class="gameplay-notes">
             ${GAMEPLAY_NOTES.map((note) => `<li><b>${escapeHtml(note.label)}</b><span>${escapeHtml(note.body)}</span></li>`).join("")}
           </ol>
+          <div class="notes-tip">
+            <span class="notes-tip-icon" aria-hidden="true">↻</span>
+            <span><b>Player controls:</b> tap any corner of the screen 2–3 times to open the Retry / Home menu while the playable is running.</span>
+          </div>
           <div class="notes-actions">
             <button class="primary-button notes-watch" data-action="watch-reference">Watch the reference video</button>
             <button class="notes-skip" data-action="start-playable">Skip to playable</button>
