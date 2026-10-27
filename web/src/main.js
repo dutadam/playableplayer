@@ -13,9 +13,24 @@ const INSTALL_DISMISSED_KEY = "install-onboarding-dismissed-v2";
 const LANGUAGE_FILTER_MIGRATION_KEY = "language-filter-default-english-v1";
 const AUTO_UPDATE_KEY = "auto-update-on-launch";
 const BUNDLED_PLAYABLE_PACKS = [
-  "RK_PL_Rep_14349_Improved-2026-07-17.zip"
+  "RM_PL_Matching_Reference-2026-10-27.zip"
 ];
-const EXPECTED_BUNDLED_PLAYABLE_COUNT = 4;
+const EXPECTED_BUNDLED_PLAYABLE_COUNT = 1;
+// Royal Kingdom is parked for now: its entries stay in the library data but are not listed.
+const HIDDEN_GAMES = ["Royal Kingdom"];
+const REFERENCE_VIDEOS = {
+  "Royal Match": {
+    src: "reference/rm-matching-reference.mp4",
+    poster: "reference/rm-matching-reference-poster.jpg"
+  }
+};
+const GAMEPLAY_NOTES = [
+  { label: "Gameplay Direction", body: "Let's move the gameplay to the left, clearing a path for the rocks by making matches on the left side." },
+  { label: "Matching Flow", body: "You don't need to follow the exact same matches as the reference. The important thing is to keep clearing spaces on the left so the rocks can fall into them." },
+  { label: "Outcome", body: "Success. The King should be saved." },
+  { label: "Pacing", body: "Let's try to complete the gameplay within 15–16 seconds max, matching Neil's dialogue." },
+  { label: "Key Moment", body: "Watching the rocks move and fall into the empty spaces from above is really satisfying and makes viewers want to play the game themselves." }
+];
 const storedLanguageFilter = localStorage.getItem("language-filter");
 if (!localStorage.getItem(LANGUAGE_FILTER_MIGRATION_KEY) && (!storedLanguageFilter || storedLanguageFilter === "All")) {
   localStorage.setItem("language-filter", "English");
@@ -43,7 +58,8 @@ const state = {
   languageFilter: localStorage.getItem("language-filter") || "English",
   error: "",
   fullscreenState: "idle",
-  reloadNonce: 0
+  reloadNonce: 0,
+  playerPhase: "video"
 };
 
 let fileInput;
@@ -176,9 +192,10 @@ function syncRoute() {
   const match = location.hash.match(/^#\/player\/([^/]+)$/);
   if (match) {
     const nextPlayable = state.playables.find((item) => item.id === match[1]) || null;
-    if (nextPlayable?.id !== state.activePlayable?.id) {
-      state.audioUnlocked = false;
-    }
+    // open-playable already rendered this playable inside the tap; a re-render here would restart its intro video.
+    if (nextPlayable && nextPlayable.id === state.activePlayable?.id) return;
+    state.audioUnlocked = false;
+    state.playerPhase = getReferenceVideo(nextPlayable) ? "video" : "playable";
     state.activePlayable = nextPlayable;
   } else {
     state.activePlayable = null;
@@ -217,12 +234,9 @@ function render() {
 function renderLibrary() {
   document.body.classList.remove("player-active");
   app.className = "app library-shell";
-  const languageOptions = getAvailableLanguages();
-  const filteredItems = getFilteredPlayables();
-  const rows = filteredItems.map(renderPlayableRow).join("");
+  const rows = getFilteredPlayables().map(renderPlayableRow).join("");
   const bootNotice = state.isBooting ? `<section class="status-strip">Opening library...</section>` : "";
-  const royalMatchTheme = gameTheme("Royal Match");
-  const royalKingdomTheme = gameTheme("Royal Kingdom");
+  const reference = REFERENCE_VIDEOS["Royal Match"];
 
   app.innerHTML = `
     <main class="library-page">
@@ -235,44 +249,44 @@ function renderLibrary() {
         </div>
         <div class="hero-copy">
           <p class="eyebrow">Playable QA</p>
-          <h1>Creative library and fullscreen player.</h1>
+          <h1>Royal Match fullscreen player.</h1>
         </div>
       </section>
 
       ${bootNotice}
 
-      <section class="library-summary">
-        <button class="summary-card ${state.gameFilter === "Royal Match" ? "active" : ""}" style="--game-color: ${royalMatchTheme.primary}; --game-accent: ${royalMatchTheme.accent}; --game-soft: ${royalMatchTheme.soft}; --game-ink: ${royalMatchTheme.ink}" data-action="set-game-filter" data-game="Royal Match">
-          <strong>${countByGame("Royal Match")}</strong>
-          <span>Royal Match</span>
-        </button>
-        <button class="summary-card ${state.gameFilter === "Royal Kingdom" ? "active" : ""}" style="--game-color: ${royalKingdomTheme.primary}; --game-accent: ${royalKingdomTheme.accent}; --game-soft: ${royalKingdomTheme.soft}; --game-ink: ${royalKingdomTheme.ink}" data-action="set-game-filter" data-game="Royal Kingdom">
-          <strong>${countByGame("Royal Kingdom")}</strong>
-          <span>Royal Kingdom</span>
-        </button>
-      </section>
-
       <section class="list-section">
         <div class="section-heading">
           <div>
             <p class="eyebrow">Library</p>
-            <h2>${state.gameFilter || "Choose a game"}</h2>
-          </div>
-          <div class="filter-group">
-            <select class="filter-select" data-action="filter-language" aria-label="Filter by language">
-              ${languageOptions.map((language) => `<option value="${language}" ${state.languageFilter === language ? "selected" : ""}>${language}</option>`).join("")}
-            </select>
+            <h2>Royal Match</h2>
           </div>
         </div>
         ${
-          state.playables.length && !state.gameFilter
-            ? `<div class="empty-state subtle-empty">Choose Royal Match or Royal Kingdom to show playables.</div>`
-            : rows ||
+          rows ||
           `<div class="empty-state">
             ${renderLoadPlayableButton()}
             ${renderLoadProgress()}
           </div>`
         }
+      </section>
+
+      <section class="list-section howto-section">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">How to play</p>
+            <h2>Suggested matching flow</h2>
+          </div>
+        </div>
+        <div class="howto-grid">
+          <div class="guide-video howto-video" role="button" tabindex="0" aria-label="Play or pause the reference video">
+            <video src="${basePath}${reference.src}" poster="${basePath}${reference.poster}" playsinline preload="metadata" aria-hidden="true"></video>
+            <div class="guide-video-badge" aria-hidden="true">▶</div>
+          </div>
+          <ul class="gameplay-notes">
+            ${GAMEPLAY_NOTES.map((note) => `<li><b>${escapeHtml(note.label)}:</b> ${escapeHtml(note.body)}</li>`).join("")}
+          </ul>
+        </div>
       </section>
 
       ${state.error ? `<div class="toast" role="alert">${escapeHtml(state.error)}</div>` : ""}
@@ -284,6 +298,7 @@ function renderLibrary() {
 
   fileInput = app.querySelector(".file-input");
   wireLibraryEvents();
+  wireTapVideos();
 }
 
 function renderSetupGuide() {
@@ -299,7 +314,7 @@ function renderSetupGuide() {
       <section class="onboarding-hero setup-guide">
         <div class="onboarding-top">
           ${renderDreamLogo()}
-          ${state.guideOpen ? `<button class="icon-button" data-action="finish-onboarding" aria-label="Close guide">×</button>` : `<span>Setup</span>`}
+          ${state.guideOpen ? `<button class="icon-button" data-action="finish-onboarding" aria-label="Close guide">×</button>` : ""}
         </div>
 
         <div class="guide-video" role="button" tabindex="0" aria-label="Play or pause the setup video">
@@ -350,35 +365,36 @@ function renderSetupGuide() {
     </main>
   `;
   wireLibraryEvents();
-  wireGuideVideo();
+  wireTapVideos();
 }
 
-function wireGuideVideo() {
-  const wrapper = app.querySelector(".guide-video");
-  const video = wrapper?.querySelector("video");
-  if (!wrapper || !video) return;
+function wireTapVideos() {
+  app.querySelectorAll(".guide-video").forEach((wrapper) => {
+    const video = wrapper.querySelector("video");
+    if (!video) return;
 
-  const sync = () => wrapper.classList.toggle("paused", video.paused);
-  ["play", "playing", "pause"].forEach((name) => video.addEventListener(name, sync));
+    const sync = () => wrapper.classList.toggle("paused", video.paused);
+    ["play", "playing", "pause", "ended"].forEach((name) => video.addEventListener(name, sync));
 
-  const toggle = () => {
-    if (video.paused) {
-      video.play().catch(sync);
-    } else {
-      video.pause();
-    }
-  };
-  wrapper.addEventListener("click", toggle);
-  wrapper.addEventListener("keydown", (event) => {
-    if (event.key === " " || event.key === "Enter") {
-      event.preventDefault();
-      toggle();
-    }
+    const toggle = () => {
+      if (video.paused) {
+        video.play().catch(sync);
+      } else {
+        video.pause();
+      }
+    };
+    wrapper.addEventListener("click", toggle);
+    wrapper.addEventListener("keydown", (event) => {
+      if (event.key === " " || event.key === "Enter") {
+        event.preventDefault();
+        toggle();
+      }
+    });
+
+    // Autoplay can be blocked (Low Power Mode, some browsers); fall back to the poster with a play badge.
+    if (video.autoplay) video.play().catch(sync);
+    sync();
   });
-
-  // Low Power Mode and some browsers block autoplay; fall back to the poster with a play badge.
-  video.play().catch(sync);
-  sync();
 }
 
 function renderPlayableRow(item) {
@@ -493,6 +509,11 @@ function renderDreamLogo() {
 function renderPlayer() {
   document.body.classList.add("player-active");
   const item = state.activePlayable;
+  const reference = getReferenceVideo(item);
+  if (reference && state.playerPhase === "video") {
+    renderReferenceIntro(item, reference);
+    return;
+  }
   const source = `${basePath}playables/${encodeURIComponent(item.id)}/${encodePath(item.entryPath)}?r=${state.reloadNonce}`;
   const theme = gameTheme(item.game);
 
@@ -530,6 +551,62 @@ function renderPlayer() {
 
   wirePlayerEvents();
   requestFullscreenSoon();
+}
+
+function renderReferenceIntro(item, reference) {
+  app.className = "app player-shell";
+  app.innerHTML = `
+    <main class="player-page reference-intro">
+      <video class="reference-video" src="${basePath}${reference.src}" poster="${basePath}${reference.poster}" playsinline preload="auto"></video>
+      <button class="reference-overlay" data-action="play-reference" hidden>
+        <span class="reference-overlay-badge" aria-hidden="true">▶</span>
+        <strong>Tap to watch the reference</strong>
+        <small>Sound on</small>
+      </button>
+      <button class="reference-overlay" data-action="start-playable" hidden>
+        <span class="reference-overlay-badge" aria-hidden="true">▶</span>
+        <strong>Tap to play the playable</strong>
+        <small>${escapeHtml(getDisplayName(item))}</small>
+      </button>
+      <button class="reference-skip" data-action="start-playable">Skip video</button>
+      <button class="secret-zone secret-top-left" data-action="secret-tap" aria-label="Open controls"></button>
+      <button class="secret-zone secret-top-right" data-action="secret-tap" aria-label="Open controls"></button>
+      <button class="secret-zone secret-bottom-left" data-action="secret-tap" aria-label="Open controls"></button>
+      <button class="secret-zone secret-bottom-right" data-action="secret-tap" aria-label="Open controls"></button>
+
+      <aside class="control-panel ${state.controlsOpen ? "open" : ""}" aria-hidden="${state.controlsOpen ? "false" : "true"}">
+        <div>
+          <p class="eyebrow">Reference video</p>
+          <h2>${escapeHtml(item.name)}</h2>
+        </div>
+        <div class="panel-actions">
+          <button class="primary-button" data-action="start-playable">Play now</button>
+          <button class="secondary-button" data-action="go-home">Home</button>
+        </div>
+      </aside>
+    </main>
+  `;
+
+  const video = app.querySelector(".reference-video");
+  const watchOverlay = app.querySelector("[data-action='play-reference']");
+  const playOverlay = app.querySelector(".reference-overlay[data-action='start-playable']");
+  const skip = app.querySelector(".reference-skip");
+  video.addEventListener("play", () => {
+    watchOverlay.hidden = true;
+  });
+  video.addEventListener("ended", () => {
+    playOverlay.hidden = false;
+    skip.hidden = true;
+  });
+  wirePlayerEvents();
+  // Called inside the library tap, so sound is allowed; otherwise fall back to a tap-to-watch overlay.
+  video.play().catch(() => {
+    watchOverlay.hidden = false;
+  });
+}
+
+function getReferenceVideo(item) {
+  return item ? REFERENCE_VIDEOS[item.game] || null : null;
 }
 
 function renderStoreModal(intent) {
@@ -671,8 +748,16 @@ async function handleLibraryAction(event) {
     render();
   }
   if (action === "open-playable") {
-    requestFullscreen();
+    const item = state.playables.find((playable) => playable.id === id);
+    if (!item) return;
+    state.activePlayable = item;
+    state.audioUnlocked = false;
+    state.controlsOpen = false;
+    state.playerPhase = getReferenceVideo(item) ? "video" : "playable";
+    if (state.playerPhase === "playable") requestFullscreen();
     location.hash = `#/player/${id}`;
+    // Render inside the tap so the intro video may start with sound.
+    render();
   }
   if (action === "edit-playable") {
     state.pendingMetadata = null;
@@ -741,6 +826,16 @@ function handlePlayerAction(event) {
   }
   if (action === "request-fullscreen") {
     requestFullscreen();
+  }
+  if (action === "play-reference") {
+    app.querySelector(".reference-video")?.play().catch(() => {});
+  }
+  if (action === "start-playable") {
+    state.playerPhase = "playable";
+    state.controlsOpen = false;
+    state.audioUnlocked = false;
+    requestFullscreen();
+    render();
   }
   if (action === "go-home") {
     location.hash = "#/";
@@ -963,7 +1058,7 @@ async function loadDemoPlayables() {
       title: "Load complete",
       message: `Loaded ${importedItems.length} of ${EXPECTED_BUNDLED_PLAYABLE_COUNT} bundled playables.`,
       detail: importedItems.length === EXPECTED_BUNDLED_PLAYABLE_COUNT
-        ? "You can now filter by game and language."
+        ? "Tap the playable to start."
         : "Some variants did not finish. Tap Load Playable again to continue."
     });
   } catch (error) {
@@ -1031,7 +1126,7 @@ async function fetchArrayBufferWithProgress(url, onProgress) {
 
 function prettifyPackName(packName) {
   return packName
-    .replace(/-2026-07-17\.zip$/i, "")
+    .replace(/-\d{4}-\d{2}-\d{2}\.zip$/i, "")
     .replace(/^RK_PL_/i, "Royal Kingdom ")
     .replace(/^RM_PL_/i, "Royal Match ")
     .replace(/_/g, " ");
@@ -1083,7 +1178,7 @@ function getBundledPlayableInfo(sourceName, packName, html = "") {
   const game = /^RK_/i.test(sourceName) ? "Royal Kingdom" : /^RM_/i.test(sourceName) ? "Royal Match" : "Other";
   const language = inferLanguageFromFilename(sourceName);
   const baseName = sourceName
-    .replace(/_applovin\.html?$/i, "")
+    .replace(/_(applovin|luna)\.html?$/i, "")
     .replace(/\.html?$/i, "");
   const creativeType = /_STK_/i.test(baseName) ? "Storefront" : "Gameplay";
   const details = getBundledPlayableDetails(baseName, html);
@@ -1102,7 +1197,7 @@ function getBundledPlayableDetails(baseName, html) {
   const source = `${baseName}\n${html}`.toLowerCase();
   const tags = new Set(["playable-pack"]);
   const id = baseName.match(/_(\d+)(?:_|$)/)?.[1] || "";
-  let concept = /ugc/i.test(baseName) ? "UGC Puzzle Repair" : "Puzzle Repair";
+  let concept = /matching/i.test(baseName) ? "Matching Flow" : /ugc/i.test(baseName) ? "UGC Puzzle Repair" : "Puzzle Repair";
 
   if (/_stk_/i.test(baseName) || /twoitemleveldata|threeitemleveldata/i.test(html)) {
     concept = "Richard's Journey";
@@ -1140,7 +1235,7 @@ function createBundledPlayableName(baseName, game, language, packName, details) 
 
 function inferLanguageFromFilename(sourceName) {
   const normalized = sourceName.replace(/\s+/g, "");
-  const match = normalized.match(/_((?:ZH_TW)|EN|TR|FR|DE|IT|ES|PT|JP|KR)_applovin\.html?$/i);
+  const match = normalized.match(/_((?:ZH_TW)|EN|TR|FR|DE|IT|ES|PT|JP|KR)(?:_[a-z0-9]+)?\.html?$/i);
   const code = match?.[1]?.toUpperCase();
   const languages = {
     TR: "Turkish",
@@ -1341,11 +1436,7 @@ function normalizePlayable(item) {
 }
 
 function getFilteredPlayables() {
-  return state.playables.filter((item) => {
-    const gameMatches = state.gameFilter && (item.game || "Unassigned") === state.gameFilter;
-    const languageMatches = state.languageFilter === "All" || (item.language || "Unknown") === state.languageFilter;
-    return gameMatches && languageMatches;
-  });
+  return state.playables.filter((item) => !HIDDEN_GAMES.includes(item.game));
 }
 
 function getAvailableLanguages() {
@@ -1358,14 +1449,6 @@ function reconcileLanguageFilter() {
   if (!available.length || available.includes(state.languageFilter)) return;
   state.languageFilter = available.includes("English") ? "English" : available[0];
   localStorage.setItem("language-filter", state.languageFilter);
-}
-
-function countByGame(game) {
-  return state.playables.filter((item) => {
-    const gameMatches = item.game === game;
-    const languageMatches = state.languageFilter === "All" || (item.language || "Unknown") === state.languageFilter;
-    return gameMatches && languageMatches;
-  }).length;
 }
 
 function getPlayableTags(item) {

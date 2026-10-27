@@ -27,11 +27,13 @@ Then open the Network URL shown by Vite. Mobile PWA install works best from a se
 - Store the library on-device with IndexedDB.
 - Serve imported playable assets through a service worker virtual filesystem.
 - Launch playables in a full-viewport iframe.
+- Royal Match playables open with the matching-flow reference video first; when it ends, a tap starts the playable.
+- Library shows Royal Match only for now (Royal Kingdom entries are hidden, not deleted) plus a How to play section with the gameplay notes.
 - Single-page setup guide with a looping video (tap to pause/resume), identical on every platform.
 - Tap any screen corner twice to reveal hidden controls.
 - Retry/reload, fullscreen, or return home from the control panel.
 - Detect App Store / Play Store link attempts and show a Retry / Home modal.
-- Load a built-in sample playable to test the store warning flow.
+- Load Playable pulls the bundled Royal Match pack (Luna playground wrapper; the playable itself streams from assets.lunalabs.io).
 
 ## Next Useful Additions
 

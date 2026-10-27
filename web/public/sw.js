@@ -2,7 +2,7 @@ const DB_NAME = "playable-player-db";
 const DB_VERSION = 1;
 const PLAYABLE_STORE = "playables";
 const FILE_STORE = "files";
-const APP_CACHE = "playable-player-shell-v22";
+const APP_CACHE = "playable-player-shell-v23";
 
 const STORE_HOSTS = [
   "apps.apple.com",
@@ -39,7 +39,7 @@ self.addEventListener("fetch", (event) => {
   }
 
   const relativePath = getScopeRelativePath(url.pathname);
-  if (relativePath.startsWith("bundled-playables/")) {
+  if (relativePath.startsWith("bundled-playables/") || /\.(mp4|webm|m4v|mov)$/i.test(relativePath)) {
     return;
   }
 

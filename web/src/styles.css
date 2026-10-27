@@ -1031,6 +1031,126 @@ h2 {
   background: #101318;
 }
 
+.reference-intro {
+  display: grid;
+  place-items: center;
+}
+
+.reference-video {
+  display: block;
+  width: 100vw;
+  height: 100dvh;
+  background: #000;
+  object-fit: contain;
+}
+
+.reference-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 6;
+  display: grid;
+  place-content: center;
+  gap: 10px;
+  border: 0;
+  padding: 24px;
+  color: #ffffff;
+  background: rgba(0, 0, 0, 0.58);
+  text-align: center;
+}
+
+.reference-overlay[hidden],
+.reference-skip[hidden] {
+  display: none;
+}
+
+.reference-overlay-badge {
+  display: grid;
+  width: 88px;
+  height: 88px;
+  margin: 0 auto 6px;
+  place-items: center;
+  border-radius: 999px;
+  padding-left: 7px;
+  color: var(--ink);
+  background: var(--gold);
+  font-size: 36px;
+  line-height: 1;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.4);
+}
+
+.reference-overlay strong {
+  font-size: 22px;
+  font-weight: 800;
+}
+
+.reference-overlay small {
+  color: rgba(255, 255, 255, 0.75);
+  font-size: 14px;
+}
+
+.reference-skip {
+  position: fixed;
+  right: 16px;
+  bottom: calc(16px + env(safe-area-inset-bottom));
+  z-index: 6;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 999px;
+  padding: 10px 16px;
+  color: #ffffff;
+  background: rgba(0, 0, 0, 0.5);
+  font-size: 14px;
+  font-weight: 750;
+}
+
+.howto-section {
+  margin-top: 24px;
+}
+
+.howto-grid {
+  display: grid;
+  gap: 14px;
+}
+
+.howto-video video {
+  max-height: 60svh;
+  aspect-ratio: 9 / 16;
+}
+
+.howto-video {
+  width: fit-content;
+  justify-self: center;
+}
+
+.gameplay-notes {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.gameplay-notes li {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px 12px;
+  color: var(--muted);
+  background: #ffffff;
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.gameplay-notes li b {
+  color: var(--ink);
+  font-weight: 800;
+}
+
+@media (min-width: 768px) {
+  .howto-grid {
+    grid-template-columns: minmax(0, 320px) minmax(0, 1fr);
+    align-items: start;
+  }
+}
+
 @media (max-width: 620px) {
   .onboarding-page:has(.setup-guide) {
     padding-left: 0;
